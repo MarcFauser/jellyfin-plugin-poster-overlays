@@ -40,8 +40,17 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 - API routes `POST /PosterOverlays/Apply/{itemId}`, `POST /PosterOverlays/Restore/{itemId}` and
   `GET /PosterOverlays/Status`, plus a box on the settings page that calls them.
 
+- `build.ps1`, `manifest.json`, a README and a catalogue logo, so the plugin can be installed
+  from a repository URL instead of by hand.
+
 ### Changed
 
+- SkiaSharp is referenced with `IncludeAssets="compile"` instead of `ExcludeAssets="runtime"`.
+  The managed assembly was already left out, but native assets are a separate asset group and
+  travelled regardless: the first packages came out at 19 MB and 86 MB, carrying Windows and
+  macOS copies of `libSkiaSharp` that a Linux server has no use for and that would shadow the
+  server's own. They are now 280 KB. `build.ps1` prunes recursively and asserts on the packed
+  ZIP rather than on the staging folder, because the flat prune is what let this through.
 - `CA3003` is lowered to a suggestion in `.editorconfig`, matching the setting in the Jellyfin
   server's own `.editorconfig`. The analyser treats every ASP.NET route parameter as tainted
   regardless of type, so a `Guid` route reaching any file operation is reported - including

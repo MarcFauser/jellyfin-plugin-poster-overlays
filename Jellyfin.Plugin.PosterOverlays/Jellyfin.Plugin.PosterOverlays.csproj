@@ -52,21 +52,29 @@
   </ItemGroup>
 
   <!-- ExcludeAssets="runtime": the server ships these assemblies itself, the plugin must
-       not place copies next to its own DLL. For SkiaSharp this is not merely tidy - the
-       plugin is loaded into its own collectible AssemblyLoadContext, so a shipped copy
-       would be loaded a second time alongside the host's, with its own native handles.
+       not place copies next to its own DLL.
+
+       SkiaSharp needs IncludeAssets="compile" rather than ExcludeAssets="runtime", and the
+       difference was measured rather than reasoned about: with ExcludeAssets="runtime" the
+       managed assembly is indeed left out, but the NATIVE assets are a separate asset group
+       and travelled anyway. The packages came out at 19 MB and 86 MB, carrying
+       runtimes/win-x64, win-x86, win-arm64 and osx copies of libSkiaSharp - useless on a
+       Linux server, and exactly the second copy this reference is supposed to prevent.
+       IncludeAssets="compile" says what is actually meant: reference it to compile, ship
+       nothing. build.ps1 asserts the result on the packed ZIP as well.
+
        The SkiaSharp versions are the ones the server itself references, read from
        Directory.Packages.props of each branch (measured 2026-08-22). -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <PackageReference Include="Jellyfin.Controller" Version="10.11.11" ExcludeAssets="runtime" />
     <PackageReference Include="Jellyfin.Model" Version="10.11.11" ExcludeAssets="runtime" />
-    <PackageReference Include="SkiaSharp" Version="3.116.1" ExcludeAssets="runtime" />
+    <PackageReference Include="SkiaSharp" Version="3.116.1" IncludeAssets="compile" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Jellyfin.Controller" Version="12.0.0-rc3" ExcludeAssets="runtime" />
     <PackageReference Include="Jellyfin.Model" Version="12.0.0-rc3" ExcludeAssets="runtime" />
-    <PackageReference Include="SkiaSharp" Version="3.119.4" ExcludeAssets="runtime" />
+    <PackageReference Include="SkiaSharp" Version="3.119.4" IncludeAssets="compile" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
