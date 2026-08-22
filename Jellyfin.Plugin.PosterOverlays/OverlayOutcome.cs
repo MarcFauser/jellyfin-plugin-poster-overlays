@@ -36,6 +36,13 @@ internal enum OverlayOutcome
     /// </summary>
     OriginalMissing,
 
+    /// <summary>
+    /// The cached original is not the image the record describes - something wrote over it.
+    /// Nothing was drawn, because the only safe original left is the one a provider can deliver.
+    /// The repair task collects these.
+    /// </summary>
+    CacheInconsistent,
+
     /// <summary>Something went wrong; the log carries the reason.</summary>
     Failed,
 }

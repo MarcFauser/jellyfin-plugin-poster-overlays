@@ -89,6 +89,14 @@ public sealed class OverlayRefreshWatcher : IHostedService, IDisposable
             return;
         }
 
+        // Our own upload raises this event too. Skipping while the applier still has the item
+        // open is what stops the watcher from reading a half-finished state and concluding the
+        // image it is looking at is an untouched original.
+        if (OverlayApplier.IsBusy(movie.Id))
+        {
+            return;
+        }
+
         // The event is raised on Jellyfin's own thread while it is still finishing the update.
         // Doing the work here would block the refresh, so it is handed off - and the item is
         // marked in flight so a burst of events for one item does not start several passes.
@@ -110,7 +118,7 @@ public sealed class OverlayRefreshWatcher : IHostedService, IDisposable
                 return;
             }
 
-            var store = new OverlayStateStore(plugin.DataFolderPath);
+            var store = OverlayStateStore.Shared(plugin.DataFolderPath);
             var applier = new OverlayApplier(_providerManager, _logger, plugin.Configuration, store);
 
             var outcome = await applier.ApplyAsync(item, _shutdown.Token).ConfigureAwait(false);

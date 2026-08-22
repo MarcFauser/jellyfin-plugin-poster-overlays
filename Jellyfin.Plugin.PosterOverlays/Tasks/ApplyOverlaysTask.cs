@@ -88,7 +88,7 @@ public sealed class ApplyOverlaysTask : IScheduledTask
             return;
         }
 
-        var store = new OverlayStateStore(plugin.DataFolderPath);
+        var store = OverlayStateStore.Shared(plugin.DataFolderPath);
         var applier = new OverlayApplier(_providerManager, _logger, config, store);
 
         var items = _libraryManager.GetItemList(new InternalItemsQuery
@@ -188,7 +188,7 @@ public sealed class ApplyOverlaysTask : IScheduledTask
             "Poster overlays: {Total} items - {First} badged for the first time, {Replaced} had a new cover from a "
             + "provider and were badged again, {Changed} redrawn because the badge set changed, {Restored} restored, "
             + "{Unchanged} already correct, {NoImage} without an image, {Missing} skipped because the cached original "
-            + "was gone, {Failed} failed.",
+            + "was gone, {Damaged} skipped because the cached original was overwritten, {Failed} failed.",
             total,
             counts.GetValueOrDefault(OverlayOutcome.FirstRun),
             counts.GetValueOrDefault(OverlayOutcome.CoverReplaced),
@@ -197,7 +197,18 @@ public sealed class ApplyOverlaysTask : IScheduledTask
             counts.GetValueOrDefault(OverlayOutcome.Unchanged),
             counts.GetValueOrDefault(OverlayOutcome.NoImage),
             counts.GetValueOrDefault(OverlayOutcome.OriginalMissing),
+            counts.GetValueOrDefault(OverlayOutcome.CacheInconsistent),
             counts.GetValueOrDefault(OverlayOutcome.Failed));
+
+        int damaged = counts.GetValueOrDefault(OverlayOutcome.CacheInconsistent);
+        if (damaged > 0)
+        {
+            _logger.LogWarning(
+                "Poster overlays: {Damaged} items have a cached original that is no longer the image the record "
+                + "describes, so nothing was drawn on them - another layer would not come off again. Run "
+                + "\"Repair poster overlays\" to fetch a fresh cover from the provider for those.",
+                damaged);
+        }
 
         // The finding the badges cannot express, reported rather than hidden: several entries
         // share one film and end up with identical badges, so the tiles stay indistinguishable.

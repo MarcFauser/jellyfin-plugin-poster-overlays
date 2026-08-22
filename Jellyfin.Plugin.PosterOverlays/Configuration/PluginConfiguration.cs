@@ -50,9 +50,22 @@ public class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>
     /// Gets or sets how many badges may be drawn on one image. Anything beyond this is dropped
-    /// by priority, edition first.
+    /// from the end of the stack, so the order below decides what survives.
     /// </summary>
     public int MaxBadges { get; set; } = 3;
+
+    /// <summary>
+    /// Gets or sets the order the badge categories are stacked in, top first, as a comma
+    /// separated list of <see cref="Badges.BadgeCategory"/> names.
+    /// </summary>
+    /// <remarks>
+    /// This is also the priority: when there are more badges than <see cref="MaxBadges"/>, the
+    /// ones at the end are dropped. Edition comes first by default because it is the reason the
+    /// plugin exists - two folders of one film differ in the cut, not in the resolution.
+    /// Unknown names are ignored, and any category missing from the list is appended in its
+    /// natural order rather than silently dropped.
+    /// </remarks>
+    public string BadgeOrder { get; set; } = "Edition,Resolution,VideoRange,Source";
 
     /// <summary>
     /// Gets or sets the pill height as a percentage of the image height.

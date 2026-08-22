@@ -76,7 +76,7 @@ public class PosterOverlaysController : ControllerBase
             return NotFound();
         }
 
-        var store = new OverlayStateStore(plugin.DataFolderPath);
+        var store = OverlayStateStore.Shared(plugin.DataFolderPath);
         var applier = new OverlayApplier(_providerManager, _logger, plugin.Configuration, store);
         var outcome = await applier.ApplyAsync(item, cancellationToken).ConfigureAwait(false);
 
@@ -121,7 +121,7 @@ public class PosterOverlaysController : ControllerBase
             return NotFound();
         }
 
-        var store = new OverlayStateStore(plugin.DataFolderPath);
+        var store = OverlayStateStore.Shared(plugin.DataFolderPath);
         var applier = new OverlayApplier(_providerManager, _logger, plugin.Configuration, store);
         bool restored = await applier.RestoreAsync(item, cancellationToken).ConfigureAwait(false);
 
@@ -154,10 +154,10 @@ public class PosterOverlaysController : ControllerBase
             return StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        var store = new OverlayStateStore(plugin.DataFolderPath);
+        var store = OverlayStateStore.Shared(plugin.DataFolderPath);
         return new OverlayStatusDto
         {
-            BadgedItems = store.Count,
+            BadgedItems = store.CountRecords(),
             DryRun = plugin.Configuration.DryRun,
             WatchForImageChanges = plugin.Configuration.WatchForImageChanges,
         };

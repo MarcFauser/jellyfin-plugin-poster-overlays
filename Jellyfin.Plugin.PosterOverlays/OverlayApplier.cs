@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -35,6 +36,19 @@ namespace Jellyfin.Plugin.PosterOverlays;
 /// </remarks>
 internal sealed class OverlayApplier
 {
+    /// <summary>
+    /// Items this plugin is writing to right now.
+    /// </summary>
+    /// <remarks>
+    /// Static, because the scheduled task and the image-change watcher are different objects
+    /// working on the same library. Saving an image raises <c>ItemUpdated</c> while the applier
+    /// is still between the upload and the record it is about to write, and in that window the
+    /// watcher would look the item up, find nothing, and treat the image the applier had just
+    /// uploaded as an untouched original. The shared store closes most of that window; this
+    /// closes the rest.
+    /// </remarks>
+    private static readonly ConcurrentDictionary<Guid, byte> Busy = new();
+
     private readonly IProviderManager _providerManager;
     private readonly ILogger _logger;
     private readonly PluginConfiguration _config;
@@ -73,6 +87,43 @@ internal sealed class OverlayApplier
     {
         ArgumentNullException.ThrowIfNull(item);
 
+        if (!Busy.TryAdd(item.Id, 0))
+        {
+            // Somebody else is already working on this item. Waiting would only produce a
+            // second identical answer.
+            return OverlayOutcome.Skipped;
+        }
+
+        try
+        {
+            return await ApplyCoreAsync(item, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            Busy.TryRemove(item.Id, out _);
+        }
+    }
+
+    /// <summary>
+    /// Says whether the plugin is currently writing to an item.
+    /// </summary>
+    /// <param name="itemId">The item id.</param>
+    /// <returns>True while an apply or restore is in progress for it.</returns>
+    public static bool IsBusy(Guid itemId) => Busy.ContainsKey(itemId);
+
+    /// <summary>
+    /// Claims an item so the watcher leaves it alone, for callers outside this class that write
+    /// an image themselves - the repair task does.
+    /// </summary>
+    /// <param name="itemId">The item id.</param>
+    /// <returns>A handle to release the claim, or null when somebody else already holds it.</returns>
+    public static IDisposable? TryHold(Guid itemId)
+    {
+        return Busy.TryAdd(itemId, 0) ? new Hold(itemId) : null;
+    }
+
+    private async Task<OverlayOutcome> ApplyCoreAsync(BaseItem item, CancellationToken cancellationToken)
+    {
         string id = Key(item);
         if (_excluded.Contains(id))
         {
@@ -104,6 +155,17 @@ internal sealed class OverlayApplier
         byte[] current = await File.ReadAllBytesAsync(currentPath, cancellationToken).ConfigureAwait(false);
         string currentHash = OverlayStateStore.Hash(current);
         var record = _store.Get(id);
+
+        // Before anything is decided: is the cached original still the image the record claims?
+        // If not, something wrote over it, and on this plugin's own first release that something
+        // was an already badged copy. Neither branch below is safe then - drawing would add a
+        // layer, and restoring would hand back a badged image as though it were the original.
+        // So nothing happens here and the repair task picks it up.
+        if (record is not null && !_store.OriginalIsIntact(id, record))
+        {
+            return OverlayOutcome.CacheInconsistent;
+        }
+
         bool oursOnTheItem = record is not null && string.Equals(currentHash, record.BadgedHash, StringComparison.Ordinal);
 
         if (built.Badges.Count == 0)
@@ -211,10 +273,36 @@ internal sealed class OverlayApplier
     {
         ArgumentNullException.ThrowIfNull(item);
 
+        if (!Busy.TryAdd(item.Id, 0))
+        {
+            return false;
+        }
+
+        try
+        {
+            return await RestoreCoreAsync(item, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            Busy.TryRemove(item.Id, out _);
+        }
+    }
+
+    private async Task<bool> RestoreCoreAsync(BaseItem item, CancellationToken cancellationToken)
+    {
         string id = Key(item);
         var record = _store.Get(id);
         if (record is null)
         {
+            return false;
+        }
+
+        if (!_store.OriginalIsIntact(id, record))
+        {
+            _logger.LogWarning(
+                "Poster overlays: {Name} was NOT restored - its cached original is not the image the record "
+                + "describes, so putting it back would hand over a badged copy as an original. Run the repair task.",
+                item.Name);
             return false;
         }
 
@@ -331,5 +419,23 @@ internal sealed class OverlayApplier
         }
 
         return OverlayStateStore.Hash(bytes);
+    }
+
+    /// <summary>
+    /// Releases a claim taken with <see cref="TryHold"/>.
+    /// </summary>
+    private sealed class Hold : IDisposable
+    {
+        private readonly Guid _itemId;
+
+        public Hold(Guid itemId)
+        {
+            _itemId = itemId;
+        }
+
+        public void Dispose()
+        {
+            Busy.TryRemove(_itemId, out _);
+        }
     }
 }

@@ -9,6 +9,28 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Fixed
+
+- **Badges could be drawn twice.** The scheduled task and the image-change watcher each kept
+  their own state, and the task only wrote its records to disk when the whole run had finished.
+  So the watcher, reacting to an upload the task had just made, read an empty file, concluded it
+  had never seen the item, cached the freshly badged image as the "original" and drew a second
+  badge over it. Two identical stacks land on the same pixels and are invisible, which is what
+  made it dangerous rather than merely wrong: nothing looked broken, but the cached original was
+  no longer an original and every later run would have added another layer. Measured on a real
+  library: 417 of 439 badged items in one run. There is now one shared store, a write to disk
+  after every item, and a per-item claim the watcher respects while the applier holds it.
+- **A damaged cache is now detected and stops the run for that item.** If the cached original no
+  longer hashes to what the record says, nothing is drawn and nothing is restored - a layer does
+  not come off again. The new "Repair poster overlays" task collects those items and fetches a
+  fresh primary image from the metadata provider, which is the only true original left. It
+  respects the dry run switch.
+- **The settings page could not be saved.** Three faults at once: the style and corner selects
+  used numeric option values while the server sends and expects the enum names, so the selects
+  silently fell back to their first entry; an empty number field became `NaN`, which JSON turns
+  into `null`, which the server refuses; and the save had no error handler, so the failure showed
+  up as a loading indicator that never stopped. It now reports what went wrong instead.
+
 ### Added
 
 - Project scaffolding: multi-targeted `net9.0` / `net10.0` project, Jellyfin ruleset,
@@ -42,6 +64,9 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 - `build.ps1`, `manifest.json`, a README and a catalogue logo, so the plugin can be installed
   from a repository URL instead of by hand.
+- The badge order is configurable, as a list on the settings page that can be sorted with the
+  arrow buttons. The order is also the priority: what falls off when there are more badges than
+  the maximum is what sits at the bottom.
 
 ### Changed
 

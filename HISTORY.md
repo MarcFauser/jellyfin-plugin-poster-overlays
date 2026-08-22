@@ -72,3 +72,34 @@ SkiaSharp is referenced compile-only at the version the server itself carries: 3
 Jellyfin 10.11, 3.119.4 for Jellyfin 12, both read from `Directory.Packages.props` of the
 respective branch. Shipping a copy would load a second SkiaSharp into the plugin's own
 assembly load context, with its own native handles.
+
+## 2026-08-22, later — the first run on a real library, and what it broke
+
+The badges themselves were right on the first attempt: two entries of one film became
+distinguishable on the tile, which is the whole point. Everything around them was not.
+
+**The settings page could not be saved, and said nothing.** The style and corner selects used
+numeric option values while the server sends and expects the enum names, so on load nothing
+matched and the select fell back to its first entry; an empty number field became `NaN`, which
+JSON turns into `null`, which the server refuses; and there was no error handler, so a rejected
+save showed up as a loading indicator that spun forever. The user therefore could not switch the
+dry run on — and believed he had.
+
+**So the first run was a real one.** 2372 items, 439 badged, 7 minutes 51.
+
+**And 417 of those 439 were badged twice.** The scheduled task and the image-change watcher each
+built their own state store, and the task only wrote its records to disk when the whole run had
+finished. The watcher, woken by an upload the task had just made, read an empty file, concluded
+it had never seen the item, cached the freshly badged image as the "original", and drew a second
+badge on top. Two identical stacks land on the same pixels, so nothing looked wrong at all.
+
+That is the part worth remembering. The claim in the previous section — *it cannot loop, because
+the second pass finds the hash it just recorded* — was stated twice with confidence and was only
+half true. Idempotence protects nothing when the two sides read different books. The fix is one
+shared store, a write to disk after every single item, and a per-item claim the watcher honours
+while the applier still has the item open.
+
+**A badged image cannot be un-badged**, so for the affected items the cached "original" is lost
+and the only true original left is the one the provider still has. Hence two more things: a
+check that refuses to draw on or restore from a cache whose hash no longer matches its record,
+and a repair task that fetches a fresh primary image for exactly those items.

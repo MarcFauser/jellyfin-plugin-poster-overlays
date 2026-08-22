@@ -20,7 +20,10 @@ namespace Jellyfin.Plugin.PosterOverlays.State;
 internal sealed class OverlayStateStore
 {
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
+    private static readonly object SharedLock = new();
+    private static OverlayStateStore? _shared;
 
+    private readonly object _gate = new();
     private readonly string _root;
     private readonly string _statePath;
     private readonly string _originalsPath;
@@ -29,8 +32,13 @@ internal sealed class OverlayStateStore
     /// <summary>
     /// Initializes a new instance of the <see cref="OverlayStateStore"/> class.
     /// </summary>
+    /// <remarks>
+    /// Internal rather than private so a test can point one at its own folder. Everything in the
+    /// plugin itself goes through <see cref="Shared"/> - two stores over one folder is the bug
+    /// this class was rewritten for.
+    /// </remarks>
     /// <param name="dataFolderPath">The plugin's own data folder.</param>
-    public OverlayStateStore(string dataFolderPath)
+    internal OverlayStateStore(string dataFolderPath)
     {
         _root = dataFolderPath;
         _statePath = Path.Combine(_root, "state.json");
@@ -39,15 +47,55 @@ internal sealed class OverlayStateStore
     }
 
     /// <summary>
-    /// Gets the number of items currently under the plugin's care.
+    /// Gets the one store every part of the plugin uses.
     /// </summary>
-    public int Count => _records.Count;
+    /// <remarks>
+    /// A singleton, and this is not tidiness. The first release let the scheduled task and the
+    /// image-change watcher each build their own store, and the task only wrote its records to
+    /// disk when the whole run had finished. So the watcher, reacting to the upload the task
+    /// had just made, read an empty file, concluded it had never seen the item, cached the
+    /// freshly badged image as the "original" and drew a second badge on top of it. It happened
+    /// to 417 of 439 items in one run. The two badges land on the same spot and are invisible,
+    /// which is what made it dangerous rather than merely wrong.
+    /// <para>
+    /// One store, and a flush after every item, is what makes the "have I already done this"
+    /// question answerable at all. Idempotence only protects when both sides read the same book.
+    /// </para>
+    /// </remarks>
+    /// <param name="dataFolderPath">The plugin's own data folder.</param>
+    /// <returns>The shared store.</returns>
+    public static OverlayStateStore Shared(string dataFolderPath)
+    {
+        lock (SharedLock)
+        {
+            _shared ??= new OverlayStateStore(dataFolderPath);
+            return _shared;
+        }
+    }
 
     /// <summary>
     /// Gets the ids of every item the plugin has badged.
     /// </summary>
-    /// <returns>The ids.</returns>
-    public IReadOnlyCollection<string> KnownItemIds() => _records.Keys;
+    /// <returns>The ids, as a snapshot.</returns>
+    public IReadOnlyList<string> KnownItemIds()
+    {
+        lock (_gate)
+        {
+            return new List<string>(_records.Keys);
+        }
+    }
+
+    /// <summary>
+    /// Counts the items currently under the plugin's care.
+    /// </summary>
+    /// <returns>The number of records.</returns>
+    public int CountRecords()
+    {
+        lock (_gate)
+        {
+            return _records.Count;
+        }
+    }
 
     /// <summary>
     /// Computes the hash used throughout the plugin.
@@ -67,19 +115,31 @@ internal sealed class OverlayStateStore
     /// <returns>The record, or null when the item is unknown.</returns>
     public OverlayRecord? Get(string itemId)
     {
-        return _records.TryGetValue(itemId, out var record) ? record : null;
+        lock (_gate)
+        {
+            return _records.TryGetValue(itemId, out var record) ? record : null;
+        }
     }
 
     /// <summary>
-    /// Writes the record of an item.
+    /// Writes the record of an item and puts it on disk straight away.
     /// </summary>
+    /// <remarks>
+    /// The flush is part of writing, not a separate step a caller may forget. Deferring it to
+    /// the end of a run is what let the watcher read an empty file for an item the task had
+    /// just badged.
+    /// </remarks>
     /// <param name="itemId">The item id.</param>
     /// <param name="record">The record.</param>
     public void Set(string itemId, OverlayRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
-        record.UpdatedUtc = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
-        _records[itemId] = record;
+        lock (_gate)
+        {
+            record.UpdatedUtc = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+            _records[itemId] = record;
+            FlushLocked();
+        }
     }
 
     /// <summary>
@@ -88,16 +148,45 @@ internal sealed class OverlayStateStore
     /// <param name="itemId">The item id.</param>
     public void Forget(string itemId)
     {
-        if (_records.TryGetValue(itemId, out var record))
+        lock (_gate)
         {
-            string path = OriginalPath(itemId, record.OriginalExtension);
-            if (File.Exists(path))
+            if (_records.TryGetValue(itemId, out var record))
             {
-                File.Delete(path);
+                string path = OriginalPath(itemId, record.OriginalExtension);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
             }
+
+            _records.Remove(itemId);
+            FlushLocked();
+        }
+    }
+
+    /// <summary>
+    /// Says whether the cached original of an item is still the image the record describes.
+    /// </summary>
+    /// <remarks>
+    /// The one check that finds a poisoned cache. If the file no longer hashes to the recorded
+    /// original, something wrote a different image over it - in the failure this plugin shipped
+    /// with, that was an already badged copy. Drawing on top of it would add another layer, and
+    /// layers do not come off, so the caller has to stop rather than carry on.
+    /// </remarks>
+    /// <param name="itemId">The item id.</param>
+    /// <param name="record">The record.</param>
+    /// <returns>True when the cached file matches the recorded hash.</returns>
+    public bool OriginalIsIntact(string itemId, OverlayRecord record)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+
+        byte[]? cached = LoadOriginal(itemId, record.OriginalExtension);
+        if (cached is null)
+        {
+            return false;
         }
 
-        _records.Remove(itemId);
+        return string.Equals(Hash(cached), record.OriginalHash, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -108,8 +197,11 @@ internal sealed class OverlayStateStore
     /// <param name="extension">The file extension including the dot.</param>
     public void SaveOriginal(string itemId, byte[] bytes, string extension)
     {
-        Directory.CreateDirectory(_originalsPath);
-        File.WriteAllBytes(OriginalPath(itemId, extension), bytes);
+        lock (_gate)
+        {
+            Directory.CreateDirectory(_originalsPath);
+            File.WriteAllBytes(OriginalPath(itemId, extension), bytes);
+        }
     }
 
     /// <summary>
@@ -125,9 +217,18 @@ internal sealed class OverlayStateStore
     }
 
     /// <summary>
-    /// Writes the records to disk.
+    /// Writes the records to disk. Normally unnecessary - <see cref="Set"/> and
+    /// <see cref="Forget"/> already do it - but harmless at the end of a run.
     /// </summary>
     public void Flush()
+    {
+        lock (_gate)
+        {
+            FlushLocked();
+        }
+    }
+
+    private void FlushLocked()
     {
         Directory.CreateDirectory(_root);
         string json = JsonSerializer.Serialize(_records, SerializerOptions);

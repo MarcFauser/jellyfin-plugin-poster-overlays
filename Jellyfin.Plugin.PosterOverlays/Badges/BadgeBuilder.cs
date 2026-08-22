@@ -72,6 +72,10 @@ internal static class BadgeBuilder
             badges.Add(new BadgeSpec(BadgeCategory.Source, parsed.Source));
         }
 
+        // Sort before trimming, because the order is also the priority: what falls off the end
+        // is decided by where the user put it.
+        badges = Order(badges, config.BadgeOrder);
+
         if (badges.Count > config.MaxBadges)
         {
             badges = badges.Take(Math.Max(0, config.MaxBadges)).ToList();
@@ -83,6 +87,41 @@ internal static class BadgeBuilder
             FolderClaimsHdr: FolderMentionsHdr(parsed.TagZone),
             StreamHasHdr: ranges.Count > 0,
             TagZone: parsed.TagZone);
+    }
+
+    /// <summary>
+    /// Puts the badges into the configured order.
+    /// </summary>
+    /// <remarks>
+    /// A category the list does not mention keeps its natural position at the end rather than
+    /// disappearing: a typo in the setting should cost the order, not the badge.
+    /// </remarks>
+    /// <param name="badges">The badges in their natural order.</param>
+    /// <param name="order">Comma separated category names.</param>
+    /// <returns>The badges, sorted.</returns>
+    public static List<BadgeSpec> Order(IReadOnlyList<BadgeSpec> badges, string? order)
+    {
+        ArgumentNullException.ThrowIfNull(badges);
+
+        var rank = new Dictionary<BadgeCategory, int>();
+        int next = 0;
+        foreach (string name in (order ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (Enum.TryParse(name, ignoreCase: true, out BadgeCategory category) && !rank.ContainsKey(category))
+            {
+                rank[category] = next++;
+            }
+        }
+
+        foreach (BadgeCategory category in Enum.GetValues<BadgeCategory>())
+        {
+            if (!rank.ContainsKey(category))
+            {
+                rank[category] = 100 + (int)category;
+            }
+        }
+
+        return badges.OrderBy(b => rank[b.Category]).ToList();
     }
 
     /// <summary>

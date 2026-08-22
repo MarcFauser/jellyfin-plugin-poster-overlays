@@ -70,7 +70,7 @@ public sealed class RemoveOverlaysTask : IScheduledTask
             return;
         }
 
-        var store = new OverlayStateStore(plugin.DataFolderPath);
+        var store = OverlayStateStore.Shared(plugin.DataFolderPath);
         var applier = new OverlayApplier(_providerManager, _logger, plugin.Configuration, store);
 
         var ids = store.KnownItemIds().ToList();

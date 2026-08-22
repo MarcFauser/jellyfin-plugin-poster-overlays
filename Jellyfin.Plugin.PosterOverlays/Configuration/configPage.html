@@ -17,58 +17,42 @@
                         told apart on the tile. The badge is not meant to survive: when a provider
                         delivers a new cover it disappears, and the next run puts it back.
                     </p>
-                </div>
-
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input is="emby-checkbox" type="checkbox" id="Enabled" />
-                        <span>Enabled</span>
-                    </label>
-                </div>
-
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input is="emby-checkbox" type="checkbox" id="DryRun" />
-                        <span>Dry run - only report, change nothing</span>
-                    </label>
-                    <div class="fieldDescription checkboxFieldDescription">
-                        Everything is worked out including the drawing, and then thrown away: no
-                        upload, no file, no recorded state. The task log says what it would have
-                        done. Leave this on for the first run.
-                    </div>
-                </div>
-
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input is="emby-checkbox" type="checkbox" id="WatchForImageChanges" />
-                        <span>Re-badge as soon as an image changes</span>
-                    </label>
-                    <div class="fieldDescription checkboxFieldDescription">
-                        This is what makes "Refresh metadata" in a film's own menu work as a manual
-                        trigger: the provider delivers a new cover and the badge is back seconds
-                        later. It also means the plugin writes during every library refresh.
-                    </div>
+                    <div id="posterOverlaysStatus" class="fieldDescription"></div>
                 </div>
 
                 <div class="verticalSection">
-                    <h3 class="sectionTitle">Run it for one item</h3>
-                    <p class="fieldDescription">
-                        The item menu in the web client is built from a fixed list and cannot be
-                        extended by a plugin, so this is the place to badge a single film without
-                        waiting for the nightly task. The id is the one in the URL when the item is
-                        open.
-                    </p>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="SingleItemId">Item id</label>
-                        <input is="emby-input" type="text" id="SingleItemId" />
+                    <h3 class="sectionTitle">Operation</h3>
+
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input id="Enabled" name="Enabled" type="checkbox" is="emby-checkbox" />
+                            <span>Enabled</span>
+                        </label>
                     </div>
-                    <button is="emby-button" type="button" id="ApplyOne" class="raised block emby-button">
-                        <span>Badge this item now</span>
-                    </button>
-                    <button is="emby-button" type="button" id="RestoreOne" class="raised block emby-button">
-                        <span>Restore its original</span>
-                    </button>
-                    <div id="SingleItemResult" class="fieldDescription" style="margin-top:0.6em;"></div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="DryRun" name="DryRun" type="checkbox" is="emby-checkbox" />
+                            <span>Dry run - only report, change nothing</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Everything is worked out including the drawing, and then thrown away: no
+                            upload, no file, no recorded state. The task log says what it would have
+                            done. Leave this on for the first run.
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="WatchForImageChanges" name="WatchForImageChanges" type="checkbox" is="emby-checkbox" />
+                            <span>Re-badge as soon as an image changes</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            This is what makes "Refresh metadata" in a film's own menu work as a manual
+                            trigger: the provider delivers a new cover and the badge is back seconds
+                            later. It also means the plugin writes during every library refresh.
+                        </div>
+                    </div>
                 </div>
 
                 <div class="verticalSection">
@@ -76,31 +60,31 @@
 
                     <div class="checkboxContainer">
                         <label class="emby-checkbox-label">
-                            <input is="emby-checkbox" type="checkbox" id="ShowEditionBadges" />
+                            <input id="ShowEditionBadges" name="ShowEditionBadges" type="checkbox" is="emby-checkbox" />
                             <span>Edition (EXT, DC, UC, IMAX, ...) - read from the folder name</span>
                         </label>
                     </div>
                     <div class="checkboxContainer">
                         <label class="emby-checkbox-label">
-                            <input is="emby-checkbox" type="checkbox" id="ShowResolutionBadges" />
+                            <input id="ShowResolutionBadges" name="ShowResolutionBadges" type="checkbox" is="emby-checkbox" />
                             <span>Resolution (4K, 8K, ...)</span>
                         </label>
                     </div>
                     <div class="checkboxContainer">
                         <label class="emby-checkbox-label">
-                            <input is="emby-checkbox" type="checkbox" id="ShowVideoRangeBadges" />
+                            <input id="ShowVideoRangeBadges" name="ShowVideoRangeBadges" type="checkbox" is="emby-checkbox" />
                             <span>Video range (DV, HDR, HDR+, HLG)</span>
                         </label>
                     </div>
                     <div class="checkboxContainer">
                         <label class="emby-checkbox-label">
-                            <input is="emby-checkbox" type="checkbox" id="ShowSourceBadges" />
+                            <input id="ShowSourceBadges" name="ShowSourceBadges" type="checkbox" is="emby-checkbox" />
                             <span>Source quality (CAM, TS, TC, SCR) - marks a placeholder rip</span>
                         </label>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
-                            <input is="emby-checkbox" type="checkbox" id="MergeDolbyVisionAndHdr" />
+                            <input id="MergeDolbyVisionAndHdr" name="MergeDolbyVisionAndHdr" type="checkbox" is="emby-checkbox" />
                             <span>Merge Dolby Vision and HDR into one pill</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
@@ -110,9 +94,18 @@
 
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="MaxBadges">Maximum badges per image</label>
-                        <input is="emby-input" type="number" id="MaxBadges" min="1" max="6" step="1" />
-                        <div class="fieldDescription">Anything beyond this is dropped, edition first to survive.</div>
+                        <input id="MaxBadges" name="MaxBadges" type="number" is="emby-input" class="emby-input" min="1" max="6" step="1" />
+                        <div class="fieldDescription">Anything beyond this is dropped from the bottom of the stack.</div>
                     </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Order</h3>
+                    <p class="fieldDescription">
+                        Top to bottom, and this is also the priority: when there are more badges than
+                        the maximum above, the ones at the bottom are the ones that go.
+                    </p>
+                    <div id="BadgeOrderList" class="paperList" style="margin-bottom:1em;"></div>
                 </div>
 
                 <div class="verticalSection">
@@ -120,60 +113,60 @@
 
                     <div class="selectContainer">
                         <label class="selectLabel" for="Style">Style</label>
-                        <select is="emby-select" id="Style" class="emby-select-withcolor emby-select">
-                            <option value="0">Dark pill, DV and HDR merged</option>
-                            <option value="1">Dolby Vision filled, HDR separate</option>
-                            <option value="2">All filled, fully rounded</option>
+                        <select id="Style" name="Style" is="emby-select" class="emby-select-withcolor emby-select">
+                            <option value="DarkPill">Dark pill, DV and HDR merged</option>
+                            <option value="FilledAccent">Dolby Vision filled, HDR separate</option>
+                            <option value="FilledAll">All filled, fully rounded</option>
                         </select>
                     </div>
 
                     <div class="selectContainer">
                         <label class="selectLabel" for="Corner">Corner</label>
-                        <select is="emby-select" id="Corner" class="emby-select-withcolor emby-select">
-                            <option value="0">Top right</option>
-                            <option value="1">Top left</option>
-                            <option value="2">Bottom right</option>
-                            <option value="3">Bottom left</option>
+                        <select id="Corner" name="Corner" is="emby-select" class="emby-select-withcolor emby-select">
+                            <option value="TopRight">Top right</option>
+                            <option value="TopLeft">Top left</option>
+                            <option value="BottomRight">Bottom right</option>
+                            <option value="BottomLeft">Bottom left</option>
                         </select>
                     </div>
 
                     <p class="fieldDescription">
-                        All sizes are percentages, never pixels, so the same settings look the same
-                        on a 600x900 and on a 1000x1500 master.
+                        All sizes are percentages, never pixels, so the same settings look the same on
+                        a 600x900 and on a 1000x1500 master.
                     </p>
 
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="PillHeightPercent">Pill height, % of image height</label>
-                        <input is="emby-input" type="number" id="PillHeightPercent" min="1" max="25" step="0.1" />
+                        <input id="PillHeightPercent" name="PillHeightPercent" type="number" is="emby-input" class="emby-input" min="1" max="25" step="0.1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="FontSizePercentOfPill">Font size, % of pill height</label>
-                        <input is="emby-input" type="number" id="FontSizePercentOfPill" min="20" max="100" step="1" />
+                        <input id="FontSizePercentOfPill" name="FontSizePercentOfPill" type="number" is="emby-input" class="emby-input" min="20" max="100" step="1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="PaddingPercentOfPill">Horizontal padding, % of pill height</label>
-                        <input is="emby-input" type="number" id="PaddingPercentOfPill" min="0" max="200" step="1" />
+                        <input id="PaddingPercentOfPill" name="PaddingPercentOfPill" type="number" is="emby-input" class="emby-input" min="0" max="200" step="1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="GapPercentOfPill">Gap between pills, % of pill height</label>
-                        <input is="emby-input" type="number" id="GapPercentOfPill" min="0" max="200" step="1" />
+                        <input id="GapPercentOfPill" name="GapPercentOfPill" type="number" is="emby-input" class="emby-input" min="0" max="200" step="1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="CornerRadiusPercentOfPill">Corner radius, % of pill height</label>
-                        <input is="emby-input" type="number" id="CornerRadiusPercentOfPill" min="0" max="50" step="1" />
+                        <input id="CornerRadiusPercentOfPill" name="CornerRadiusPercentOfPill" type="number" is="emby-input" class="emby-input" min="0" max="50" step="1" />
                         <div class="fieldDescription">50 gives fully rounded ends.</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="BorderWidthPercentOfPill">Border width, % of pill height</label>
-                        <input is="emby-input" type="number" id="BorderWidthPercentOfPill" min="0" max="20" step="0.5" />
+                        <input id="BorderWidthPercentOfPill" name="BorderWidthPercentOfPill" type="number" is="emby-input" class="emby-input" min="0" max="20" step="0.5" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="HorizontalMarginPercent">Side margin, % of image width</label>
-                        <input is="emby-input" type="number" id="HorizontalMarginPercent" min="0" max="25" step="0.1" />
+                        <input id="HorizontalMarginPercent" name="HorizontalMarginPercent" type="number" is="emby-input" class="emby-input" min="0" max="25" step="0.1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="VerticalMarginPercent">Top or bottom margin, % of image height</label>
-                        <input is="emby-input" type="number" id="VerticalMarginPercent" min="0" max="25" step="0.1" />
+                        <input id="VerticalMarginPercent" name="VerticalMarginPercent" type="number" is="emby-input" class="emby-input" min="0" max="25" step="0.1" />
                     </div>
                 </div>
 
@@ -181,16 +174,16 @@
                     <h3 class="sectionTitle">Resolution ladder</h3>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="ResolutionLadder">Ladder</label>
-                        <input is="emby-input" type="text" id="ResolutionLadder" />
+                        <input id="ResolutionLadder" name="ResolutionLadder" type="text" is="emby-input" class="emby-input" />
                         <div class="fieldDescription">
-                            The K values a badge may show. A pixel width is divided by 960 and snapped
-                            to the nearest entry. Only 4K and 8K have standardised widths; everything
-                            above is extrapolation, which is why this is a setting.
+                            The K values a badge may show. A pixel width is divided by 960 and snapped to
+                            the nearest entry. Only 4K and 8K have standardised widths; everything above
+                            is extrapolation, which is why this is a setting.
                         </div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="MinimumResolutionK">Lowest rung that earns a badge</label>
-                        <input is="emby-input" type="number" id="MinimumResolutionK" min="1" max="32" step="1" />
+                        <input id="MinimumResolutionK" name="MinimumResolutionK" type="number" is="emby-input" class="emby-input" min="1" max="32" step="1" />
                         <div class="fieldDescription">With 4, 1080p material gets no badge.</div>
                     </div>
                 </div>
@@ -199,18 +192,18 @@
                     <h3 class="sectionTitle">Writing back</h3>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="JpegQuality">JPEG quality</label>
-                        <input is="emby-input" type="number" id="JpegQuality" min="60" max="100" step="1" />
+                        <input id="JpegQuality" name="JpegQuality" type="number" is="emby-input" class="emby-input" min="60" max="100" step="1" />
                         <div class="fieldDescription">Jellyfin delivers at 90; below that the badged copy is visibly worse than the original.</div>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
-                            <input is="emby-checkbox" type="checkbox" id="WriteToMediaFolder" />
+                            <input id="WriteToMediaFolder" name="WriteToMediaFolder" type="checkbox" is="emby-checkbox" />
                             <span>Write the badged image into the media folder instead</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
                             Off by default and deliberately so: a local file is not replaced when a
-                            provider delivers a new cover, which defeats the upkeep loop. It exists
-                            for installations that want the durable variant.
+                            provider delivers a new cover, which defeats the upkeep loop. It exists for
+                            installations that want the durable variant.
                         </div>
                     </div>
                 </div>
@@ -219,12 +212,12 @@
                     <h3 class="sectionTitle">Exceptions</h3>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="ExcludedItemIds">Never touch these items</label>
-                        <textarea is="emby-textarea" id="ExcludedItemIds" rows="4"></textarea>
+                        <textarea id="ExcludedItemIds" name="ExcludedItemIds" is="emby-textarea" class="emby-textarea" rows="4"></textarea>
                         <div class="fieldDescription">One item id per line.</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="EditionOverrides">Edition overrides</label>
-                        <textarea is="emby-textarea" id="EditionOverrides" rows="4"></textarea>
+                        <textarea id="EditionOverrides" name="EditionOverrides" is="emby-textarea" class="emby-textarea" rows="4"></textarea>
                         <div class="fieldDescription">
                             One per line, as <code>itemId = BADGE</code>. An empty badge suppresses the
                             edition badge for that item without excluding it entirely.
@@ -236,8 +229,30 @@
                     <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                         <span>Save</span>
                     </button>
+                    <div id="posterOverlaysSaveResult" class="fieldDescription" style="margin-top:0.6em;"></div>
                 </div>
             </form>
+
+            <div class="verticalSection">
+                <h3 class="sectionTitle">Run it for one item</h3>
+                <p class="fieldDescription">
+                    The item menu in the web client is built from a fixed list and cannot be extended by
+                    a plugin, so this is the place to badge a single film without waiting for the nightly
+                    task. The id is the one in the URL when the item is open. These buttons act at once
+                    and do not need Save.
+                </p>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="SingleItemId">Item id</label>
+                    <input id="SingleItemId" name="SingleItemId" type="text" is="emby-input" class="emby-input" />
+                </div>
+                <button is="emby-button" type="button" id="ApplyOne" class="raised block emby-button">
+                    <span>Badge this item now</span>
+                </button>
+                <button is="emby-button" type="button" id="RestoreOne" class="raised block emby-button">
+                    <span>Restore its original</span>
+                </button>
+                <div id="SingleItemResult" class="fieldDescription" style="margin-top:0.6em;"></div>
+            </div>
         </div>
     </div>
 
@@ -245,52 +260,238 @@
         (function () {
             var pluginId = '9cfb36f6-2afc-4009-ba14-8a8cad609904';
 
-            var numbers = ['MaxBadges', 'PillHeightPercent', 'FontSizePercentOfPill', 'PaddingPercentOfPill',
-                'GapPercentOfPill', 'CornerRadiusPercentOfPill', 'BorderWidthPercentOfPill',
-                'HorizontalMarginPercent', 'VerticalMarginPercent', 'MinimumResolutionK', 'JpegQuality'];
+            // Checkboxes, plain numbers, plain text, and the two enums. The enums are listed
+            // separately because the server sends and expects their NAMES - "DarkPill", not 0.
+            // Option values of 0..n silently matched nothing on load, so the select fell back to
+            // its first entry and the save wrote that back.
             var flags = ['Enabled', 'DryRun', 'WatchForImageChanges', 'ShowEditionBadges',
                 'ShowResolutionBadges', 'ShowVideoRangeBadges', 'ShowSourceBadges',
                 'MergeDolbyVisionAndHdr', 'WriteToMediaFolder'];
+            var numbers = ['MaxBadges', 'PillHeightPercent', 'FontSizePercentOfPill',
+                'PaddingPercentOfPill', 'GapPercentOfPill', 'CornerRadiusPercentOfPill',
+                'BorderWidthPercentOfPill', 'HorizontalMarginPercent', 'VerticalMarginPercent',
+                'MinimumResolutionK', 'JpegQuality'];
             var texts = ['ResolutionLadder', 'ExcludedItemIds', 'EditionOverrides'];
-            var selects = ['Style', 'Corner'];
+            var enums = ['Style', 'Corner'];
 
-            function load(page, config) {
-                flags.forEach(function (id) { page.querySelector('#' + id).checked = !!config[id]; });
-                numbers.forEach(function (id) { page.querySelector('#' + id).value = config[id]; });
-                texts.forEach(function (id) { page.querySelector('#' + id).value = config[id] || ''; });
-                selects.forEach(function (id) { page.querySelector('#' + id).value = config[id]; });
+            var categories = {
+                Edition: 'Edition (EXT, DC, UC, ...)',
+                Resolution: 'Resolution (4K, 8K, ...)',
+                VideoRange: 'Video range (DV, HDR, ...)',
+                Source: 'Source quality (CAM, TS, ...)'
+            };
+
+            function page() {
+                return document.querySelector('#posterOverlaysConfigPage');
             }
 
-            document.querySelector('#posterOverlaysConfigPage').addEventListener('pageshow', function () {
-                var page = this;
-                Dashboard.showLoadingMsg();
-                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                    load(page, config);
-                    Dashboard.hideLoadingMsg();
-                });
-            });
+            function say(id, text) {
+                var el = page().querySelector('#' + id);
+                if (el) {
+                    el.textContent = text;
+                }
+            }
 
-            function runForOneItem(route) {
-                var page = document.querySelector('#posterOverlaysConfigPage');
-                var out = page.querySelector('#SingleItemResult');
-                var id = page.querySelector('#SingleItemId').value.trim();
-                if (!id) {
-                    out.textContent = 'Enter an item id first.';
+            function renderOrder(order) {
+                var list = page().querySelector('#BadgeOrderList');
+                list.innerHTML = '';
+
+                order.forEach(function (key, index) {
+                    var row = document.createElement('div');
+                    row.className = 'listItem';
+                    row.setAttribute('data-key', key);
+                    row.style.display = 'flex';
+                    row.style.alignItems = 'center';
+                    row.style.padding = '0.3em 0';
+
+                    var name = document.createElement('div');
+                    name.textContent = (index + 1) + '.  ' + (categories[key] || key);
+                    name.style.flexGrow = '1';
+                    row.appendChild(name);
+
+                    [['↑', -1], ['↓', 1]].forEach(function (pair) {
+                        var b = document.createElement('button');
+                        b.type = 'button';
+                        b.className = 'raised emby-button';
+                        b.style.minWidth = '3em';
+                        b.style.marginLeft = '0.4em';
+                        b.textContent = pair[0];
+                        b.addEventListener('click', function () {
+                            move(key, pair[1]);
+                        });
+                        row.appendChild(b);
+                    });
+
+                    list.appendChild(row);
+                });
+            }
+
+            function currentOrder() {
+                var rows = page().querySelectorAll('#BadgeOrderList [data-key]');
+                return Array.prototype.map.call(rows, function (r) {
+                    return r.getAttribute('data-key');
+                });
+            }
+
+            function move(key, delta) {
+                var order = currentOrder();
+                var from = order.indexOf(key);
+                var to = from + delta;
+                if (from < 0 || to < 0 || to >= order.length) {
                     return;
                 }
 
-                out.textContent = 'Working...';
+                order.splice(to, 0, order.splice(from, 1)[0]);
+                renderOrder(order);
+            }
+
+            function normaliseOrder(value) {
+                var wanted = (value || '').split(',').map(function (s) {
+                    return s.trim();
+                }).filter(function (s) {
+                    return Object.prototype.hasOwnProperty.call(categories, s);
+                });
+
+                // Anything the stored value forgot is appended rather than lost, so a hand-edited
+                // setting cannot make a category disappear from the page.
+                Object.keys(categories).forEach(function (key) {
+                    if (wanted.indexOf(key) < 0) {
+                        wanted.push(key);
+                    }
+                });
+
+                return wanted;
+            }
+
+            function load(config) {
+                var p = page();
+
+                flags.forEach(function (id) {
+                    var el = p.querySelector('#' + id);
+                    if (el) {
+                        el.checked = config[id] === true;
+                    }
+                });
+
+                numbers.concat(texts).forEach(function (id) {
+                    var el = p.querySelector('#' + id);
+                    if (!el) {
+                        return;
+                    }
+
+                    el.value = config[id] === null || config[id] === undefined ? '' : String(config[id]);
+
+                    // emby-input decides whether the label floats when the value changes. It has
+                    // already upgraded by now, so without this the label sits over a filled field.
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+
+                enums.forEach(function (id) {
+                    var el = p.querySelector('#' + id);
+                    if (el && config[id] !== null && config[id] !== undefined) {
+                        el.value = String(config[id]);
+                    }
+                });
+
+                renderOrder(normaliseOrder(config.BadgeOrder));
+            }
+
+            function collect(config) {
+                var p = page();
+
+                flags.forEach(function (id) {
+                    var el = p.querySelector('#' + id);
+                    if (el) {
+                        config[id] = el.checked;
+                    }
+                });
+
+                numbers.forEach(function (id) {
+                    var el = p.querySelector('#' + id);
+                    if (!el) {
+                        return;
+                    }
+
+                    // An empty field parses to NaN, JSON turns NaN into null, and the server
+                    // refuses null for a number - which is what left the page spinning forever.
+                    // Keeping the value that is already in the configuration is the honest
+                    // fallback: the user did not type anything, so nothing should change.
+                    var parsed = parseFloat(el.value);
+                    if (!isNaN(parsed)) {
+                        config[id] = parsed;
+                    }
+                });
+
+                texts.forEach(function (id) {
+                    var el = p.querySelector('#' + id);
+                    if (el) {
+                        config[id] = el.value;
+                    }
+                });
+
+                enums.forEach(function (id) {
+                    var el = p.querySelector('#' + id);
+                    if (el && el.value) {
+                        config[id] = el.value;
+                    }
+                });
+
+                config.BadgeOrder = currentOrder().join(',');
+                return config;
+            }
+
+            function showStatus() {
+                ApiClient.ajax({
+                    type: 'GET',
+                    url: ApiClient.getUrl('PosterOverlays/Status'),
+                    dataType: 'json'
+                }).then(function (s) {
+                    say('posterOverlaysStatus',
+                        s.BadgedItems + ' item(s) currently carry a badge from this plugin.'
+                        + (s.DryRun ? '  Dry run is ON - nothing is being changed.' : ''));
+                }, function () {
+                    say('posterOverlaysStatus', '');
+                });
+            }
+
+            function runForOneItem(route) {
+                var id = page().querySelector('#SingleItemId').value.trim();
+                if (!id) {
+                    say('SingleItemResult', 'Enter an item id first.');
+                    return;
+                }
+
+                say('SingleItemResult', 'Working...');
                 ApiClient.ajax({
                     type: 'POST',
                     url: ApiClient.getUrl('PosterOverlays/' + route + '/' + id),
                     dataType: 'json'
                 }).then(function (result) {
-                    out.textContent = (result.DryRun ? 'Dry run - ' : '')
-                        + (result.Name || id) + ': ' + result.Outcome;
-                }, function () {
-                    out.textContent = 'Failed. Check the server log - an unknown id gives a 404.';
+                    say('SingleItemResult',
+                        (result.DryRun ? 'Dry run - ' : '') + (result.Name || id) + ': ' + result.Outcome);
+                    showStatus();
+                }, function (error) {
+                    say('SingleItemResult',
+                        'Failed' + (error && error.status ? ' with HTTP ' + error.status : '')
+                        + '. An unknown id gives a 404; anything else is in the server log.');
                 });
             }
+
+            page().addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    load(config);
+                    showStatus();
+                    Dashboard.hideLoadingMsg();
+                }, function (error) {
+                    // Never leave the spinner running. A page that spins forever tells the user
+                    // nothing, and it is what hid the first version of this bug.
+                    Dashboard.hideLoadingMsg();
+                    say('posterOverlaysStatus',
+                        'The configuration could not be loaded'
+                        + (error && error.status ? ' (HTTP ' + error.status + ')' : '') + '.');
+                });
+            });
 
             document.querySelector('#ApplyOne').addEventListener('click', function () {
                 runForOneItem('Apply');
@@ -302,17 +503,23 @@
 
             document.querySelector('#posterOverlaysConfigForm').addEventListener('submit', function (e) {
                 e.preventDefault();
-                var page = document.querySelector('#posterOverlaysConfigPage');
+                say('posterOverlaysSaveResult', '');
                 Dashboard.showLoadingMsg();
+
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                    flags.forEach(function (id) { config[id] = page.querySelector('#' + id).checked; });
-                    numbers.forEach(function (id) { config[id] = parseFloat(page.querySelector('#' + id).value); });
-                    texts.forEach(function (id) { config[id] = page.querySelector('#' + id).value; });
-                    selects.forEach(function (id) { config[id] = parseInt(page.querySelector('#' + id).value, 10); });
-                    ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
-                        Dashboard.processPluginConfigurationUpdateResult(result);
-                    });
+                    return ApiClient.updatePluginConfiguration(pluginId, collect(config));
+                }).then(function (result) {
+                    Dashboard.processPluginConfigurationUpdateResult(result);
+                    say('posterOverlaysSaveResult', 'Saved.');
+                    showStatus();
+                }).catch(function (error) {
+                    Dashboard.hideLoadingMsg();
+                    say('posterOverlaysSaveResult',
+                        'Saving failed'
+                        + (error && error.status ? ' with HTTP ' + error.status : '')
+                        + '. Nothing was changed - the reason is in the server log.');
                 });
+
                 return false;
             });
         })();
