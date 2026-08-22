@@ -67,4 +67,19 @@
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="All" />
   </ItemGroup>
 
+  <!-- The typeface is embedded rather than resolved by family name. SkiaSharp asks the host's
+       font configuration for a family, and a Jellyfin container may carry no fonts at all; a
+       face loaded from a stream needs neither fontconfig nor a system font. Inter SemiBold was
+       chosen on rendered comparisons at real card size - Regular loses stroke coverage when the
+       1000px master is resampled to a 200px tile. The SIL Open Font License travels with it. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Inter-SemiBold.ttf" />
+    <EmbeddedResource Include="Resources\Inter-LICENSE.txt" />
+    <EmbeddedResource Include="Configuration\configPage.html" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Jellyfin.Plugin.PosterOverlays.Tests" />
+  </ItemGroup>
+
 </Project>

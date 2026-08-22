@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Poster Overlays</title>
+</head>
+<body>
+<div id="posterOverlaysConfigPage" data-role="page" class="page type-interior pluginConfigurationPage"
+     data-controller="__plugin/posteroverlays">
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="posterOverlaysConfigForm">
+
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Poster Overlays</h2>
+                    <p class="fieldDescription">
+                        Draws a badge onto the primary image so two entries of the same film can be
+                        told apart on the tile. The badge is not meant to survive: when a provider
+                        delivers a new cover it disappears, and the next run puts it back.
+                    </p>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input is="emby-checkbox" type="checkbox" id="Enabled" />
+                        <span>Enabled</span>
+                    </label>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">What to badge</h3>
+
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="ShowEditionBadges" />
+                            <span>Edition (EXT, DC, UC, IMAX, ...) - read from the folder name</span>
+                        </label>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="ShowResolutionBadges" />
+                            <span>Resolution (4K, 8K, ...)</span>
+                        </label>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="ShowVideoRangeBadges" />
+                            <span>Video range (DV, HDR, HDR+, HLG)</span>
+                        </label>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="ShowSourceBadges" />
+                            <span>Source quality (CAM, TS, TC, SCR) - marks a placeholder rip</span>
+                        </label>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="MergeDolbyVisionAndHdr" />
+                            <span>Merge Dolby Vision and HDR into one pill</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Draws "DV HDR" instead of two rows, which keeps the stack shorter.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MaxBadges">Maximum badges per image</label>
+                        <input is="emby-input" type="number" id="MaxBadges" min="1" max="6" step="1" />
+                        <div class="fieldDescription">Anything beyond this is dropped, edition first to survive.</div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Look</h3>
+
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="Style">Style</label>
+                        <select is="emby-select" id="Style" class="emby-select-withcolor emby-select">
+                            <option value="0">Dark pill, DV and HDR merged</option>
+                            <option value="1">Dolby Vision filled, HDR separate</option>
+                            <option value="2">All filled, fully rounded</option>
+                        </select>
+                    </div>
+
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="Corner">Corner</label>
+                        <select is="emby-select" id="Corner" class="emby-select-withcolor emby-select">
+                            <option value="0">Top right</option>
+                            <option value="1">Top left</option>
+                            <option value="2">Bottom right</option>
+                            <option value="3">Bottom left</option>
+                        </select>
+                    </div>
+
+                    <p class="fieldDescription">
+                        All sizes are percentages, never pixels, so the same settings look the same
+                        on a 600x900 and on a 1000x1500 master.
+                    </p>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="PillHeightPercent">Pill height, % of image height</label>
+                        <input is="emby-input" type="number" id="PillHeightPercent" min="1" max="25" step="0.1" />
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="FontSizePercentOfPill">Font size, % of pill height</label>
+                        <input is="emby-input" type="number" id="FontSizePercentOfPill" min="20" max="100" step="1" />
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="PaddingPercentOfPill">Horizontal padding, % of pill height</label>
+                        <input is="emby-input" type="number" id="PaddingPercentOfPill" min="0" max="200" step="1" />
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="GapPercentOfPill">Gap between pills, % of pill height</label>
+                        <input is="emby-input" type="number" id="GapPercentOfPill" min="0" max="200" step="1" />
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="CornerRadiusPercentOfPill">Corner radius, % of pill height</label>
+                        <input is="emby-input" type="number" id="CornerRadiusPercentOfPill" min="0" max="50" step="1" />
+                        <div class="fieldDescription">50 gives fully rounded ends.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="BorderWidthPercentOfPill">Border width, % of pill height</label>
+                        <input is="emby-input" type="number" id="BorderWidthPercentOfPill" min="0" max="20" step="0.5" />
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="HorizontalMarginPercent">Side margin, % of image width</label>
+                        <input is="emby-input" type="number" id="HorizontalMarginPercent" min="0" max="25" step="0.1" />
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="VerticalMarginPercent">Top or bottom margin, % of image height</label>
+                        <input is="emby-input" type="number" id="VerticalMarginPercent" min="0" max="25" step="0.1" />
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Resolution ladder</h3>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="ResolutionLadder">Ladder</label>
+                        <input is="emby-input" type="text" id="ResolutionLadder" />
+                        <div class="fieldDescription">
+                            The K values a badge may show. A pixel width is divided by 960 and snapped
+                            to the nearest entry. Only 4K and 8K have standardised widths; everything
+                            above is extrapolation, which is why this is a setting.
+                        </div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MinimumResolutionK">Lowest rung that earns a badge</label>
+                        <input is="emby-input" type="number" id="MinimumResolutionK" min="1" max="32" step="1" />
+                        <div class="fieldDescription">With 4, 1080p material gets no badge.</div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Writing back</h3>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="JpegQuality">JPEG quality</label>
+                        <input is="emby-input" type="number" id="JpegQuality" min="60" max="100" step="1" />
+                        <div class="fieldDescription">Jellyfin delivers at 90; below that the badged copy is visibly worse than the original.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="WriteToMediaFolder" />
+                            <span>Write the badged image into the media folder instead</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Off by default and deliberately so: a local file is not replaced when a
+                            provider delivers a new cover, which defeats the upkeep loop. It exists
+                            for installations that want the durable variant.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Exceptions</h3>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="ExcludedItemIds">Never touch these items</label>
+                        <textarea is="emby-textarea" id="ExcludedItemIds" rows="4"></textarea>
+                        <div class="fieldDescription">One item id per line.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="EditionOverrides">Edition overrides</label>
+                        <textarea is="emby-textarea" id="EditionOverrides" rows="4"></textarea>
+                        <div class="fieldDescription">
+                            One per line, as <code>itemId = BADGE</code>. An empty badge suppresses the
+                            edition badge for that item without excluding it entirely.
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                        <span>Save</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            var pluginId = '9cfb36f6-2afc-4009-ba14-8a8cad609904';
+
+            var numbers = ['MaxBadges', 'PillHeightPercent', 'FontSizePercentOfPill', 'PaddingPercentOfPill',
+                'GapPercentOfPill', 'CornerRadiusPercentOfPill', 'BorderWidthPercentOfPill',
+                'HorizontalMarginPercent', 'VerticalMarginPercent', 'MinimumResolutionK', 'JpegQuality'];
+            var flags = ['Enabled', 'ShowEditionBadges', 'ShowResolutionBadges', 'ShowVideoRangeBadges',
+                'ShowSourceBadges', 'MergeDolbyVisionAndHdr', 'WriteToMediaFolder'];
+            var texts = ['ResolutionLadder', 'ExcludedItemIds', 'EditionOverrides'];
+            var selects = ['Style', 'Corner'];
+
+            function load(page, config) {
+                flags.forEach(function (id) { page.querySelector('#' + id).checked = !!config[id]; });
+                numbers.forEach(function (id) { page.querySelector('#' + id).value = config[id]; });
+                texts.forEach(function (id) { page.querySelector('#' + id).value = config[id] || ''; });
+                selects.forEach(function (id) { page.querySelector('#' + id).value = config[id]; });
+            }
+
+            document.querySelector('#posterOverlaysConfigPage').addEventListener('pageshow', function () {
+                var page = this;
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    load(page, config);
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+
+            document.querySelector('#posterOverlaysConfigForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                var page = document.querySelector('#posterOverlaysConfigPage');
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    flags.forEach(function (id) { config[id] = page.querySelector('#' + id).checked; });
+                    numbers.forEach(function (id) { config[id] = parseFloat(page.querySelector('#' + id).value); });
+                    texts.forEach(function (id) { config[id] = page.querySelector('#' + id).value; });
+                    selects.forEach(function (id) { config[id] = parseInt(page.querySelector('#' + id).value, 10); });
+                    ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+                return false;
+            });
+        })();
+    </script>
+</div>
+</body>
+</html>
