@@ -1,0 +1,26 @@
+# Build output
+bin/
+obj/
+
+# Packaged plugin artifacts (built by build.ps1, not versioned)
+dist/
+
+# Scratch/working dir: probes, measurements, corpora pulled from the server
+tmp/
+
+# Draft logos live in logo\ and stay out of the repository. The folder is ignored as a
+# whole rather than by file name: a pattern like logo[0-9]*.* would let anything else
+# dropped in there slip into a commit. Only the chosen one is versioned, as logo.<ext>.
+logo/
+logo[0-9]*.*
+
+# IDE / user-specific
+*.user
+.vs/
+.idea/
+
+# Design notes kept locally, not published. HANDOVER.md is listed separately on
+# purpose: HANDOVER-*.md does not match a file without the dash, and the handover
+# this project started from carries a local path.
+HANDOVER.md
+HANDOVER-*.md
