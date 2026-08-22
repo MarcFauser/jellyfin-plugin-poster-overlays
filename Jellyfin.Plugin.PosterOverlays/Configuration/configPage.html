@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="utf-8">
     <title>Poster Overlays</title>
 </head>
 <body>
+<!-- data-require is what makes Jellyfin load and register the emby-* controls for this page,
+     and it is also what dispatches pageshow. An earlier version had data-controller pointing at
+     a module that does not exist: nothing upgraded, so the textareas rendered as raw boxes and
+     the checkbox layout collapsed, and no pageshow ever fired, so every field stayed empty. -->
 <div id="posterOverlaysConfigPage" data-role="page" class="page type-interior pluginConfigurationPage"
-     data-controller="__plugin/posteroverlays">
+     data-require="emby-input,emby-button,emby-select,emby-checkbox,emby-textarea">
     <div data-role="content">
         <div class="content-primary">
             <form id="posterOverlaysConfigForm">
@@ -78,6 +83,12 @@
                     </div>
                     <div class="checkboxContainer">
                         <label class="emby-checkbox-label">
+                            <input id="ShowFormatBadges" name="ShowFormatBadges" type="checkbox" is="emby-checkbox" />
+                            <span>Presentation format (3D) - read from the folder name</span>
+                        </label>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
                             <input id="ShowSourceBadges" name="ShowSourceBadges" type="checkbox" is="emby-checkbox" />
                             <span>Source quality (CAM, TS, TC, SCR) - marks a placeholder rip</span>
                         </label>
@@ -128,6 +139,27 @@
                             <option value="BottomRight">Bottom right</option>
                             <option value="BottomLeft">Bottom left</option>
                         </select>
+                    </div>
+
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="Direction">Direction</label>
+                        <select id="Direction" name="Direction" is="emby-select" class="emby-select-withcolor emby-select">
+                            <option value="Vertical">Stacked downwards</option>
+                            <option value="Horizontal">In one row along the edge</option>
+                        </select>
+                        <div class="fieldDescription">
+                            The corner says where the badges start, this says which way they grow.
+                            "Top left" plus "in one row" is the left-to-right strip along the top edge.
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle">Preview</h3>
+                        <p class="fieldDescription">
+                            Drawn from the settings above as you change them. Shapes and colours are to
+                            scale; the real thing is rendered on the poster itself.
+                        </p>
+                        <div id="BadgePreview" style="display:flex; gap:1.2em; flex-wrap:wrap;"></div>
                     </div>
 
                     <p class="fieldDescription">
@@ -265,20 +297,55 @@
             // Option values of 0..n silently matched nothing on load, so the select fell back to
             // its first entry and the save wrote that back.
             var flags = ['Enabled', 'DryRun', 'WatchForImageChanges', 'ShowEditionBadges',
-                'ShowResolutionBadges', 'ShowVideoRangeBadges', 'ShowSourceBadges',
-                'MergeDolbyVisionAndHdr', 'WriteToMediaFolder'];
+                'ShowResolutionBadges', 'ShowVideoRangeBadges', 'ShowFormatBadges',
+                'ShowSourceBadges', 'MergeDolbyVisionAndHdr', 'WriteToMediaFolder'];
             var numbers = ['MaxBadges', 'PillHeightPercent', 'FontSizePercentOfPill',
                 'PaddingPercentOfPill', 'GapPercentOfPill', 'CornerRadiusPercentOfPill',
                 'BorderWidthPercentOfPill', 'HorizontalMarginPercent', 'VerticalMarginPercent',
                 'MinimumResolutionK', 'JpegQuality'];
             var texts = ['ResolutionLadder', 'ExcludedItemIds', 'EditionOverrides'];
-            var enums = ['Style', 'Corner'];
+            var enums = ['Style', 'Corner', 'Direction'];
 
             var categories = {
                 Edition: 'Edition (EXT, DC, UC, ...)',
                 Resolution: 'Resolution (4K, 8K, ...)',
                 VideoRange: 'Video range (DV, HDR, ...)',
+                Format: 'Presentation format (3D)',
                 Source: 'Source quality (CAM, TS, ...)'
+            };
+
+            // One sample badge per category, and the flag that switches the category off.
+            var samples = {
+                Edition: { text: 'EXT', flag: 'ShowEditionBadges' },
+                Resolution: { text: '4K', flag: 'ShowResolutionBadges' },
+                VideoRange: { text: 'DV HDR', flag: 'ShowVideoRangeBadges' },
+                Format: { text: '3D', flag: 'ShowFormatBadges' },
+                Source: { text: 'TS', flag: 'ShowSourceBadges' }
+            };
+
+            // The same colours BadgePalette.cs uses, per style.
+            var palettes = {
+                DarkPill: {
+                    Edition: ['#111418E0', '#FFFFFF', '#D4D4D890'],
+                    Resolution: ['#111418E0', '#FFFFFF', '#D4D4D890'],
+                    VideoRange: ['#111418E0', '#F5A524', '#F5A524B0'],
+                    Format: ['#111418E0', '#2DD4BF', '#2DD4BFC0'],
+                    Source: ['#111418E0', '#DC2626', '#DC2626C0']
+                },
+                FilledAccent: {
+                    Edition: ['#111418E0', '#FFFFFF', '#D4D4D890'],
+                    Resolution: ['#111418E0', '#FFFFFF', '#D4D4D890'],
+                    VideoRange: ['#6D28D9', '#FFFFFF', '#6D28D9'],
+                    Format: ['#111418E0', '#2DD4BF', '#2DD4BFC0'],
+                    Source: ['#111418E0', '#DC2626', '#DC2626C0']
+                },
+                FilledAll: {
+                    Edition: ['#3F3F46F0', '#FFFFFF', null],
+                    Resolution: ['#1D4ED8F0', '#FFFFFF', null],
+                    VideoRange: ['#6D28D9', '#FFFFFF', null],
+                    Format: ['#2DD4BF', '#0B1B18', null],
+                    Source: ['#DC2626', '#FFFFFF', null]
+                }
             };
 
             function page() {
@@ -324,6 +391,8 @@
 
                     list.appendChild(row);
                 });
+
+                renderPreview();
             }
 
             function currentOrder() {
@@ -440,6 +509,120 @@
                 return config;
             }
 
+            function num(id, fallback) {
+                var el = page().querySelector('#' + id);
+                var v = el ? parseFloat(el.value) : NaN;
+                return isNaN(v) ? fallback : v;
+            }
+
+            function pick(id, fallback) {
+                var el = page().querySelector('#' + id);
+                return el && el.value ? el.value : fallback;
+            }
+
+            function svgEscape(s) {
+                return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+
+            /// Draws one poster with the current geometry, in the given style.
+            function previewSvg(style) {
+                var w = 130, h = 195;                              // the shape of a poster
+                var pillH = h * (num('PillHeightPercent', 5.5) / 100);
+                var fontSize = pillH * (num('FontSizePercentOfPill', 60) / 100);
+                var padX = pillH * (num('PaddingPercentOfPill', 42) / 100);
+                var gap = pillH * (num('GapPercentOfPill', 33) / 100);
+                var radius = pillH * (num('CornerRadiusPercentOfPill', 20) / 100);
+                var stroke = Math.max(0.4, pillH * (num('BorderWidthPercentOfPill', 3.5) / 100));
+                var marginX = w * (num('HorizontalMarginPercent', 3) / 100);
+                var marginY = h * (num('VerticalMarginPercent', 2) / 100);
+
+                var corner = pick('Corner', 'TopRight');
+                var horizontal = pick('Direction', 'Vertical') === 'Horizontal';
+                var right = corner === 'TopRight' || corner === 'BottomRight';
+                var bottom = corner === 'BottomRight' || corner === 'BottomLeft';
+
+                var chosen = currentOrder().filter(function (key) {
+                    var el = page().querySelector('#' + samples[key].flag);
+                    return el ? el.checked : true;
+                }).slice(0, Math.max(1, num('MaxBadges', 3)));
+
+                // Rough text metrics are enough here: the pill only has to look right.
+                var pills = chosen.map(function (key) {
+                    var text = samples[key].text;
+                    var textW = text.length * fontSize * 0.62;
+                    return { key: key, text: text, width: textW + (2 * padX), textWidth: textW };
+                });
+
+                var rowWidth = pills.reduce(function (sum, p) { return sum + p.width; }, 0)
+                    + (Math.max(0, pills.length - 1) * gap);
+                var stackH = horizontal ? pillH : (pills.length * pillH) + ((pills.length - 1) * gap);
+
+                var y = bottom ? h - marginY - stackH : marginY;
+                var x = right ? w - marginX - rowWidth : marginX;
+
+                var parts = [
+                    '<rect width="' + w + '" height="' + h + '" rx="4" fill="#1E293B"/>',
+                    '<circle cx="' + (w * 0.32) + '" cy="' + (h * 0.34) + '" r="' + (w * 0.15) + '" fill="#334155"/>',
+                    '<path d="M0 ' + (h * 0.72) + ' L' + (w * 0.34) + ' ' + (h * 0.52)
+                        + ' L' + (w * 0.62) + ' ' + (h * 0.74) + ' L' + w + ' ' + (h * 0.58)
+                        + ' V' + h + ' H0 Z" fill="#0F172A"/>'
+                ];
+
+                pills.forEach(function (p) {
+                    var colours = palettes[style][p.key];
+                    var px = horizontal ? x : (right ? w - marginX - p.width : marginX);
+                    var py = y;
+
+                    parts.push('<rect x="' + px + '" y="' + py + '" width="' + p.width + '" height="' + pillH
+                        + '" rx="' + radius + '" fill="' + colours[0] + '"'
+                        + (colours[2] ? ' stroke="' + colours[2] + '" stroke-width="' + stroke + '"' : '') + '/>');
+                    parts.push('<text x="' + (px + (p.width / 2)) + '" y="' + (py + (pillH / 2))
+                        + '" font-family="Inter, Segoe UI, sans-serif" font-size="' + fontSize
+                        + '" font-weight="600" fill="' + colours[1]
+                        + '" text-anchor="middle" dominant-baseline="central">' + svgEscape(p.text) + '</text>');
+
+                    if (horizontal) {
+                        x += p.width + gap;
+                    } else {
+                        y += pillH + gap;
+                    }
+                });
+
+                return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h
+                    + '" xmlns="http://www.w3.org/2000/svg">' + parts.join('') + '</svg>';
+            }
+
+            function renderPreview() {
+                var host = page().querySelector('#BadgePreview');
+                if (!host) {
+                    return;
+                }
+
+                var selected = pick('Style', 'DarkPill');
+                var labels = {
+                    DarkPill: 'Dark pill',
+                    FilledAccent: 'DV filled',
+                    FilledAll: 'All filled'
+                };
+
+                host.innerHTML = '';
+                Object.keys(labels).forEach(function (style) {
+                    var box = document.createElement('div');
+                    box.style.textAlign = 'center';
+                    box.style.opacity = style === selected ? '1' : '0.45';
+                    box.innerHTML = previewSvg(style)
+                        + '<div class="fieldDescription" style="margin-top:0.3em;">'
+                        + labels[style] + (style === selected ? ' (selected)' : '') + '</div>';
+                    box.addEventListener('click', function () {
+                        var el = page().querySelector('#Style');
+                        el.value = style;
+                        renderPreview();
+                    });
+                    box.style.cursor = 'pointer';
+                    host.appendChild(box);
+                });
+            }
+
             function showStatus() {
                 ApiClient.ajax({
                     type: 'GET',
@@ -476,6 +659,11 @@
                         + '. An unknown id gives a 404; anything else is in the server log.');
                 });
             }
+
+            // Any change to a geometry or style field redraws the preview. Cheap: it is one
+            // small SVG per style, built from values already in the DOM.
+            document.querySelector('#posterOverlaysConfigForm').addEventListener('change', renderPreview);
+            document.querySelector('#posterOverlaysConfigForm').addEventListener('input', renderPreview);
 
             page().addEventListener('pageshow', function () {
                 Dashboard.showLoadingMsg();

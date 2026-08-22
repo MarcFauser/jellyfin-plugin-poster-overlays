@@ -11,6 +11,25 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ### Fixed
 
+- **The settings page did not work at all.** Its root element carried
+  `data-controller="__plugin/posteroverlays"`, pointing at a module that does not exist, where
+  the official template carries `data-require="emby-input,emby-button,emby-select,emby-checkbox"`.
+  That one attribute is what makes Jellyfin register the controls and dispatch `pageshow`, so
+  nothing was upgraded - textareas rendered as raw boxes, the checkbox layout collapsed - and no
+  value was ever loaded into any field.
+
+### Added
+
+- A **3D badge**, in a category of its own rather than as an edition: a film can be an extended
+  cut *and* in 3D, and one must not push the other off the poster. Recognises `3D`, `HSBS`,
+  `Half-SBS`, `MVC`, `HTAB` and, in capitals only, the ambiguous `SBS` and `TAB`.
+- **Direction**: the badges can run along the top or bottom edge in one row instead of stacking
+  downwards. Corner says where they start, direction says which way they grow.
+- **A live preview** on the settings page: all three styles drawn side by side from the current
+  geometry, corner, direction and order. Clicking one selects it.
+
+### Fixed (earlier in this version)
+
 - **Badges could be drawn twice.** The scheduled task and the image-change watcher each kept
   their own state, and the task only wrote its records to disk when the whole run had finished.
   So the watcher, reacting to an upload the task had just made, read an empty file, concluded it

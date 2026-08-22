@@ -84,23 +84,52 @@ internal static class BadgeRenderer
 
         bool right = config.Corner is BadgeCorner.TopRight or BadgeCorner.BottomRight;
         bool bottom = config.Corner is BadgeCorner.BottomLeft or BadgeCorner.BottomRight;
-
-        float stackHeight = (badges.Count * pillHeight) + ((badges.Count - 1) * gap);
-        float y = bottom ? height - marginY - stackHeight : marginY;
+        bool horizontal = config.Direction == BadgeDirection.Horizontal;
 
         using var font = new SKFont(Typeface(), fontSize) { Edging = SKFontEdging.SubpixelAntialias };
         using var fill = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Fill };
         using var stroke = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = border };
         using var text = new SKPaint { IsAntialias = true };
 
-        foreach (var badge in badges)
+        // Measure first, place second. A horizontal row anchored on the right has to know how
+        // wide the whole row is before the first pill can be positioned.
+        var widths = new float[badges.Count];
+        var inks = new SKRect[badges.Count];
+        float rowWidth = 0;
+        for (int i = 0; i < badges.Count; i++)
         {
+            widths[i] = font.MeasureText(badges[i].Text, out inks[i], text);
+            rowWidth += widths[i] + (2 * padding);
+        }
+
+        rowWidth += Math.Max(0, badges.Count - 1) * gap;
+
+        float stackHeight = horizontal
+            ? pillHeight
+            : (badges.Count * pillHeight) + ((badges.Count - 1) * gap);
+
+        float y = bottom ? height - marginY - stackHeight : marginY;
+        float x = right ? width - marginX - rowWidth : marginX;
+
+        for (int i = 0; i < badges.Count; i++)
+        {
+            var badge = badges[i];
             var palette = BadgePalette.For(badge.Category, badge.Text, config.Style);
-            float textWidth = font.MeasureText(badge.Text, out SKRect ink, text);
-            float pillWidth = textWidth + (2 * padding);
-            var rect = right
-                ? new SKRect(width - marginX - pillWidth, y, width - marginX, y + pillHeight)
-                : new SKRect(marginX, y, marginX + pillWidth, y + pillHeight);
+            float pillWidth = widths[i] + (2 * padding);
+
+            SKRect rect;
+            if (horizontal)
+            {
+                rect = new SKRect(x, y, x + pillWidth, y + pillHeight);
+                x += pillWidth + gap;
+            }
+            else
+            {
+                rect = right
+                    ? new SKRect(width - marginX - pillWidth, y, width - marginX, y + pillHeight)
+                    : new SKRect(marginX, y, marginX + pillWidth, y + pillHeight);
+                y += pillHeight + gap;
+            }
 
             fill.Color = palette.Fill;
             canvas.DrawRoundRect(rect, radius, radius, fill);
@@ -114,9 +143,7 @@ internal static class BadgeRenderer
             // Centre the ink, not the line box. All-caps labels have no descenders, so a
             // baseline derived from the font metrics sits visibly low inside the pill.
             text.Color = palette.Ink;
-            canvas.DrawText(badge.Text, rect.MidX - (textWidth / 2f), rect.MidY - ((ink.Top + ink.Bottom) / 2f), font, text);
-
-            y += pillHeight + gap;
+            canvas.DrawText(badge.Text, rect.MidX - (widths[i] / 2f), rect.MidY - ((inks[i].Top + inks[i].Bottom) / 2f), font, text);
         }
     }
 

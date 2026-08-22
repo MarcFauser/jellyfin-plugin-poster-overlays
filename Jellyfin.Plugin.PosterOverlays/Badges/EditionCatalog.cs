@@ -99,6 +99,29 @@ internal static class EditionCatalog
     };
 
     /// <summary>
+    /// Gets the presentation-format rules.
+    /// </summary>
+    /// <remarks>
+    /// Everything here means the same thing - the film is a 3D release - and the spellings are
+    /// the ones the stereoscopic packing formats use: side-by-side, top-and-bottom, and the
+    /// Blu-ray 3D codec MVC. <c>tab</c> is left out of the spelled-out list on purpose: it is a
+    /// common word, so it is only accepted in capitals, further down.
+    /// </remarks>
+    public static IReadOnlyList<Rule> Formats { get; } = new[]
+    {
+        new Rule("3D", @"3d|half ?sbs|full ?sbs|sbs3d|hsbs|htab|mvc|anaglyph"),
+    };
+
+    /// <summary>
+    /// Gets the short format tokens that need the capitals rule.
+    /// </summary>
+    public static IReadOnlyList<CapsRule> FormatCapsTokens { get; } = new[]
+    {
+        new CapsRule("3D", "SBS"),
+        new CapsRule("3D", "TAB"),
+    };
+
+    /// <summary>
     /// Gets the source-quality rules. A hit here means the copy is a placeholder rip.
     /// </summary>
     public static IReadOnlyList<Rule> Sources { get; } = new[]

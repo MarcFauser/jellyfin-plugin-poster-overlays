@@ -67,6 +67,11 @@ internal static class BadgeBuilder
             }
         }
 
+        if (config.ShowFormatBadges && parsed.Format is not null)
+        {
+            badges.Add(new BadgeSpec(BadgeCategory.Format, parsed.Format));
+        }
+
         if (config.ShowSourceBadges && parsed.Source is not null)
         {
             badges.Add(new BadgeSpec(BadgeCategory.Source, parsed.Source));

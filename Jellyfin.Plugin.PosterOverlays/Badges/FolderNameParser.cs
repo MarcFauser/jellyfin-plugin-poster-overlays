@@ -43,7 +43,7 @@ internal static class FolderNameParser
         var tokens = FolderTokenizer.Tokenize(folderName);
         if (tokens.Count == 0)
         {
-            return new Result(null, null, false, string.Empty);
+            return new Result(null, null, null, false, string.Empty);
         }
 
         int skip = Math.Max(TitlePrefixLength(tokens, itemName), TitlePrefixLength(tokens, originalTitle));
@@ -62,6 +62,7 @@ internal static class FolderNameParser
         return new Result(
             Match(zone, tokens, skip, EditionCatalog.Editions, EditionCatalog.EditionCapsTokens),
             Match(zone, tokens, skip, EditionCatalog.Sources, EditionCatalog.SourceCapsTokens),
+            Match(zone, tokens, skip, EditionCatalog.Formats, EditionCatalog.FormatCapsTokens),
             trusted,
             zone);
     }
@@ -184,10 +185,11 @@ internal static class FolderNameParser
     /// </summary>
     /// <param name="Edition">The edition badge, or null.</param>
     /// <param name="Source">The source-quality badge, or null.</param>
+    /// <param name="Format">The presentation-format badge, currently only 3D, or null.</param>
     /// <param name="TitleTrusted">
     /// False when the item title could not be subtracted and the whole folder name was searched.
     /// Worth logging: it means the item has no metadata match.
     /// </param>
     /// <param name="TagZone">The normalised text the rules were applied to.</param>
-    internal sealed record Result(string? Edition, string? Source, bool TitleTrusted, string TagZone);
+    internal sealed record Result(string? Edition, string? Source, string? Format, bool TitleTrusted, string TagZone);
 }

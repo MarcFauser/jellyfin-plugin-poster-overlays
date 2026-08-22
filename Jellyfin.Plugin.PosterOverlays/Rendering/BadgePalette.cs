@@ -19,6 +19,7 @@ internal sealed record BadgePalette(SKColor Fill, SKColor Ink, SKColor Border)
     private static readonly SKColor Purple = new(0x6D, 0x28, 0xD9);
     private static readonly SKColor Blue = new(0x1D, 0x4E, 0xD8);
     private static readonly SKColor Red = new(0xDC, 0x26, 0x26);
+    private static readonly SKColor Teal = new(0x2D, 0xD4, 0xBF);
     private static readonly SKColor Graphite = new(0x3F, 0x3F, 0x46, 0xF0);
 
     /// <summary>
@@ -43,6 +44,7 @@ internal sealed record BadgePalette(SKColor Fill, SKColor Ink, SKColor Border)
                 BadgeCategory.VideoRange => dolbyVision
                     ? new BadgePalette(Purple, SKColors.White, SKColors.Transparent)
                     : new BadgePalette(Amber, new SKColor(0x1A, 0x12, 0x00), SKColors.Transparent),
+                BadgeCategory.Format => new BadgePalette(Teal, SKColors.White, SKColors.Transparent),
                 _ => new BadgePalette(Red, SKColors.White, SKColors.Transparent),
             },
 
@@ -50,6 +52,7 @@ internal sealed record BadgePalette(SKColor Fill, SKColor Ink, SKColor Border)
             {
                 BadgeCategory.VideoRange when dolbyVision => new BadgePalette(Purple, SKColors.White, Purple),
                 BadgeCategory.VideoRange => new BadgePalette(Slate, Amber, Amber.WithAlpha(0xB0)),
+                BadgeCategory.Format => new BadgePalette(Slate, Teal, Teal.WithAlpha(0xC0)),
                 BadgeCategory.Source => new BadgePalette(Slate, Red, Red.WithAlpha(0xC0)),
                 _ => new BadgePalette(Slate, SKColors.White, Faint),
             },
@@ -57,6 +60,7 @@ internal sealed record BadgePalette(SKColor Fill, SKColor Ink, SKColor Border)
             _ => category switch
             {
                 BadgeCategory.VideoRange => new BadgePalette(Slate, Amber, Amber.WithAlpha(0xB0)),
+                BadgeCategory.Format => new BadgePalette(Slate, Teal, Teal.WithAlpha(0xC0)),
                 BadgeCategory.Source => new BadgePalette(Slate, Red, Red.WithAlpha(0xC0)),
                 _ => new BadgePalette(Slate, SKColors.White, Faint),
             },

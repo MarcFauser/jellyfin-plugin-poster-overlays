@@ -74,6 +74,25 @@ public class FolderNameParserTests
     }
 
     [Theory]
+    // A real folder from the reference library. 3D sits before the year, like so much else here.
+    [InlineData("Störche.Abenteuer.im.Anflug.3D.2016.German.AC3D.DL1080p.BluRay.x264-PsO", "Störche - Abenteuer im Anflug", "3D")]
+    [InlineData("Some.Movie.2016.German.HSBS.1080p.BluRay.x264-GROUP", "Some Movie", "3D")]
+    [InlineData("Some.Movie.2016.German.Half-SBS.1080p.BluRay.x264-GROUP", "Some Movie", "3D")]
+    [InlineData("Some.Movie.2016.German.MVC.1080p.BluRay-GROUP", "Some Movie", "3D")]
+    [InlineData("Some.Movie.2016.German.SBS.1080p.BluRay.x264-GROUP", "Some Movie", "3D")]
+    // TAB is a word as well as a packing format, so it only counts in capitals.
+    [InlineData("Some.Movie.2016.German.TAB.1080p.BluRay.x264-GROUP", "Some Movie", "3D")]
+    [InlineData("Some.Movie.2016.German.tab.1080p.BluRay.x264-GROUP", "Some Movie", null)]
+    // And a film whose title carries the token: subtraction removes it before the rules look.
+    [InlineData("Spy.Kids.3D.Game.Over.2003.German.DL.1080p.BluRay.x264-GROUP", "Spy Kids 3D: Game Over", null)]
+    [InlineData("Avatar.Aufbruch.nach.Pandora.2009.German.DTS.1080p.BluRay.x264-SoW", "Avatar - Aufbruch nach Pandora", null)]
+    public void ParsesPresentationFormat(string folder, string? name, string? expected)
+    {
+        var result = FolderNameParser.Parse(folder, name, null);
+        Assert.Equal(expected, result.Format);
+    }
+
+    [Theory]
     [InlineData("Der.Super.Mario.Galaxy.Film.2026.PROPER.German.TELESYNC.1080p.x264-GHOST", "Der Super Mario Galaxy Film", "TS")]
     [InlineData("Oppenheimer.2023.TS.LD.German.1080p.x264-PsO", "Oppenheimer", "TS")]
     [InlineData("Cam.2018.German.DL.1080p.WEB.x264-GROUP", "Cam", null)]

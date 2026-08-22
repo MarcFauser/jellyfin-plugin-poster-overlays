@@ -44,6 +44,11 @@ public class PluginConfiguration : BasePluginConfiguration
     public BadgeCorner Corner { get; set; } = BadgeCorner.TopRight;
 
     /// <summary>
+    /// Gets or sets which way the badges grow from the corner.
+    /// </summary>
+    public BadgeDirection Direction { get; set; } = BadgeDirection.Vertical;
+
+    /// <summary>
     /// Gets or sets the visual style of the pills.
     /// </summary>
     public BadgeStyle Style { get; set; } = BadgeStyle.DarkPill;
@@ -65,7 +70,7 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Unknown names are ignored, and any category missing from the list is appended in its
     /// natural order rather than silently dropped.
     /// </remarks>
-    public string BadgeOrder { get; set; } = "Edition,Resolution,VideoRange,Source";
+    public string BadgeOrder { get; set; } = "Edition,Resolution,VideoRange,Format,Source";
 
     /// <summary>
     /// Gets or sets the pill height as a percentage of the image height.
@@ -125,6 +130,11 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets a value indicating whether video range badges (DV, HDR, ...) are drawn.
     /// </summary>
     public bool ShowVideoRangeBadges { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether presentation-format badges (3D) are drawn.
+    /// </summary>
+    public bool ShowFormatBadges { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a value indicating whether source-quality badges (CAM, TS, TC, SCR) are

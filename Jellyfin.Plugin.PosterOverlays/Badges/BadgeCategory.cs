@@ -15,6 +15,13 @@ internal enum BadgeCategory
     /// <summary>Dolby Vision and HDR, taken from the video stream.</summary>
     VideoRange = 2,
 
+    /// <summary>
+    /// The presentation format, currently 3D. Its own category rather than an edition, because
+    /// it is a different question: a film can be an extended cut AND in 3D, and one must not
+    /// push the other off the poster.
+    /// </summary>
+    Format = 3,
+
     /// <summary>A placeholder rip: CAM, TS, TC, SCR. Meant to be noticed.</summary>
-    Source = 3,
+    Source = 4,
 }
