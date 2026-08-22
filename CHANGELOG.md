@@ -20,5 +20,15 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 - Badge renderer using SkiaSharp with an embedded Inter SemiBold typeface, three styles, four
   corners, and every measurement expressed as a percentage of the image.
 - Plugin entry point and configuration page.
-- Test suite: 67 cases, every folder name either taken from a real library or verified as a
+- Test suite: 72 cases, every folder name either taken from a real library or verified as a
   real film title that would collide.
+- The upkeep loop: the original cover is cached, the uploaded image is hashed, and a run
+  compares the current image against that hash to tell "a provider replaced the cover" from
+  "we badged it". Redrawing always starts from the cached original, never from the image on
+  the item, so badges cannot stack.
+- Two scheduled tasks: "Apply poster overlays" (daily by default, and runnable on demand from
+  Jellyfin's own task screen) and "Remove poster overlays", which restores every cached
+  original and is the way out before uninstalling.
+- Task log reporting: how many covers a provider replaced, which groups of entries end up with
+  identical badges and therefore still cannot be told apart, edition-looking phrases that no
+  rule covers, and disagreements between the folder name and the video stream.

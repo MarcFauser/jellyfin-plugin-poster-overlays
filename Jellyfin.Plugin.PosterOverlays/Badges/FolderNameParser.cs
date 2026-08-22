@@ -66,6 +66,51 @@ internal static class FolderNameParser
             zone);
     }
 
+    /// <summary>
+    /// Finds a word pair in the tag zone that looks like an edition but is in no rule.
+    /// </summary>
+    /// <remarks>
+    /// The catalogue can only know the vocabulary it was built from. Reporting what it did not
+    /// recognise is how it grows - and it is cheap, because a release name puts an edition next
+    /// to one of four nouns.
+    /// </remarks>
+    /// <param name="tagZone">The normalised tag zone from a <see cref="Result"/>.</param>
+    /// <returns>The candidate, for example "assembly cut", or null.</returns>
+    public static string? UnmappedEditionCandidate(string? tagZone)
+    {
+        if (string.IsNullOrWhiteSpace(tagZone))
+        {
+            return null;
+        }
+
+        var words = tagZone.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        for (int i = 1; i < words.Length; i++)
+        {
+            if (words[i] is not ("cut" or "edition" or "version" or "fassung"))
+            {
+                continue;
+            }
+
+            string candidate = words[i - 1] + " " + words[i];
+            bool known = false;
+            foreach (var rule in EditionCatalog.Editions)
+            {
+                if (rule.Matches(candidate))
+                {
+                    known = true;
+                    break;
+                }
+            }
+
+            if (!known)
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
     private static string? Match(
         string zone,
         IReadOnlyList<FolderTokenizer.Token> tokens,
