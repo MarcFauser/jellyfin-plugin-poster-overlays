@@ -26,7 +26,17 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 - **Direction**: the badges can run along the top or bottom edge in one row instead of stacking
   downwards. Corner says where they start, direction says which way they grow.
 - **A live preview** on the settings page: all three styles drawn side by side from the current
-  geometry, corner, direction and order. Clicking one selects it.
+  geometry, corner, direction and order. Clicking one selects it - the preview *is* the style
+  picker, so there is no dropdown repeating it.
+
+### Changed (settings page layout)
+
+- Number fields are narrow and right aligned instead of stretching across the page.
+- The exception boxes are full-width textareas with their label above them, and the checkbox
+  rows lay themselves out. None of it depends on the `emby-*` custom elements any more: those
+  are registered by whichever page imported their module, and a plugin configuration page
+  imports nothing - `emby-input` and `emby-select` happen to be available, `emby-textarea` is
+  not, which is why those boxes rendered as 20-column stubs wedged beside their labels.
 
 ### Fixed (earlier in this version)
 

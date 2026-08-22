@@ -5,12 +5,18 @@
     <title>Poster Overlays</title>
 </head>
 <body>
-<!-- data-require is what makes Jellyfin load and register the emby-* controls for this page,
-     and it is also what dispatches pageshow. An earlier version had data-controller pointing at
-     a module that does not exist: nothing upgraded, so the textareas rendered as raw boxes and
-     the checkbox layout collapsed, and no pageshow ever fired, so every field stayed empty. -->
+<!-- An earlier version carried data-controller="__plugin/posteroverlays", naming a module that
+     does not exist, and then no pageshow was ever dispatched, so no field was ever filled.
+     data-require is what the official plugin template carries; searching jellyfin-web for it
+     finds nothing, so it is inert there and kept only to match the template. Removing
+     data-controller is what fixed the page.
+
+     The emby-* elements are registered by whichever page happens to have imported their module,
+     and a plugin configuration page imports nothing. emby-input and emby-select turn out to be
+     available, emby-textarea is not - so nothing on this page may DEPEND on the upgrade. Sizes
+     and layout are set here, and the is= attributes are a bonus when they happen to work. -->
 <div id="posterOverlaysConfigPage" data-role="page" class="page type-interior pluginConfigurationPage"
-     data-require="emby-input,emby-button,emby-select,emby-checkbox,emby-textarea">
+     data-require="emby-input,emby-button,emby-select,emby-checkbox">
     <div data-role="content">
         <div class="content-primary">
             <form id="posterOverlaysConfigForm">
@@ -29,14 +35,14 @@
                     <h3 class="sectionTitle">Operation</h3>
 
                     <div class="checkboxContainer">
-                        <label class="emby-checkbox-label">
+                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
                             <input id="Enabled" name="Enabled" type="checkbox" is="emby-checkbox" />
                             <span>Enabled</span>
                         </label>
                     </div>
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
+                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
                             <input id="DryRun" name="DryRun" type="checkbox" is="emby-checkbox" />
                             <span>Dry run - only report, change nothing</span>
                         </label>
@@ -48,7 +54,7 @@
                     </div>
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
+                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
                             <input id="WatchForImageChanges" name="WatchForImageChanges" type="checkbox" is="emby-checkbox" />
                             <span>Re-badge as soon as an image changes</span>
                         </label>
@@ -64,37 +70,37 @@
                     <h3 class="sectionTitle">What to badge</h3>
 
                     <div class="checkboxContainer">
-                        <label class="emby-checkbox-label">
+                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
                             <input id="ShowEditionBadges" name="ShowEditionBadges" type="checkbox" is="emby-checkbox" />
                             <span>Edition (EXT, DC, UC, IMAX, ...) - read from the folder name</span>
                         </label>
                     </div>
                     <div class="checkboxContainer">
-                        <label class="emby-checkbox-label">
+                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
                             <input id="ShowResolutionBadges" name="ShowResolutionBadges" type="checkbox" is="emby-checkbox" />
                             <span>Resolution (4K, 8K, ...)</span>
                         </label>
                     </div>
                     <div class="checkboxContainer">
-                        <label class="emby-checkbox-label">
+                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
                             <input id="ShowVideoRangeBadges" name="ShowVideoRangeBadges" type="checkbox" is="emby-checkbox" />
                             <span>Video range (DV, HDR, HDR+, HLG)</span>
                         </label>
                     </div>
                     <div class="checkboxContainer">
-                        <label class="emby-checkbox-label">
+                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
                             <input id="ShowFormatBadges" name="ShowFormatBadges" type="checkbox" is="emby-checkbox" />
                             <span>Presentation format (3D) - read from the folder name</span>
                         </label>
                     </div>
                     <div class="checkboxContainer">
-                        <label class="emby-checkbox-label">
+                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
                             <input id="ShowSourceBadges" name="ShowSourceBadges" type="checkbox" is="emby-checkbox" />
                             <span>Source quality (CAM, TS, TC, SCR) - marks a placeholder rip</span>
                         </label>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
+                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
                             <input id="MergeDolbyVisionAndHdr" name="MergeDolbyVisionAndHdr" type="checkbox" is="emby-checkbox" />
                             <span>Merge Dolby Vision and HDR into one pill</span>
                         </label>
@@ -105,7 +111,7 @@
 
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="MaxBadges">Maximum badges per image</label>
-                        <input id="MaxBadges" name="MaxBadges" type="number" is="emby-input" class="emby-input" min="1" max="6" step="1" />
+                        <input id="MaxBadges" name="MaxBadges" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="1" max="6" step="1" />
                         <div class="fieldDescription">Anything beyond this is dropped from the bottom of the stack.</div>
                     </div>
                 </div>
@@ -122,14 +128,21 @@
                 <div class="verticalSection">
                     <h3 class="sectionTitle">Look</h3>
 
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="Style">Style</label>
-                        <select id="Style" name="Style" is="emby-select" class="emby-select-withcolor emby-select">
-                            <option value="DarkPill">Dark pill, DV and HDR merged</option>
-                            <option value="FilledAccent">Dolby Vision filled, HDR separate</option>
-                            <option value="FilledAll">All filled, fully rounded</option>
-                        </select>
-                    </div>
+                    <!-- The three previews ARE the style picker, so there is no dropdown saying the
+                         same thing next to them. The select is kept, hidden, because it is where the
+                         value lives and what the load and save paths read. -->
+                    <label class="selectLabel" for="Style">Style - click one</label>
+                    <select id="Style" name="Style" style="display:none;">
+                        <option value="DarkPill">Dark pill, DV and HDR merged</option>
+                        <option value="FilledAccent">Dolby Vision filled, HDR separate</option>
+                        <option value="FilledAll">All filled, fully rounded</option>
+                    </select>
+                    <div id="BadgePreview" style="display:flex; gap:1.2em; flex-wrap:wrap; margin:0.6em 0 1.4em 0;"></div>
+                    <p class="fieldDescription" style="margin-bottom:1.4em;">
+                        Drawn from the settings below as you change them - corner, direction, sizes and
+                        the order. Shapes and colours are to scale; the real thing is rendered on the
+                        poster itself.
+                    </p>
 
                     <div class="selectContainer">
                         <label class="selectLabel" for="Corner">Corner</label>
@@ -153,15 +166,6 @@
                         </div>
                     </div>
 
-                    <div class="verticalSection">
-                        <h3 class="sectionTitle">Preview</h3>
-                        <p class="fieldDescription">
-                            Drawn from the settings above as you change them. Shapes and colours are to
-                            scale; the real thing is rendered on the poster itself.
-                        </p>
-                        <div id="BadgePreview" style="display:flex; gap:1.2em; flex-wrap:wrap;"></div>
-                    </div>
-
                     <p class="fieldDescription">
                         All sizes are percentages, never pixels, so the same settings look the same on
                         a 600x900 and on a 1000x1500 master.
@@ -169,36 +173,36 @@
 
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="PillHeightPercent">Pill height, % of image height</label>
-                        <input id="PillHeightPercent" name="PillHeightPercent" type="number" is="emby-input" class="emby-input" min="1" max="25" step="0.1" />
+                        <input id="PillHeightPercent" name="PillHeightPercent" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="1" max="25" step="0.1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="FontSizePercentOfPill">Font size, % of pill height</label>
-                        <input id="FontSizePercentOfPill" name="FontSizePercentOfPill" type="number" is="emby-input" class="emby-input" min="20" max="100" step="1" />
+                        <input id="FontSizePercentOfPill" name="FontSizePercentOfPill" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="20" max="100" step="1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="PaddingPercentOfPill">Horizontal padding, % of pill height</label>
-                        <input id="PaddingPercentOfPill" name="PaddingPercentOfPill" type="number" is="emby-input" class="emby-input" min="0" max="200" step="1" />
+                        <input id="PaddingPercentOfPill" name="PaddingPercentOfPill" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="0" max="200" step="1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="GapPercentOfPill">Gap between pills, % of pill height</label>
-                        <input id="GapPercentOfPill" name="GapPercentOfPill" type="number" is="emby-input" class="emby-input" min="0" max="200" step="1" />
+                        <input id="GapPercentOfPill" name="GapPercentOfPill" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="0" max="200" step="1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="CornerRadiusPercentOfPill">Corner radius, % of pill height</label>
-                        <input id="CornerRadiusPercentOfPill" name="CornerRadiusPercentOfPill" type="number" is="emby-input" class="emby-input" min="0" max="50" step="1" />
+                        <input id="CornerRadiusPercentOfPill" name="CornerRadiusPercentOfPill" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="0" max="50" step="1" />
                         <div class="fieldDescription">50 gives fully rounded ends.</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="BorderWidthPercentOfPill">Border width, % of pill height</label>
-                        <input id="BorderWidthPercentOfPill" name="BorderWidthPercentOfPill" type="number" is="emby-input" class="emby-input" min="0" max="20" step="0.5" />
+                        <input id="BorderWidthPercentOfPill" name="BorderWidthPercentOfPill" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="0" max="20" step="0.5" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="HorizontalMarginPercent">Side margin, % of image width</label>
-                        <input id="HorizontalMarginPercent" name="HorizontalMarginPercent" type="number" is="emby-input" class="emby-input" min="0" max="25" step="0.1" />
+                        <input id="HorizontalMarginPercent" name="HorizontalMarginPercent" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="0" max="25" step="0.1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="VerticalMarginPercent">Top or bottom margin, % of image height</label>
-                        <input id="VerticalMarginPercent" name="VerticalMarginPercent" type="number" is="emby-input" class="emby-input" min="0" max="25" step="0.1" />
+                        <input id="VerticalMarginPercent" name="VerticalMarginPercent" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="0" max="25" step="0.1" />
                     </div>
                 </div>
 
@@ -215,7 +219,7 @@
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="MinimumResolutionK">Lowest rung that earns a badge</label>
-                        <input id="MinimumResolutionK" name="MinimumResolutionK" type="number" is="emby-input" class="emby-input" min="1" max="32" step="1" />
+                        <input id="MinimumResolutionK" name="MinimumResolutionK" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="1" max="32" step="1" />
                         <div class="fieldDescription">With 4, 1080p material gets no badge.</div>
                     </div>
                 </div>
@@ -224,11 +228,11 @@
                     <h3 class="sectionTitle">Writing back</h3>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="JpegQuality">JPEG quality</label>
-                        <input id="JpegQuality" name="JpegQuality" type="number" is="emby-input" class="emby-input" min="60" max="100" step="1" />
+                        <input id="JpegQuality" name="JpegQuality" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="60" max="100" step="1" />
                         <div class="fieldDescription">Jellyfin delivers at 90; below that the badged copy is visibly worse than the original.</div>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
+                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
                             <input id="WriteToMediaFolder" name="WriteToMediaFolder" type="checkbox" is="emby-checkbox" />
                             <span>Write the badged image into the media folder instead</span>
                         </label>
@@ -242,14 +246,19 @@
 
                 <div class="verticalSection">
                     <h3 class="sectionTitle">Exceptions</h3>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="ExcludedItemIds">Never touch these items</label>
-                        <textarea id="ExcludedItemIds" name="ExcludedItemIds" is="emby-textarea" class="emby-textarea" rows="4"></textarea>
+                    <!-- Plain textareas with their own layout. emby-textarea is only registered by
+                         pages that import its module, which a plugin page does not, so relying on
+                         it left these as 20-column boxes wedged beside their labels. -->
+                    <div class="inputContainer" style="margin-bottom:1.2em;">
+                        <label for="ExcludedItemIds" style="display:block; margin-bottom:0.4em;">Never touch these items</label>
+                        <textarea id="ExcludedItemIds" name="ExcludedItemIds" rows="4" spellcheck="false"
+                                  style="display:block; width:100%; box-sizing:border-box; padding:0.6em; border-radius:0.2em; resize:vertical; font-family:inherit; font-size:inherit;"></textarea>
                         <div class="fieldDescription">One item id per line.</div>
                     </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="EditionOverrides">Edition overrides</label>
-                        <textarea id="EditionOverrides" name="EditionOverrides" is="emby-textarea" class="emby-textarea" rows="4"></textarea>
+                    <div class="inputContainer" style="margin-bottom:1.2em;">
+                        <label for="EditionOverrides" style="display:block; margin-bottom:0.4em;">Edition overrides</label>
+                        <textarea id="EditionOverrides" name="EditionOverrides" rows="4" spellcheck="false"
+                                  style="display:block; width:100%; box-sizing:border-box; padding:0.6em; border-radius:0.2em; resize:vertical; font-family:inherit; font-size:inherit;"></textarea>
                         <div class="fieldDescription">
                             One per line, as <code>itemId = BADGE</code>. An empty badge suppresses the
                             edition badge for that item without excluding it entirely.
