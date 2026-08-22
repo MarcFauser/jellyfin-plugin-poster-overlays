@@ -1,0 +1,25 @@
+root = true
+
+[*.cs]
+
+# CA3003 "review code for file path injection vulnerabilities".
+#
+# Taken over from the Jellyfin server's own .editorconfig, which sets exactly this rule to
+# exactly this severity:
+#
+#     # error on CA3003: Review code for file path injection vulnerabilities
+#     dotnet_diagnostic.CA3003.severity = suggestion
+#
+#     -- jellyfin/jellyfin, branch release-10.11.z, .editorconfig
+#
+# This is not a convenience. The analyser treats every ASP.NET route parameter as tainted
+# regardless of its type, so a route that takes a Guid and then touches any file is reported -
+# and so is every path derived from the item that Guid resolves to, including paths Jellyfin
+# itself produced, such as the return value of BaseItem.GetImagePath. A Guid is 128 bits and
+# cannot carry a directory separator, so the reported injection is not merely unlikely, it is
+# unrepresentable.
+#
+# The guard is still in the code: OverlayStateStore.OriginalPath puts the id through
+# Path.GetFileName before it becomes part of a path, so a caller that hands over something that
+# is not a Guid cannot escape the originals folder either.
+dotnet_diagnostic.CA3003.severity = suggestion

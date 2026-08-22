@@ -131,7 +131,16 @@ public sealed class ApplyOverlaysTask : IScheduledTask
             progress.Report(done * 100.0 / Math.Max(1, items.Count));
         }
 
-        store.Flush();
+        if (config.DryRun)
+        {
+            _logger.LogInformation(
+                "Poster overlays: this was a DRY RUN. Nothing was uploaded, nothing was written, nothing was recorded.");
+        }
+        else
+        {
+            store.Flush();
+        }
+
         Report(counts, groups, unmapped, items.Count);
         progress.Report(100);
     }

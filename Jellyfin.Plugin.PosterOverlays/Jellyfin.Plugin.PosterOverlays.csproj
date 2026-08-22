@@ -45,6 +45,12 @@
     <FileVersion>12.1.0.0</FileVersion>
   </PropertyGroup>
 
+  <!-- ControllerBase, [ApiController], [Authorize]. The server hosts ASP.NET Core; the plugin
+       only compiles against it. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
   <!-- ExcludeAssets="runtime": the server ships these assemblies itself, the plugin must
        not place copies next to its own DLL. For SkiaSharp this is not merely tidy - the
        plugin is loaded into its own collectible AssemblyLoadContext, so a shipped copy

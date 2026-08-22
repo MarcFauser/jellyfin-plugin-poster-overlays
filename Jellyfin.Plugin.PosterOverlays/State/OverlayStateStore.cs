@@ -168,8 +168,24 @@ internal sealed class OverlayStateStore
         }
     }
 
+    /// <summary>
+    /// Builds the path of a cached original.
+    /// </summary>
+    /// <remarks>
+    /// The id is passed through <see cref="Path.GetFileName(string)"/> before it becomes part of
+    /// a path. An item id is a GUID and cannot contain a separator, so in practice this changes
+    /// nothing - but the id reaches this method from an HTTP route, and a guard that only holds
+    /// because of an invariant somewhere else is not a guard. This one strips any directory part
+    /// whatever the caller hands over.
+    /// </remarks>
     private string OriginalPath(string itemId, string extension)
     {
-        return Path.Combine(_originalsPath, itemId + extension);
+        string fileName = Path.GetFileName(itemId + extension);
+        if (string.IsNullOrEmpty(fileName))
+        {
+            throw new ArgumentException("The item id does not produce a usable file name.", nameof(itemId));
+        }
+
+        return Path.Combine(_originalsPath, fileName);
     }
 }

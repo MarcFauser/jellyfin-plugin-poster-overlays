@@ -126,6 +126,7 @@ internal sealed class OverlayApplier
         byte[] original;
         string extension;
         OverlayOutcome outcome;
+        bool originalNeedsCaching = false;
 
         if (oursOnTheItem)
         {
@@ -152,7 +153,7 @@ internal sealed class OverlayApplier
                 extension = ".jpg";
             }
 
-            _store.SaveOriginal(id, current, extension);
+            originalNeedsCaching = true;
             outcome = record is null ? OverlayOutcome.FirstRun : OverlayOutcome.CoverReplaced;
         }
 
@@ -161,6 +162,28 @@ internal sealed class OverlayApplier
         {
             _logger.LogWarning("Poster overlays: {Name} - the image could not be decoded.", item.Name);
             return OverlayOutcome.Failed;
+        }
+
+        if (_config.DryRun)
+        {
+            // Everything above was computed, including the drawing, so a dry run really does
+            // exercise the decision it reports. Nothing below it touches the library or the
+            // state, which is what makes the run repeatable.
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation(
+                    "Poster overlays [dry run]: {Name} would be {Outcome} with {Badges}.",
+                    item.Name,
+                    outcome,
+                    badgeKey.Length == 0 ? "no badges" : badgeKey);
+            }
+
+            return outcome;
+        }
+
+        if (originalNeedsCaching)
+        {
+            _store.SaveOriginal(id, original, extension);
         }
 
         string badgedHash = _config.WriteToMediaFolder
@@ -203,6 +226,16 @@ internal sealed class OverlayApplier
                 + "next run does not mistake the badged image for an original.",
                 item.Name);
             return false;
+        }
+
+        if (_config.DryRun)
+        {
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Poster overlays [dry run]: {Name} would have its original restored.", item.Name);
+            }
+
+            return true;
         }
 
         await UploadAsync(item, original, record.OriginalExtension, cancellationToken).ConfigureAwait(false);

@@ -18,6 +18,27 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool Enabled { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets a value indicating whether the plugin only reports what it would do.
+    /// </summary>
+    /// <remarks>
+    /// Nothing is uploaded, no file is written and no state is recorded, so a dry run leaves the
+    /// library exactly as it was and can be repeated. It is the honest way to find out what a
+    /// first run would change before it changes it.
+    /// </remarks>
+    public bool DryRun { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether an item is re-badged as soon as Jellyfin reports
+    /// that its image changed.
+    /// </summary>
+    /// <remarks>
+    /// This is what makes "Refresh metadata" in the item menu work as a manual trigger: the
+    /// provider delivers a new cover, the plugin notices and puts the badge back. It also means
+    /// the plugin writes during every library refresh, which is why it can be turned off.
+    /// </remarks>
+    public bool WatchForImageChanges { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets the corner the badge stack starts in. The stack always grows downwards.
     /// </summary>
     public BadgeCorner Corner { get; set; } = BadgeCorner.TopRight;

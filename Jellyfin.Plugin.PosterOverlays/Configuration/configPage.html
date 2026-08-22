@@ -26,6 +26,51 @@
                     </label>
                 </div>
 
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input is="emby-checkbox" type="checkbox" id="DryRun" />
+                        <span>Dry run - only report, change nothing</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        Everything is worked out including the drawing, and then thrown away: no
+                        upload, no file, no recorded state. The task log says what it would have
+                        done. Leave this on for the first run.
+                    </div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input is="emby-checkbox" type="checkbox" id="WatchForImageChanges" />
+                        <span>Re-badge as soon as an image changes</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        This is what makes "Refresh metadata" in a film's own menu work as a manual
+                        trigger: the provider delivers a new cover and the badge is back seconds
+                        later. It also means the plugin writes during every library refresh.
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Run it for one item</h3>
+                    <p class="fieldDescription">
+                        The item menu in the web client is built from a fixed list and cannot be
+                        extended by a plugin, so this is the place to badge a single film without
+                        waiting for the nightly task. The id is the one in the URL when the item is
+                        open.
+                    </p>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SingleItemId">Item id</label>
+                        <input is="emby-input" type="text" id="SingleItemId" />
+                    </div>
+                    <button is="emby-button" type="button" id="ApplyOne" class="raised block emby-button">
+                        <span>Badge this item now</span>
+                    </button>
+                    <button is="emby-button" type="button" id="RestoreOne" class="raised block emby-button">
+                        <span>Restore its original</span>
+                    </button>
+                    <div id="SingleItemResult" class="fieldDescription" style="margin-top:0.6em;"></div>
+                </div>
+
                 <div class="verticalSection">
                     <h3 class="sectionTitle">What to badge</h3>
 
@@ -203,8 +248,9 @@
             var numbers = ['MaxBadges', 'PillHeightPercent', 'FontSizePercentOfPill', 'PaddingPercentOfPill',
                 'GapPercentOfPill', 'CornerRadiusPercentOfPill', 'BorderWidthPercentOfPill',
                 'HorizontalMarginPercent', 'VerticalMarginPercent', 'MinimumResolutionK', 'JpegQuality'];
-            var flags = ['Enabled', 'ShowEditionBadges', 'ShowResolutionBadges', 'ShowVideoRangeBadges',
-                'ShowSourceBadges', 'MergeDolbyVisionAndHdr', 'WriteToMediaFolder'];
+            var flags = ['Enabled', 'DryRun', 'WatchForImageChanges', 'ShowEditionBadges',
+                'ShowResolutionBadges', 'ShowVideoRangeBadges', 'ShowSourceBadges',
+                'MergeDolbyVisionAndHdr', 'WriteToMediaFolder'];
             var texts = ['ResolutionLadder', 'ExcludedItemIds', 'EditionOverrides'];
             var selects = ['Style', 'Corner'];
 
@@ -222,6 +268,36 @@
                     load(page, config);
                     Dashboard.hideLoadingMsg();
                 });
+            });
+
+            function runForOneItem(route) {
+                var page = document.querySelector('#posterOverlaysConfigPage');
+                var out = page.querySelector('#SingleItemResult');
+                var id = page.querySelector('#SingleItemId').value.trim();
+                if (!id) {
+                    out.textContent = 'Enter an item id first.';
+                    return;
+                }
+
+                out.textContent = 'Working...';
+                ApiClient.ajax({
+                    type: 'POST',
+                    url: ApiClient.getUrl('PosterOverlays/' + route + '/' + id),
+                    dataType: 'json'
+                }).then(function (result) {
+                    out.textContent = (result.DryRun ? 'Dry run - ' : '')
+                        + (result.Name || id) + ': ' + result.Outcome;
+                }, function () {
+                    out.textContent = 'Failed. Check the server log - an unknown id gives a 404.';
+                });
+            }
+
+            document.querySelector('#ApplyOne').addEventListener('click', function () {
+                runForOneItem('Apply');
+            });
+
+            document.querySelector('#RestoreOne').addEventListener('click', function () {
+                runForOneItem('Restore');
             });
 
             document.querySelector('#posterOverlaysConfigForm').addEventListener('submit', function (e) {

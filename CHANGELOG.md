@@ -32,3 +32,17 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 - Task log reporting: how many covers a provider replaced, which groups of entries end up with
   identical badges and therefore still cannot be told apart, edition-looking phrases that no
   rule covers, and disagreements between the folder name and the video stream.
+- Dry run: everything is worked out including the drawing and then thrown away, so a first run
+  can be read before it changes anything.
+- A watcher that re-badges an item as soon as Jellyfin reports its image changed. This makes
+  "Refresh metadata" in the item's own menu a manual trigger for one film - the web client's
+  context menu is a fixed list and cannot be extended by a server plugin.
+- API routes `POST /PosterOverlays/Apply/{itemId}`, `POST /PosterOverlays/Restore/{itemId}` and
+  `GET /PosterOverlays/Status`, plus a box on the settings page that calls them.
+
+### Changed
+
+- `CA3003` is lowered to a suggestion in `.editorconfig`, matching the setting in the Jellyfin
+  server's own `.editorconfig`. The analyser treats every ASP.NET route parameter as tainted
+  regardless of type, so a `Guid` route reaching any file operation is reported - including
+  paths Jellyfin itself produced. The guard in `OverlayStateStore.OriginalPath` stays.
