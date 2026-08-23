@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.PosterOverlays.Badges;
@@ -13,6 +14,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.PosterOverlays;
@@ -334,6 +336,79 @@ internal sealed class OverlayApplier
         await UploadAsync(item, original, record.OriginalExtension, cancellationToken).ConfigureAwait(false);
         _store.Forget(id);
         return true;
+    }
+
+    /// <summary>
+    /// Throws away everything this plugin knows about an item and fetches a fresh primary image
+    /// from the metadata provider.
+    /// </summary>
+    /// <remarks>
+    /// The way back to a known state, and the only one there is. A badged image cannot be
+    /// un-badged, so when the cached original is itself badged - which is what the first release
+    /// left behind - neither the cache nor the item carries an untouched cover any more. The
+    /// provider still does.
+    /// <para>
+    /// The order matters: the fresh cover goes on the item first, the record is dropped after.
+    /// A failure in between leaves the item as it was, with its record, rather than badged and
+    /// forgotten - which is the state in which the next run would cache a badged image as an
+    /// original all over again.
+    /// </para>
+    /// </remarks>
+    /// <param name="item">The item.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True when a fresh image was fetched and the record dropped.</returns>
+    public async Task<bool> RefetchFromProviderAsync(BaseItem item, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        using var hold = TryHold(item.Id);
+        if (hold is null)
+        {
+            return false;
+        }
+
+        var query = new RemoteImageQuery(string.Empty)
+        {
+            ImageType = ImageType.Primary,
+            IncludeAllLanguages = false,
+            IncludeDisabledProviders = false,
+        };
+
+        var images = await _providerManager.GetAvailableRemoteImages(item, query, cancellationToken).ConfigureAwait(false);
+        var best = images?.FirstOrDefault(i => i.Type == ImageType.Primary && !string.IsNullOrEmpty(i.Url));
+        if (best?.Url is null)
+        {
+            _logger.LogWarning(
+                "Poster overlays: no provider image found for {Name}. Nothing was changed, and its record is kept "
+                + "so it shows up again on the next repair.",
+                item.Name);
+            return false;
+        }
+
+        await _providerManager.SaveImage(item, best.Url, ImageType.Primary, null, cancellationToken).ConfigureAwait(false);
+        await item.UpdateToRepositoryAsync(ItemUpdateType.ImageUpdate, cancellationToken).ConfigureAwait(false);
+        _store.Forget(Key(item));
+
+        return true;
+    }
+
+    /// <summary>
+    /// Says whether an item is one the repair has to touch.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not "does its cached original look wrong" - that question cannot be answered.
+    /// A cache written by the faulty release is perfectly consistent with its own record; it just
+    /// describes a badged image. So the criterion is the one that can be checked: the plugin has
+    /// a record for it, or it is an item the plugin would badge, which is exactly the set the
+    /// broken run worked on.
+    /// </remarks>
+    /// <param name="item">The item.</param>
+    /// <param name="badgeCount">How many badges the item would get now.</param>
+    /// <returns>True when the item is in scope for a repair.</returns>
+    public bool NeedsRepair(BaseItem item, int badgeCount)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return badgeCount > 0 || _store.Get(Key(item)) is not null;
     }
 
     /// <summary>

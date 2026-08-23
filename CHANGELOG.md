@@ -9,6 +9,20 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Changed
+
+- **"Repair poster overlays" no longer looks for an inconsistent cache, because that cannot be
+  found.** A cache written by the faulty first release is perfectly consistent with its own
+  record - it merely describes an image that already carries a badge. The old check reported
+  "319 records, 319 intact" on a library where all 319 were wrong, and the damage only became
+  visible when the corner setting changed and the second badge appeared somewhere else on the
+  poster. The task now works on scope rather than consistency: every item the plugin has a
+  record for, plus every item it would badge, which together are exactly the set the broken run
+  touched. For each it fetches a fresh primary image from the provider and forgets what it
+  remembered. Run "Apply poster overlays" afterwards to badge them once, cleanly.
+- `POST /PosterOverlays/Repair/{itemId}` does the same for a single item, so the fix can be
+  tried on one poster first.
+
 ### Fixed
 
 - **Everything that gets written now uses the invariant culture explicitly.** `build.ps1`

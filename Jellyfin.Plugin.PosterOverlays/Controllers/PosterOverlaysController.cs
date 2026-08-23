@@ -140,6 +140,63 @@ public class PosterOverlaysController : ControllerBase
     }
 
     /// <summary>
+    /// Fetches a fresh primary image from the metadata provider for one item and forgets it.
+    /// </summary>
+    /// <remarks>
+    /// The single-item form of the repair task, so a fix can be tried on one poster before it is
+    /// let loose on a library.
+    /// </remarks>
+    /// <param name="itemId">The item id.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <response code="200">Whether a fresh image was fetched.</response>
+    /// <response code="404">The item does not exist.</response>
+    /// <returns>What happened to that one item.</returns>
+    [HttpPost("Repair/{itemId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<OverlayResultDto>> Repair(
+        [FromRoute, Required] Guid itemId,
+        CancellationToken cancellationToken)
+    {
+        var plugin = Plugin.Instance;
+        if (plugin is null)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
+        var item = _libraryManager.GetItemById(itemId);
+        if (item is null)
+        {
+            return NotFound();
+        }
+
+        var store = OverlayStateStore.Shared(plugin.DataFolderPath);
+        var applier = new OverlayApplier(_providerManager, _logger, plugin.Configuration, store);
+
+        if (plugin.Configuration.DryRun)
+        {
+            return new OverlayResultDto
+            {
+                ItemId = itemId,
+                Name = item.Name,
+                Outcome = "WouldRefetch",
+                DryRun = true,
+            };
+        }
+
+        bool done = await applier.RefetchFromProviderAsync(item, cancellationToken).ConfigureAwait(false);
+        store.Flush();
+
+        return new OverlayResultDto
+        {
+            ItemId = itemId,
+            Name = item.Name,
+            Outcome = done ? "Refetched" : "NoProviderImage",
+            DryRun = false,
+        };
+    }
+
+    /// <summary>
     /// Reports how many items the plugin currently looks after.
     /// </summary>
     /// <response code="200">The current state of the plugin.</response>
