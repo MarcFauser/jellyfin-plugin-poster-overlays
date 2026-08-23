@@ -44,6 +44,48 @@ internal static class BadgeBuilder
 
         string? folderName = FolderName(item);
         var parsed = FolderNameParser.Parse(folderName, item.Name, item.OriginalTitle);
+        var ranges = TechnicalBadges.VideoRange(
+            item.GetMediaStreams()?.FirstOrDefault(s => s.Type == MediaStreamType.Video)?.VideoRangeType.ToString(),
+            config.MergeDolbyVisionAndHdr);
+
+        // Sort before trimming, because the order is also the priority: what falls off the end
+        // is decided by where the user put it.
+        var badges = Order(Raw(item, config, category, editionOverride), preset.BadgeOrder);
+
+        if (badges.Count > preset.MaxBadges)
+        {
+            badges = badges.Take(Math.Max(0, preset.MaxBadges)).ToList();
+        }
+
+        return new Built(
+            badges,
+            parsed.TitleTrusted,
+            FolderClaimsHdr: FolderMentionsHdr(parsed.TagZone),
+            StreamHasHdr: ranges.Count > 0,
+            TagZone: parsed.TagZone);
+    }
+
+    /// <summary>
+    /// The badges an item earns, in their natural order and untrimmed.
+    /// </summary>
+    /// <remarks>
+    /// Split out from <see cref="Build"/> for the aggregator, which needs to know everything an
+    /// episode offers before anything is dropped: a badge trimmed off one episode would look like
+    /// a badge that episode does not have, and the parent would come out partial for no reason.
+    /// </remarks>
+    /// <param name="item">The library item.</param>
+    /// <param name="config">The settings that are the same everywhere.</param>
+    /// <param name="category">The policy for this kind of item.</param>
+    /// <param name="editionOverride">A forced edition badge, an empty string to suppress, or null.</param>
+    /// <returns>The badges, unordered and untrimmed.</returns>
+    public static List<BadgeSpec> Raw(BaseItem item, PluginConfiguration config, CategorySettings category, string? editionOverride)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(category);
+
+        string? folderName = FolderName(item);
+        var parsed = FolderNameParser.Parse(folderName, item.Name, item.OriginalTitle);
 
         var badges = new List<BadgeSpec>();
 
@@ -67,10 +109,9 @@ internal static class BadgeBuilder
             }
         }
 
-        var ranges = TechnicalBadges.VideoRange(video?.VideoRangeType.ToString(), config.MergeDolbyVisionAndHdr);
         if (category.AllowVideoRange)
         {
-            foreach (string range in ranges)
+            foreach (string range in TechnicalBadges.VideoRange(video?.VideoRangeType.ToString(), config.MergeDolbyVisionAndHdr))
             {
                 badges.Add(new BadgeSpec(BadgeCategory.VideoRange, range));
             }
@@ -86,21 +127,7 @@ internal static class BadgeBuilder
             badges.Add(new BadgeSpec(BadgeCategory.Source, parsed.Source));
         }
 
-        // Sort before trimming, because the order is also the priority: what falls off the end
-        // is decided by where the user put it.
-        badges = Order(badges, preset.BadgeOrder);
-
-        if (badges.Count > preset.MaxBadges)
-        {
-            badges = badges.Take(Math.Max(0, preset.MaxBadges)).ToList();
-        }
-
-        return new Built(
-            badges,
-            parsed.TitleTrusted,
-            FolderClaimsHdr: FolderMentionsHdr(parsed.TagZone),
-            StreamHasHdr: ranges.Count > 0,
-            TagZone: parsed.TagZone);
+        return badges;
     }
 
     /// <summary>

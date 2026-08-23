@@ -145,6 +145,13 @@
                         carry. A preset is a <em>look</em>; a category is a <em>policy</em> - which is
                         what lets one preset serve several categories at once.
                     </p>
+                    <p class="fieldDescription">
+                        Series and seasons have no resolution of their own, so theirs is worked out
+                        from their episodes - including the copies that live in another resolution
+                        folder and only look like one entry in the client. Episodes are one file each
+                        and are best left to the switch below, which badges only where two rows carry
+                        the same episode and nothing else tells them apart.
+                    </p>
                     <div id="CategoryList"></div>
                 </div>
 
@@ -405,10 +412,10 @@
             var presetFlags = ['CompletenessColours', 'Glow'];
 
             var categoryOrder = [
-                { key: 'Movies', label: 'Movies', ready: true },
-                { key: 'Series', label: 'Series', ready: false },
-                { key: 'Seasons', label: 'Seasons', ready: false },
-                { key: 'Episodes', label: 'Episodes', ready: false }
+                { key: 'Movies', label: 'Movies' },
+                { key: 'Series', label: 'Series', note: 'Aggregated from the episodes: every one has to agree, once several copies of one episode are collapsed to the best.' },
+                { key: 'Seasons', label: 'Seasons', note: 'The same, one level down.' },
+                { key: 'Episodes', label: 'Episodes' }
             ];
 
             var badgeKinds = [
@@ -517,13 +524,12 @@
                     var box1 = document.createElement('input');
                     box1.type = 'checkbox';
                     box1.checked = settings.Enabled === true;
-                    box1.disabled = !cat.ready;
                     box1.addEventListener('change', function () {
                         settings.Enabled = box1.checked;
                     });
                     onOff.appendChild(box1);
                     var onOffText = document.createElement('span');
-                    onOffText.textContent = cat.ready ? 'Badge these' : 'Not implemented yet';
+                    onOffText.textContent = 'Badge these';
                     onOff.appendChild(onOffText);
                     head.appendChild(onOff);
 
@@ -538,12 +544,12 @@
 
                     box.appendChild(head);
 
-                    if (!cat.ready) {
-                        var soon = document.createElement('div');
-                        soon.className = 'fieldDescription';
-                        soon.style.marginTop = '0.4em';
-                        soon.textContent = 'The settings are here and are kept, but nothing draws them yet.';
-                        box.appendChild(soon);
+                    if (cat.note) {
+                        var note = document.createElement('div');
+                        note.className = 'fieldDescription';
+                        note.style.marginTop = '0.4em';
+                        note.textContent = cat.note;
+                        box.appendChild(note);
                     }
 
                     var kinds = document.createElement('div');

@@ -79,7 +79,7 @@ public class PosterOverlaysController : ControllerBase
         }
 
         var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-        var applier = new OverlayApplier(_providerManager, _logger, plugin.Configuration, store);
+        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store);
         var outcome = await applier.ApplyAsync(item, cancellationToken).ConfigureAwait(false);
 
         if (!plugin.Configuration.DryRun)
@@ -124,7 +124,7 @@ public class PosterOverlaysController : ControllerBase
         }
 
         var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-        var applier = new OverlayApplier(_providerManager, _logger, plugin.Configuration, store);
+        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store);
         bool restored = await applier.RestoreAsync(item, cancellationToken).ConfigureAwait(false);
 
         if (!plugin.Configuration.DryRun)
@@ -173,7 +173,7 @@ public class PosterOverlaysController : ControllerBase
         }
 
         var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-        var applier = new OverlayApplier(_providerManager, _logger, plugin.Configuration, store);
+        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store);
 
         if (plugin.Configuration.DryRun)
         {

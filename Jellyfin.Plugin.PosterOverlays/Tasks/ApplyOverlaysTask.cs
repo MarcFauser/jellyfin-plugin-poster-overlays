@@ -89,11 +89,18 @@ public sealed class ApplyOverlaysTask : IScheduledTask
         }
 
         var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-        var applier = new OverlayApplier(_providerManager, _logger, config, store);
+        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, config, store);
+
+        var kinds = EnabledKinds(config);
+        if (kinds.Length == 0)
+        {
+            _logger.LogInformation("Poster overlays: no category is switched on, nothing was done.");
+            return;
+        }
 
         var items = _libraryManager.GetItemList(new InternalItemsQuery
         {
-            IncludeItemTypes = new[] { BaseItemKind.Movie },
+            IncludeItemTypes = kinds,
             IsVirtualItem = false,
             Recursive = true,
         });
@@ -125,7 +132,14 @@ public sealed class ApplyOverlaysTask : IScheduledTask
             }
 
             counts[outcome] = counts.GetValueOrDefault(outcome) + 1;
-            Collect(item, config, groups, unmapped);
+
+            // Only for films. The report below asks "which entries share a TMDB id and end up
+            // with identical badges", and for series that question is answered a level down -
+            // the episodes are where two copies of the same thing sit side by side.
+            if (item is MediaBrowser.Controller.Entities.Movies.Movie)
+            {
+                Collect(item, config, groups, unmapped);
+            }
 
             done++;
             progress.Report(done * 100.0 / Math.Max(1, items.Count));
@@ -143,6 +157,40 @@ public sealed class ApplyOverlaysTask : IScheduledTask
 
         Report(counts, groups, unmapped, items.Count);
         progress.Report(100);
+    }
+
+    /// <summary>
+    /// The item kinds whose category is switched on.
+    /// </summary>
+    /// <remarks>
+    /// Selected here rather than filtered inside the applier so a library where only films are
+    /// badged is not walked over 25,000 episodes to say "skipped" 25,000 times.
+    /// </remarks>
+    private static BaseItemKind[] EnabledKinds(Configuration.PluginConfiguration config)
+    {
+        var kinds = new List<BaseItemKind>();
+
+        if (config.Movies.Enabled)
+        {
+            kinds.Add(BaseItemKind.Movie);
+        }
+
+        if (config.Series.Enabled)
+        {
+            kinds.Add(BaseItemKind.Series);
+        }
+
+        if (config.Seasons.Enabled)
+        {
+            kinds.Add(BaseItemKind.Season);
+        }
+
+        if (config.Episodes.Enabled)
+        {
+            kinds.Add(BaseItemKind.Episode);
+        }
+
+        return kinds.ToArray();
     }
 
     private void Collect(

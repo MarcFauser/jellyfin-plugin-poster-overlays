@@ -119,7 +119,7 @@ public sealed class OverlayRefreshWatcher : IHostedService, IDisposable
             }
 
             var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-            var applier = new OverlayApplier(_providerManager, _logger, plugin.Configuration, store);
+            var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store);
 
             var outcome = await applier.ApplyAsync(item, _shutdown.Token).ConfigureAwait(false);
             if (outcome is OverlayOutcome.Unchanged or OverlayOutcome.Skipped or OverlayOutcome.NoImage)

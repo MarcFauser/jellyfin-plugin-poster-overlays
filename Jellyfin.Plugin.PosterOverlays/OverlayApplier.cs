@@ -53,6 +53,7 @@ internal sealed class OverlayApplier
     private static readonly ConcurrentDictionary<Guid, byte> Busy = new();
 
     private readonly IProviderManager _providerManager;
+    private readonly ILibraryManager _libraryManager;
     private readonly ILogger _logger;
     private readonly PluginConfiguration _config;
     private readonly OverlayStateStore _store;
@@ -60,19 +61,32 @@ internal sealed class OverlayApplier
     private readonly Dictionary<string, string> _editionOverrides;
 
     /// <summary>
+    /// Episode numbers that occur more than once, per series, worked out once per series.
+    /// </summary>
+    /// <remarks>
+    /// The alternative is one query per episode, which on the reference library is 25,419 of them
+    /// against roughly 1,580 this way. The cache lives as long as the applier, which is one task
+    /// run or one watcher event, so it cannot go stale across runs.
+    /// </remarks>
+    private readonly Dictionary<string, HashSet<string>> _twins = new(StringComparer.Ordinal);
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="OverlayApplier"/> class.
     /// </summary>
     /// <param name="providerManager">Jellyfin's provider manager, used to write the image back.</param>
+    /// <param name="libraryManager">Used to reach the episodes under a series or a season.</param>
     /// <param name="logger">The logger.</param>
     /// <param name="config">The settings.</param>
     /// <param name="store">The state store.</param>
     public OverlayApplier(
         IProviderManager providerManager,
+        ILibraryManager libraryManager,
         ILogger logger,
         PluginConfiguration config,
         OverlayStateStore store)
     {
         _providerManager = providerManager;
+        _libraryManager = libraryManager;
         _logger = logger;
         _config = config;
         _store = store;
@@ -152,21 +166,42 @@ internal sealed class OverlayApplier
                 preset.Name);
         }
 
-        _editionOverrides.TryGetValue(id, out string? editionOverride);
-        var built = BadgeBuilder.Build(item, _config, category, preset, editionOverride);
-        string badgeKey = BadgeBuilder.KeyOf(built.Badges);
+        IReadOnlyList<BadgeSpec> badges;
 
-        if (built.FolderClaimsHdr != built.StreamHasHdr && _logger.IsEnabled(LogLevel.Information))
+        if (target is BadgeTarget.Series or BadgeTarget.Season)
         {
-            // Reported, not resolved. The folder name and the stream disagree, and which one is
-            // wrong is not this plugin's call - measured on the reference library, the name
-            // misses 60 of 288 HDR titles and claims one that is not.
-            _logger.LogInformation(
-                "Poster overlays: {Name} - the folder name says HDR/DV {Folder} but the video stream says {Stream}.",
-                item.Name,
-                built.FolderClaimsHdr,
-                built.StreamHasHdr);
+            // A series has no file of its own. What it may claim comes from its episodes, and the
+            // episodes are fetched across the whole merge group - several database rows can share
+            // one tile, and which of them supplies the image is Jellyfin's choice, not ours.
+            badges = ChildAggregator.Aggregate(EpisodesUnder(item), _config, category, preset);
         }
+        else
+        {
+            if (target == BadgeTarget.Episode
+                && category.OnlyWhereItDisambiguates
+                && !HasTwin(item))
+            {
+                return OverlayOutcome.Skipped;
+            }
+
+            _editionOverrides.TryGetValue(id, out string? editionOverride);
+            var built = BadgeBuilder.Build(item, _config, category, preset, editionOverride);
+            badges = built.Badges;
+
+            if (built.FolderClaimsHdr != built.StreamHasHdr && _logger.IsEnabled(LogLevel.Information))
+            {
+                // Reported, not resolved. The folder name and the stream disagree, and which one
+                // is wrong is not this plugin's call - measured on the reference library, the name
+                // misses 60 of 288 HDR titles and claims one that is not.
+                _logger.LogInformation(
+                    "Poster overlays: {Name} - the folder name says HDR/DV {Folder} but the video stream says {Stream}.",
+                    item.Name,
+                    built.FolderClaimsHdr,
+                    built.StreamHasHdr);
+            }
+        }
+
+        string badgeKey = BadgeBuilder.KeyOf(badges);
 
         string? currentPath = item.GetImagePath(ImageType.Primary, 0);
         if (string.IsNullOrEmpty(currentPath) || !File.Exists(currentPath))
@@ -190,7 +225,7 @@ internal sealed class OverlayApplier
 
         bool oursOnTheItem = record is not null && string.Equals(currentHash, record.BadgedHash, StringComparison.Ordinal);
 
-        if (built.Badges.Count == 0)
+        if (badges.Count == 0)
         {
             if (!oursOnTheItem)
             {
@@ -245,7 +280,7 @@ internal sealed class OverlayApplier
             outcome = record is null ? OverlayOutcome.FirstRun : OverlayOutcome.CoverReplaced;
         }
 
-        byte[]? badged = BadgeRenderer.Draw(original, built.Badges, preset, _config.JpegQuality);
+        byte[]? badged = BadgeRenderer.Draw(original, badges, preset, _config.JpegQuality);
         if (badged is null)
         {
             _logger.LogWarning("Poster overlays: {Name} - the image could not be decoded.", item.Name);
@@ -513,6 +548,122 @@ internal sealed class OverlayApplier
         Series => BadgeTarget.Series,
         _ => BadgeTarget.Movie,
     };
+
+    /// <summary>
+    /// The episodes a series or a season is a statement about.
+    /// </summary>
+    /// <remarks>
+    /// Fetched by the <b>presentation key</b>, not by parent id. A show split across resolution
+    /// folders is several rows in the database that the client merges into one tile - measured on
+    /// the reference library, one show is three Series rows and six Season rows - and the badge
+    /// has to describe what that tile stands for, not what one of its rows happens to contain.
+    /// <para>
+    /// Rows without a file are dropped, and that is not tidiness. A library with the missing
+    /// episode fetcher on carries thousands of placeholder rows; counting them would make almost
+    /// every series "partial" for episodes that were never there to begin with.
+    /// </para>
+    /// </remarks>
+    /// <param name="item">A series or a season.</param>
+    /// <returns>The episodes, possibly empty.</returns>
+    private IReadOnlyList<BaseItem> EpisodesUnder(BaseItem item)
+    {
+        string? key = SeriesKeyOf(item);
+        if (string.IsNullOrEmpty(key))
+        {
+            return Array.Empty<BaseItem>();
+        }
+
+        int? season = item is Season s ? s.IndexNumber : null;
+        return EpisodesForKey(key, season);
+    }
+
+    private List<BaseItem> EpisodesForKey(string key, int? seasonNumber)
+    {
+        var query = new InternalItemsQuery
+        {
+            IncludeItemTypes = new[] { Jellyfin.Data.Enums.BaseItemKind.Episode },
+            IsVirtualItem = false,
+            Recursive = true,
+            SeriesPresentationUniqueKey = key,
+        };
+
+        if (seasonNumber is int number)
+        {
+            query.ParentIndexNumber = number;
+        }
+
+        return _libraryManager.GetItemList(query)
+            .Where(e => !string.IsNullOrEmpty(e.Path))
+            .ToList();
+    }
+
+    private string? SeriesKeyOf(BaseItem item)
+    {
+        switch (item)
+        {
+            case Series series:
+                return series.PresentationUniqueKey;
+
+            case Season season:
+                var parent = season.Series ?? _libraryManager.GetItemById(season.SeriesId) as Series;
+                return parent?.PresentationUniqueKey;
+
+            case Episode episode:
+                return episode.SeriesPresentationUniqueKey;
+
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>
+    /// Whether another row carries the same episode of the same show.
+    /// </summary>
+    /// <remarks>
+    /// The question behind "only badge an episode where it tells two copies apart". Answered once
+    /// per series and remembered, because the alternative is a query per episode.
+    /// </remarks>
+    private bool HasTwin(BaseItem item)
+    {
+        if (item is not Episode episode
+            || episode.ParentIndexNumber is not int season
+            || episode.IndexNumber is not int number)
+        {
+            // Without numbers there is nothing to pair it with, so it cannot be a duplicate of
+            // anything - and badging it would not disambiguate anything either.
+            return false;
+        }
+
+        string? key = SeriesKeyOf(episode);
+        if (string.IsNullOrEmpty(key))
+        {
+            return false;
+        }
+
+        if (!_twins.TryGetValue(key, out var duplicated))
+        {
+            duplicated = new HashSet<string>(StringComparer.Ordinal);
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (var sibling in EpisodesForKey(key, null))
+            {
+                if (sibling.ParentIndexNumber is not int s || sibling.IndexNumber is not int e)
+                {
+                    continue;
+                }
+
+                string slot = string.Create(CultureInfo.InvariantCulture, $"{s}:{e}");
+                if (!seen.Add(slot))
+                {
+                    duplicated.Add(slot);
+                }
+            }
+
+            _twins[key] = duplicated;
+        }
+
+        return duplicated.Contains(string.Create(CultureInfo.InvariantCulture, $"{season}:{number}"));
+    }
 
     private static string MimeType(string extension) => extension.ToLowerInvariant() switch
     {

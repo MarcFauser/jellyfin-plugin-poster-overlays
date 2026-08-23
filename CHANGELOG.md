@@ -11,6 +11,34 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ### Added
 
+- **Series, seasons and episodes are badged.** The three categories are no longer settings without
+  an effect; the nightly task collects whichever kinds are switched on, and a library where only
+  films are badged is not walked over 25,000 episodes to say "skipped".
+- **What a series may claim is aggregated from its episodes, and duplicates are collapsed first.**
+  There are two ways for episodes to disagree and only one of them means the series is mixed. If
+  the same episode exists twice - once 1080p, once 4K - nothing is missing and the series *is*
+  available in 4K; if different episodes differ, it genuinely is not. Collapsing every episode to
+  what its best copy offers before requiring agreement is what separates the two, and without it
+  the first case reads as mixed. Measured on a real library: one show has all 28 episodes in both
+  1080p DV and 4K DV, and calling it mixed would be false. Two tests pin it, and they were made to
+  fail by switching the collapse off, because a pair of tests that pass either way proves nothing.
+- The state is binary, as decided: 7 of 8 and 22 of 52 are both simply "not uniform". A series
+  whose episodes carry nothing notable gets **no badge at all**, not a partial one - the partial
+  state only appears where something worth showing actually varies. Where a show spans two rungs
+  the higher one is shown and marked partial, because "8K is available, but not throughout" is the
+  useful statement and 4K would understate it.
+- The episodes are fetched by **presentation key**, not by parent id: a show split across
+  resolution folders is several database rows the client merges into one tile - one show here is
+  three Series rows and six Season rows - and the badge has to describe the tile. Rows without a
+  file are dropped, or the thousands of missing-episode placeholders would make almost every
+  series partial for episodes that were never there.
+- **Episodes are badged only where it tells two copies apart**, by default. On a poster wall a
+  badge helps you choose; in an episode list you already know which episode you want and the only
+  question is which copy. The twin lookup is answered once per series and remembered - the
+  alternative is one query per episode, which is 25,419 of them against roughly 1,580 this way.
+- The availability is part of the badge key, so a series that gains its last missing 4K episode is
+  redrawn even though the label did not change - it changes colour.
+
 - **Presets.** How a badge looks is now a named preset, and each kind of entry - movies, series,
   seasons, episodes - picks one. A preset is a *look* and a category is a *policy*, which is what
   lets one preset serve several categories at once and keeps changing the style a single edit

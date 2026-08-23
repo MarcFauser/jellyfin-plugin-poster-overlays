@@ -90,7 +90,7 @@ public sealed class RepairOverlaysTask : IScheduledTask
 
         bool dryRun = plugin.Configuration.DryRun;
         var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-        var applier = new OverlayApplier(_providerManager, _logger, plugin.Configuration, store);
+        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store);
 
         var items = _libraryManager.GetItemList(new InternalItemsQuery
         {
