@@ -21,27 +21,54 @@
         /* Every selector is prefixed with the page id: a plugin page is injected into the running
            client, so an unscoped rule would apply to the rest of Jellyfin's interface as well. */
 
-        /* Right aligned numbers read better in a column, but the digits then sit directly against
-           the browser's spinner arrows.
+        /* Right aligned numbers read better in a column, but then the digits sit against the
+           browser's own up/down arrows.
 
-           padding-right does NOT fix that, which was the first attempt and was wrong: the spin
-           button is laid out at the inline end of the field, so padding pushes the arrows inwards
-           along with the text and the gap appears on the far side of them. The space has to go
-           between the two, which means a margin on the spin button itself. */
+           Two attempts at moving them apart failed, and both were guesses about a shadow tree
+           this page does not own: padding-right moved the arrows along with the digits, and a
+           margin on ::-webkit-inner-spin-button did not take either. So the native control is
+           switched off and replaced by two ordinary buttons. They are laid out by the same flex
+           row as everything else, which means the spacing is ours and is not a guess. */
         #posterOverlaysConfigPage .po-num {
-            max-width: 9em;
+            max-width: 6.5em;
             text-align: right;
+            -moz-appearance: textfield;
+            appearance: textfield;
         }
 
         #posterOverlaysConfigPage .po-num::-webkit-inner-spin-button,
         #posterOverlaysConfigPage .po-num::-webkit-outer-spin-button {
-            margin-left: 0.8em;
+            -webkit-appearance: none;
+            appearance: none;
+            margin: 0;
         }
 
-        /* Firefox has no selector for its spinner, so there the padding is all that is available.
-           It is applied only there, or Chromium would get the gap in the wrong place again. */
-        @supports (-moz-appearance: none) {
-            #posterOverlaysConfigPage .po-num { padding-right: 0.5em; }
+        #posterOverlaysConfigPage .po-stepper {
+            display: flex;
+            align-items: center;
+            gap: 0.55em;
+        }
+
+        #posterOverlaysConfigPage .po-step {
+            min-width: 2.2em;
+            height: 2.2em;
+            padding: 0;
+            line-height: 1;
+            font-size: 1.05em;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 0.2em;
+            background: rgba(255, 255, 255, 0.08);
+            color: inherit;
+            cursor: pointer;
+            flex: none;
+        }
+
+        #posterOverlaysConfigPage .po-step:hover { background: rgba(255, 255, 255, 0.18); }
+        #posterOverlaysConfigPage fieldset[disabled] .po-step { cursor: default; opacity: 0.5; }
+
+        #posterOverlaysConfigPage .po-colourtext {
+            max-width: 8em;
+            text-align: right;
         }
 
         #posterOverlaysConfigPage .po-colour-row {
@@ -123,6 +150,48 @@
         }
 
         #posterOverlaysConfigPage fieldset[disabled] { opacity: 0.55; }
+
+        /* The selected style, always in view. Every field on this page changes a picture, and a
+           picture you have to scroll back to is a picture you stop looking at. */
+        .po-floating {
+            position: fixed;
+            right: 1.2em;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1000;
+            background: rgba(16, 18, 24, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 0.4em;
+            padding: 0.7em;
+            box-shadow: 0 0.4em 1.4em rgba(0, 0, 0, 0.55);
+            max-height: 88vh;
+            overflow: auto;
+        }
+
+        .po-floating-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.8em;
+            font-size: 0.85em;
+            opacity: 0.75;
+            margin-bottom: 0.4em;
+        }
+
+        .po-floating-close {
+            border: 0;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            font-size: 1.1em;
+            line-height: 1;
+            padding: 0 0.2em;
+        }
+
+        /* Below this the page is one column and a floating panel would sit on top of the fields. */
+        @media (max-width: 1100px) {
+            .po-floating { display: none; }
+        }
     </style>
     <div data-role="content">
         <div class="content-primary">
@@ -300,14 +369,14 @@
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="p_UniformColour">Colour when everything agrees</label>
                             <div class="po-colour-row">
-                                <input id="p_UniformColour" type="text" is="emby-input" class="emby-input po-num" placeholder="#3ED682" />
+                                <input id="p_UniformColour" type="text" is="emby-input" class="emby-input po-colourtext" placeholder="#3ED682" />
                                 <input id="pick_UniformColour" type="color" class="po-swatch" aria-label="Pick the colour for everything agrees" />
                             </div>
                         </div>
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="p_PartialColour">Colour when only some do</label>
                             <div class="po-colour-row">
-                                <input id="p_PartialColour" type="text" is="emby-input" class="emby-input po-num" placeholder="#FFAA28" />
+                                <input id="p_PartialColour" type="text" is="emby-input" class="emby-input po-colourtext" placeholder="#FFAA28" />
                                 <input id="pick_PartialColour" type="color" class="po-swatch" aria-label="Pick the colour for only some" />
                             </div>
                         </div>
@@ -429,7 +498,12 @@
             // Everything the page is editing. The configuration object fetched on load is kept and
             // sent back whole, because presets are nested and merging a nested edit into a freshly
             // fetched copy is more ways to be wrong than it is worth.
-            var state = { config: null, builtIns: [], selected: null };
+            // `loading` is not a nicety. Filling a field dispatches a change event, that event
+            // bubbles to the form, and the form handler writes the fields back into the selected
+            // preset. While the page is still being populated those fields are empty, so the
+            // handler would overwrite a perfectly good preset with blanks - which is exactly how
+            // a preset ended up called "Unnamed" with settings nobody chose.
+            var state = { config: null, builtIns: [], selected: null, loading: false };
 
             // Global settings, by kind. The enums are listed apart because the server sends and
             // expects their NAMES - "DarkPill", not 0. Numeric option values silently matched
@@ -627,6 +701,7 @@
 
                     host.appendChild(box);
                 });
+
             }
 
             function fillPresetOptions(select, selectedId) {
@@ -672,6 +747,12 @@
             }
 
             function loadPresetFields() {
+                var wasLoading = state.loading;
+                state.loading = true;
+                try { loadPresetFieldsCore(); } finally { state.loading = wasLoading; }
+            }
+
+            function loadPresetFieldsCore() {
                 var preset = selectedPreset();
                 var locked = !preset || isBuiltIn(preset.Id);
                 var p = page();
@@ -740,6 +821,8 @@
             }
 
             function collectPresetFields() {
+                if (state.loading) { return; }
+
                 var preset = selectedPreset();
                 if (!preset || isBuiltIn(preset.Id)) { return; }
 
@@ -1119,11 +1202,101 @@
                     });
                     host.appendChild(box);
                 });
+
+                renderFloating();
             }
 
             function presetStyle() {
                 var preset = selectedPreset();
                 return preset ? preset.Style : 'DarkPill';
+            }
+
+            /// The selected style again, pinned to the right edge so it stays in view while the
+            /// fields that change it are being edited. Deliberately only the selected one: the
+            /// row above is for choosing, this is for watching.
+            function renderFloating() {
+                var host = document.querySelector('#PosterOverlaysFloating');
+                if (!host || !state.config) { return; }
+
+                var body = host.querySelector('[data-body]');
+                var style = presetStyle();
+                var html = '<div style="display:flex; gap:0.5em; align-items:flex-start;">'
+                    + previewSvg(style, false, false) + previewSvg(style, true, false) + '</div>';
+
+                if (pflag('CompletenessColours')) {
+                    html += '<div style="display:flex; gap:0.5em; align-items:flex-start; margin-top:0.4em;">'
+                        + previewSvg(style, false, true) + previewSvg(style, true, true) + '</div>';
+                }
+
+                body.innerHTML = html;
+                host.querySelector('[data-name]').textContent =
+                    (selectedPreset() ? selectedPreset().Name : '') + '  -  ' + style;
+            }
+
+            function buildFloating() {
+                if (document.querySelector('#PosterOverlaysFloating')) { return; }
+
+                var box = document.createElement('div');
+                box.id = 'PosterOverlaysFloating';
+                box.className = 'po-floating';
+                box.innerHTML =
+                    '<div class="po-floating-head"><span data-name></span>'
+                    + '<button type="button" class="po-floating-close" title="Hide">&times;</button></div>'
+                    + '<div data-body></div>';
+                box.querySelector('.po-floating-close').addEventListener('click', function () {
+                    box.style.display = 'none';
+                });
+                page().appendChild(box);
+            }
+
+            /// Replaces the browser's own up/down arrows with two buttons.
+            /// The native control lives in a shadow tree this page does not own, and two attempts
+            /// at spacing it away from the digits failed. These are ordinary elements in an
+            /// ordinary flex row, so the gap is set here and stays set.
+            function installSteppers() {
+                Array.prototype.forEach.call(page().querySelectorAll('input.po-num'), function (input) {
+                    if (input.parentNode && input.parentNode.classList.contains('po-stepper')) { return; }
+
+                    var row = document.createElement('div');
+                    row.className = 'po-stepper';
+                    input.parentNode.insertBefore(row, input);
+                    row.appendChild(input);
+
+                    [['−', -1], ['+', 1]].forEach(function (pair) {
+                        var b = document.createElement('button');
+                        b.type = 'button';
+                        b.className = 'po-step';
+                        b.textContent = pair[0];
+                        b.tabIndex = -1;
+                        b.addEventListener('click', function () { step(input, pair[1]); });
+                        row.appendChild(b);
+                    });
+                });
+            }
+
+            function step(input, direction) {
+                if (input.disabled) { return; }
+
+                var size = parseFloat(input.step);
+                if (isNaN(size) || size <= 0) { size = 1; }
+
+                var value = parseFloat(input.value);
+                if (isNaN(value)) { value = parseFloat(input.min); }
+                if (isNaN(value)) { value = 0; }
+
+                value += size * direction;
+
+                var min = parseFloat(input.min);
+                var max = parseFloat(input.max);
+                if (!isNaN(min) && value < min) { value = min; }
+                if (!isNaN(max) && value > max) { value = max; }
+
+                // Rounded to the step's own precision, or 0.1 steps drift into 5.699999999999999.
+                var decimals = (String(size).split('.')[1] || '').length;
+                input.value = value.toFixed(decimals);
+
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
             }
 
             // ---------------------------------------------------------------- transfer
@@ -1343,10 +1516,20 @@
                         ? state.config.Movies.PresetId
                         : allPresets()[0].Id;
 
-                    loadGlobals();
-                    renderCategories();
-                    renderPresetPicker();
-                    loadPresetFields();
+                    buildFloating();
+
+                    // Nothing written back while the page is being filled in - see `loading`.
+                    state.loading = true;
+                    try {
+                        loadGlobals();
+                        renderCategories();
+                        renderPresetPicker();
+                        loadPresetFields();
+                        installSteppers();
+                    } finally {
+                        state.loading = false;
+                    }
+
                     renderPreview();
                     showStatus();
                     Dashboard.hideLoadingMsg();

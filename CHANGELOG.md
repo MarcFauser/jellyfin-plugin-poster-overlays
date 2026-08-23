@@ -11,6 +11,26 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ### Fixed
 
+- **The settings page overwrote the selected preset while it was still loading.** Filling a field
+  dispatches a change event, the event bubbles to the form, and the form handler writes the fields
+  back into the preset - so during page setup, with the preset fields still empty, it wrote blanks
+  over a perfectly good preset. That is how one ended up named "Unnamed" carrying whatever the
+  selects happened to default to. Nothing is written back now while the page is being populated.
+- **The spinner spacing, third attempt and this time not a guess.** The first tried
+  `padding-right`, which moves the arrows along with the digits; the second a margin on
+  `::-webkit-inner-spin-button`, which did not take. Both were guesses about a shadow tree this
+  page does not own. The native control is now switched off and replaced by two ordinary buttons
+  in the same flex row as everything else, so the gap is set here and stays set.
+
+### Added
+
+- **A floating preview**, pinned to the right edge, showing the selected style as it is edited.
+  Every field on this page changes a picture, and a picture you have to scroll back to is one you
+  stop looking at. It can be dismissed, and it hides itself on narrow windows where it would sit
+  on top of the fields.
+
+### Fixed
+
 - **Saving the settings page threw the presets away.** A configuration travels through two
   serialisers: `XmlSerializer` writes the file, and `System.Text.Json` carries it to and from the
   settings page. The first populates a read-only collection property, the second does not - and it
