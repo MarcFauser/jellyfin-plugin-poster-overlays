@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.7.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.7.0.0/jellyfin-plugin-poster-overlays_12.7.0.0.zip",
+        "checksum": "e8b9d17591f2561078f6376e13679c37",
+        "changelog": "Rebuilds the repair task. It no longer searches for an inconsistent cache - that cannot find the damage, because a cache written by the faulty first release is consistent with its own record and merely describes an already badged image. It now works on scope: every item with a record plus every item that would be badged gets a fresh primary image from the metadata provider and is forgotten, so a following apply run badges it once, cleanly. A single-item route allows trying it on one poster first.",
+        "timestamp": "2026-08-23T12:28:37Z"
+      },
+      {
         "version": "12.6.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.6.0.0/jellyfin-plugin-poster-overlays_12.6.0.0.zip",
@@ -54,6 +62,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.7.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.7.0.0/jellyfin-plugin-poster-overlays_11.7.0.0.zip",
+        "checksum": "959f15f7b2fb6456b2bffa7a80ab1318",
+        "changelog": "Rebuilds the repair task. It no longer searches for an inconsistent cache - that cannot find the damage, because a cache written by the faulty first release is consistent with its own record and merely describes an already badged image. It now works on scope: every item with a record plus every item that would be badged gets a fresh primary image from the metadata provider and is forgotten, so a following apply run badges it once, cleanly. A single-item route allows trying it on one poster first.",
+        "timestamp": "2026-08-23T12:28:37Z"
       },
       {
         "version": "11.6.0.0",
