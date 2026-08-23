@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.9.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.9.0.0/jellyfin-plugin-poster-overlays_12.9.0.0.zip",
+        "checksum": "0c69bc02e665e1a6e351875bb4a5e302",
+        "changelog": "Fixes the settings page throwing the presets away on save. A plugin configuration travels through two serialisers: XmlSerializer writes the file and populates a read-only collection property, System.Text.Json carries it to and from the settings page and silently does not. The presets were on disk and on the page, and gone the moment Save was pressed, leaving every category pointing at a preset that no longer existed. A configuration already emptied by this repairs itself from the legacy settings, rebuilt under the same preset id, so the look key is unchanged and nothing already badged is redrawn. Also proper spacing between a number and its spinner arrows, a colour picker beside each completeness colour, and a preset saved without a name becomes Unnamed rather than an invisible entry.",
+        "timestamp": "2026-08-23T23:24:49Z"
+      },
+      {
         "version": "12.8.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.8.0.0/jellyfin-plugin-poster-overlays_12.8.0.0.zip",
@@ -70,6 +78,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.9.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.9.0.0/jellyfin-plugin-poster-overlays_11.9.0.0.zip",
+        "checksum": "662d20562c927cdaa0b77304d9bdf1e1",
+        "changelog": "Fixes the settings page throwing the presets away on save. A plugin configuration travels through two serialisers: XmlSerializer writes the file and populates a read-only collection property, System.Text.Json carries it to and from the settings page and silently does not. The presets were on disk and on the page, and gone the moment Save was pressed, leaving every category pointing at a preset that no longer existed. A configuration already emptied by this repairs itself from the legacy settings, rebuilt under the same preset id, so the look key is unchanged and nothing already badged is redrawn. Also proper spacing between a number and its spinner arrows, a colour picker beside each completeness colour, and a preset saved without a name becomes Unnamed rather than an invisible entry.",
+        "timestamp": "2026-08-23T23:24:49Z"
       },
       {
         "version": "11.8.0.0",
