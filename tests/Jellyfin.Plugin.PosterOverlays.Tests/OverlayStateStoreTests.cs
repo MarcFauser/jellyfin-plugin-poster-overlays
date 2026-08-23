@@ -1,6 +1,8 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using Jellyfin.Plugin.PosterOverlays.State;
 using Xunit;
 
@@ -44,6 +46,31 @@ public class OverlayStateStoreTests : IDisposable
 
         Assert.NotNull(secondReader.Get("abc"));
         Assert.Equal("bb", secondReader.Get("abc")!.BadgedHash);
+    }
+
+    /// <summary>
+    /// The timestamp is persisted, so it is ISO 8601 in UTC and must not depend on the culture
+    /// the server happens to run under. 21 cultures use a full stop as their time separator, and
+    /// a bare colon in a .NET format string means "the culture's separator", not a colon.
+    /// </summary>
+    [Fact]
+    public void TheTimestampIsIsoUtcWhateverTheCulture()
+    {
+        var previous = Thread.CurrentThread.CurrentCulture;
+        try
+        {
+            Thread.CurrentThread.CurrentCulture = new CultureInfo("da-DK");
+
+            var store = new OverlayStateStore(_folder);
+            store.Set("abc", new OverlayRecord());
+
+            string written = store.Get("abc")!.UpdatedUtc;
+            Assert.Matches(@"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", written);
+        }
+        finally
+        {
+            Thread.CurrentThread.CurrentCulture = previous;
+        }
     }
 
     [Fact]

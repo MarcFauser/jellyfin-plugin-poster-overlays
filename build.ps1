@@ -61,6 +61,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Everything this script writes is data, not display: the meta.json timestamp, the manifest, the
+# checksums. So the whole script runs invariant rather than each call remembering to say so.
+# The one that mattered was 'yyyy-MM-ddTHH:mm:ssZ' - in .NET the colon is the CURRENT CULTURE's
+# time separator placeholder, not a colon, so that format string is only correct by accident on
+# a machine whose culture happens to use one. The persistence points below still pass the culture
+# explicitly, so the intent survives someone moving the line.
+[System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::InvariantCulture
+[System.Threading.Thread]::CurrentThread.CurrentUICulture = [System.Globalization.CultureInfo]::InvariantCulture
+
 $root       = $PSScriptRoot
 $projectDir = Join-Path $root 'Jellyfin.Plugin.PosterOverlays'
 $project    = Join-Path $projectDir 'Jellyfin.Plugin.PosterOverlays.csproj'
@@ -184,9 +193,16 @@ if ([string]::IsNullOrWhiteSpace($stampIso))
 }
 else
 {
-    $stampUtc = [datetimeoffset]::Parse($stampIso).UtcDateTime
+    $stampUtc = [datetimeoffset]::Parse($stampIso, [System.Globalization.CultureInfo]::InvariantCulture).UtcDateTime
 }
-$timestamp = $stampUtc.ToString('yyyy-MM-ddTHH:mm:ssZ')
+$timestamp = $stampUtc.ToString("yyyy-MM-dd'T'HH':'mm':'ss'Z'", [System.Globalization.CultureInfo]::InvariantCulture)
+
+# A positive control, because the failure above is invisible: a wrong culture produces a
+# plausible-looking timestamp, and Jellyfin stores whatever it is handed.
+if ($timestamp -cnotmatch '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$')
+{
+    throw "The timestamp came out as '$timestamp', which is not ISO 8601 UTC. Check the culture."
+}
 
 Write-Host "Poster Overlays  ($pluginId)  timestamp $timestamp" -ForegroundColor Cyan
 
@@ -324,6 +340,22 @@ if ($logo)
     $imageUrl = "https://raw.githubusercontent.com/$RepoOwner/$RepoName/main/$($logo.Name)"
     $package | Add-Member -NotePropertyName imageUrl -NotePropertyValue $imageUrl -Force
     Write-Host "  Logo: $($logo.Name)" -ForegroundColor DarkGray
+}
+
+# A version that is already in the manifest must come out byte-identical, or the manifest would
+# start advertising a checksum that the published release does not have. That happened once: a
+# source change without a version bump, and a plain local build quietly rewrote the entry of an
+# already published version. The publish path guards against replacing a release; this guards
+# the manifest, which a build without -Publish also touches.
+foreach ($t in $targets)
+{
+    $existing = @($package.versions | Where-Object version -eq $t.Version)
+    if ($existing.Count -gt 0 -and $existing[0].checksum -ne $t.Checksum)
+    {
+        throw ("Version $($t.Version) is already in manifest.json with checksum $($existing[0].checksum), " +
+               "but this build produced $($t.Checksum). The source changed without the version being raised. " +
+               "Raise it in the project file - a published artifact is never replaced.")
+    }
 }
 
 # Keep every version that is not being rebuilt right now, then add the fresh ones.

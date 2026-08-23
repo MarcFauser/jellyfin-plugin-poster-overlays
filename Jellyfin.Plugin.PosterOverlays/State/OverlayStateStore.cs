@@ -19,6 +19,15 @@ namespace Jellyfin.Plugin.PosterOverlays.State;
 /// </remarks>
 internal sealed class OverlayStateStore
 {
+    /// <summary>
+    /// ISO 8601, UTC, 24 hour. The separators are escaped rather than written bare: in a .NET
+    /// custom format string a bare colon means "the current culture's time separator", and 21
+    /// cultures - Danish and Assamese among them - use a full stop, which would persist
+    /// 2026-08-23T14.05.07Z. The invariant culture below makes that correct anyway; the escaping
+    /// keeps it correct if somebody ever drops the culture argument.
+    /// </summary>
+    private const string IsoUtc = "yyyy-MM-dd'T'HH':'mm':'ss'Z'";
+
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
     private static readonly object SharedLock = new();
     private static OverlayStateStore? _shared;
@@ -136,7 +145,7 @@ internal sealed class OverlayStateStore
         ArgumentNullException.ThrowIfNull(record);
         lock (_gate)
         {
-            record.UpdatedUtc = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+            record.UpdatedUtc = DateTime.UtcNow.ToString(IsoUtc, CultureInfo.InvariantCulture);
             _records[itemId] = record;
             FlushLocked();
         }

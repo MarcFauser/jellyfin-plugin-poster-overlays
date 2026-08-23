@@ -11,6 +11,19 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ### Fixed
 
+- **Everything that gets written now uses the invariant culture explicitly.** `build.ps1`
+  formatted the `meta.json` timestamp with `'yyyy-MM-ddTHH:mm:ssZ'` and no culture. In a .NET
+  custom format string a bare colon does not mean a colon, it means *the current culture's time
+  separator* - and 21 cultures use a full stop, which would have persisted
+  `2026-08-23T14.05.07Z`. It was only correct here by accident. The script now runs invariant
+  throughout, the two persistence points say so explicitly, the separators are escaped, and a
+  check refuses to continue if the timestamp is not ISO 8601 UTC. The same escaping went into
+  the state file's timestamp, with a test that runs under `da-DK`.
+- **`build.ps1` no longer rewrites the manifest entry of a version that already exists** with a
+  different checksum. A local build without `-Publish` did exactly that after a source change
+  without a version bump, leaving the repository advertising a checksum the published release
+  does not have. It now stops and says to raise the version.
+
 - **Changing how the badges look now actually redraws them.** Only the badge *set* was compared,
   so switching the style, the corner, the direction or any size left every already badged poster
   reported as "already correct" and untouched - the new setting only reached items that happened
