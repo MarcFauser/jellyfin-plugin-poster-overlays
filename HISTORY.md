@@ -103,3 +103,49 @@ while the applier still has the item open.
 and the only true original left is the one the provider still has. Hence two more things: a
 check that refuses to draw on or restore from a cache whose hash no longer matches its record,
 and a repair task that fetches a fresh primary image for exactly those items.
+
+## 2026-08-23 — the recovery, and the repair task that was not needed for it
+
+The 439 double-badged items had to be put right. A repair task was written for exactly that and
+published as 11.7.0.0. Then the user asked the obvious question: *could you not simply have sent
+those films a metadata refresh over the API?*
+
+Yes. And it is worse than "could have": there is a more precise pair of calls than a refresh, and
+the repair task is a reimplementation of them.
+
+```
+GET  /Items/{id}/RemoteImages?type=Primary
+POST /Items/{id}/RemoteImages/Download?type=Primary&imageUrl=...
+```
+
+Tried on one film first — Avatar in its extended folder, whose poster carried a visible `EXT` in
+each of two corners after the corner setting changed. Two calls, HTTP 204, and three seconds
+later the plugin's own log:
+
+```
+14:44:27  Poster overlays: "Avatar - Aufbruch nach Pandora" was CoverReplaced after its image changed.
+```
+
+One `EXT`, in the configured corner. **The poisoned cache heals itself**: the watcher sees an
+image it did not make, caches that as the new original and draws once. No plugin update, no
+task, nothing to forget by hand.
+
+The full run followed over 450 items — the badge-worthy set recomputed from the library, eleven
+wider than the 439 of the day before, which is the safe direction: a film too many costs a
+download, a film too few stays broken. 414 got a fresh cover, 0 failed, and the watcher logged
+289 `CoverReplaced` and 127 `FirstRun` behind it with no warning. Verified by looking rather than
+counting: twelve posters spread across the log, then a corner-by-corner comparison of forty
+against their provider originals with the badge corner as its own positive control. The four the
+comparison flagged were bright poster content, not badges — settled by cropping the strips.
+
+**36 items could not be repaired and do not need to be.** They have no provider match, so their
+"poster" is a frame Jellyfin extracted from the video, and there is no remote image to fetch.
+They each still show exactly one badge, because they were never redrawn after the corner changed
+and their two stacks remain superimposed. Their cache is poisoned, so a look change before their
+metadata is fixed would double them — but the moment their metadata match is repaired, a real
+poster arrives, the watcher sees a foreign image, and they heal on the same path as the others.
+
+So the repair task stays, for a server whose owner cannot script two HTTP calls, and because
+`NeedsRepair` is the only thing that knows which items are in scope. It was not what fixed this
+library. Worth remembering before writing the next piece of recovery machinery: the host may
+already expose the operation, and more precisely than the reimplementation.
