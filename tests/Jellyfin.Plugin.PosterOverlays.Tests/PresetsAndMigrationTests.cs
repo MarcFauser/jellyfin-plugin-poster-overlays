@@ -80,7 +80,7 @@ public class PresetsAndMigrationTests
     {
         // A new installation has nothing to migrate, and must not acquire a "Migrated" preset it
         // never needed.
-        var config = new PluginConfiguration { SettingsVersion = 1 };
+        var config = new PluginConfiguration { SettingsVersion = 2 };
 
         Assert.False(config.Migrate());
         Assert.Empty(config.CustomPresets);
@@ -186,11 +186,87 @@ public class PresetsAndMigrationTests
         Assert.Equal(10, back.CustomPresets[1].PillHeightPercent);
         Assert.True(back.Episodes.Enabled);
         Assert.Equal(config.Episodes.PresetId, back.Episodes.PresetId);
-        Assert.Equal(1, back.SettingsVersion);
+        Assert.Equal(2, back.SettingsVersion);
 
         // And the numbers are written invariant, or a server under de-DE would write "5,5" and a
         // server under en-US would read it as fifty-five.
         Assert.Contains("<PillHeightPercent>5.5</PillHeightPercent>", xml, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The round trip the settings page makes, which is <b>not</b> the one the file makes.
+    /// </summary>
+    /// <remarks>
+    /// This test exists because its absence cost a user their configuration. A plugin
+    /// configuration travels through two serialisers: <c>XmlSerializer</c> writes the file, and
+    /// <c>System.Text.Json</c> carries it to and from the settings page. The first populates a
+    /// read-only collection property and the second does not - silently, with no error anywhere.
+    /// So the presets were written to disk correctly, shown on the page correctly, and dropped the
+    /// moment Save was pressed. The XML round trip was tested; the JSON one was assumed.
+    /// </remarks>
+    [Fact]
+    public void TheConfigurationSurvivesTheJsonRoundTripTheSettingsPageMakes()
+    {
+        var config = OldConfiguration();
+        config.Migrate();
+        config.CustomPresets.Add(new BadgePreset { Id = Guid.NewGuid(), Name = "Mine", PillHeightPercent = 9 });
+
+        string json = System.Text.Json.JsonSerializer.Serialize(config);
+        var back = System.Text.Json.JsonSerializer.Deserialize<PluginConfiguration>(json)!;
+
+        Assert.Equal(2, back.CustomPresets.Count);
+        Assert.Equal("Mine", back.CustomPresets[1].Name);
+        Assert.Equal(9, back.CustomPresets[1].PillHeightPercent);
+        Assert.Equal(config.Movies.PresetId, back.Movies.PresetId);
+
+        // And the reference still resolves, which is the thing that actually broke: an empty
+        // collection leaves every category pointing at a preset that no longer exists.
+        Assert.True(back.PresetReferenceIsIntact(BadgeTarget.Movie));
+    }
+
+    /// <summary>
+    /// The repair for the configurations that were already emptied by the fault above.
+    /// </summary>
+    [Fact]
+    public void APresetLostInTransitIsRebuiltFromTheLegacySettings()
+    {
+        // What the server looked like afterwards: version 1, no presets, a dangling reference,
+        // and the legacy fields still carrying what the lost preset had held.
+        var wrecked = OldConfiguration();
+        wrecked.SettingsVersion = 1;
+        wrecked.Movies = new CategorySettings { Enabled = true, PresetId = Guid.NewGuid() };
+
+        Assert.False(wrecked.PresetReferenceIsIntact(BadgeTarget.Movie));
+
+        Assert.True(wrecked.Migrate());
+
+        var preset = Assert.Single(wrecked.CustomPresets);
+        Assert.Equal(wrecked.Movies.PresetId, preset.Id);
+        Assert.Equal(BadgeCorner.TopLeft, preset.Corner);
+        Assert.Equal(BadgeDirection.Horizontal, preset.Direction);
+        Assert.True(wrecked.PresetReferenceIsIntact(BadgeTarget.Movie));
+
+        // Rebuilt under the id the category already points at, so the look key is what it was and
+        // nothing is redrawn - which is the whole point, because a redraw would put a second badge
+        // on every item whose cached original already carries one.
+        Assert.Equal(LegacyKey(wrecked), OverlayApplier.LookKeyOf(preset, wrecked.JpegQuality));
+    }
+
+    /// <summary>
+    /// And it must not touch a configuration that is merely different, only one that is broken.
+    /// </summary>
+    [Fact]
+    public void TheRepairLeavesAHealthyConfigurationAlone()
+    {
+        var healthy = new PluginConfiguration { SettingsVersion = 1 };
+        healthy.CustomPresets.Add(new BadgePreset { Id = Guid.NewGuid(), Name = "Mine" });
+        healthy.Movies.PresetId = healthy.CustomPresets[0].Id;
+
+        healthy.Migrate();
+
+        Assert.Single(healthy.CustomPresets);
+        Assert.Equal("Mine", healthy.CustomPresets[0].Name);
+        Assert.Equal(2, healthy.SettingsVersion);
     }
 
     [Fact]
@@ -229,7 +305,7 @@ public class PresetsAndMigrationTests
         Assert.False(BuiltInPresets.IsBuiltIn(Guid.Empty));
         Assert.Null(BuiltInPresets.Get(Guid.Empty));
 
-        var config = new PluginConfiguration { SettingsVersion = 1 };
+        var config = new PluginConfiguration { SettingsVersion = 2 };
         config.Series.PresetId = Guid.Empty;
 
         Assert.False(config.PresetReferenceIsIntact(BadgeTarget.Series));
@@ -242,7 +318,7 @@ public class PresetsAndMigrationTests
     [Fact]
     public void ADanglingPresetFallsBackToTheBuiltInAndSaysSo()
     {
-        var config = new PluginConfiguration { SettingsVersion = 1 };
+        var config = new PluginConfiguration { SettingsVersion = 2 };
         config.Episodes.PresetId = Guid.NewGuid();
 
         Assert.False(config.PresetReferenceIsIntact(BadgeTarget.Episode));
@@ -256,7 +332,7 @@ public class PresetsAndMigrationTests
     [Fact]
     public void EveryCategoryResolvesToItsOwnSettings()
     {
-        var config = new PluginConfiguration { SettingsVersion = 1 };
+        var config = new PluginConfiguration { SettingsVersion = 2 };
 
         Assert.Same(config.Movies, config.CategoryFor(BadgeTarget.Movie));
         Assert.Same(config.Series, config.CategoryFor(BadgeTarget.Series));

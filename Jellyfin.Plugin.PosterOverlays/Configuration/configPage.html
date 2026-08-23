@@ -22,12 +22,43 @@
            client, so an unscoped rule would apply to the rest of Jellyfin's interface as well. */
 
         /* Right aligned numbers read better in a column, but the digits then sit directly against
-           the browser's spinner arrows. The padding is what keeps them apart; without it the value
-           and the up/down control touch. */
+           the browser's spinner arrows.
+
+           padding-right does NOT fix that, which was the first attempt and was wrong: the spin
+           button is laid out at the inline end of the field, so padding pushes the arrows inwards
+           along with the text and the gap appears on the far side of them. The space has to go
+           between the two, which means a margin on the spin button itself. */
         #posterOverlaysConfigPage .po-num {
             max-width: 9em;
             text-align: right;
-            padding-right: 0.7em;
+        }
+
+        #posterOverlaysConfigPage .po-num::-webkit-inner-spin-button,
+        #posterOverlaysConfigPage .po-num::-webkit-outer-spin-button {
+            margin-left: 0.8em;
+        }
+
+        /* Firefox has no selector for its spinner, so there the padding is all that is available.
+           It is applied only there, or Chromium would get the gap in the wrong place again. */
+        @supports (-moz-appearance: none) {
+            #posterOverlaysConfigPage .po-num { padding-right: 0.5em; }
+        }
+
+        #posterOverlaysConfigPage .po-colour-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6em;
+        }
+
+        #posterOverlaysConfigPage .po-swatch {
+            width: 3em;
+            height: 2.2em;
+            padding: 0;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.2em;
+            background: transparent;
+            cursor: pointer;
+            flex: none;
         }
 
         #posterOverlaysConfigPage .po-cat {
@@ -268,11 +299,17 @@
 
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="p_UniformColour">Colour when everything agrees</label>
-                            <input id="p_UniformColour" type="text" is="emby-input" class="emby-input po-num" placeholder="#3ED682" />
+                            <div class="po-colour-row">
+                                <input id="p_UniformColour" type="text" is="emby-input" class="emby-input po-num" placeholder="#3ED682" />
+                                <input id="pick_UniformColour" type="color" class="po-swatch" aria-label="Pick the colour for everything agrees" />
+                            </div>
                         </div>
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="p_PartialColour">Colour when only some do</label>
-                            <input id="p_PartialColour" type="text" is="emby-input" class="emby-input po-num" placeholder="#FFAA28" />
+                            <div class="po-colour-row">
+                                <input id="p_PartialColour" type="text" is="emby-input" class="emby-input po-num" placeholder="#FFAA28" />
+                                <input id="pick_PartialColour" type="color" class="po-swatch" aria-label="Pick the colour for only some" />
+                            </div>
                         </div>
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="p_GlowRadiusPercentOfPill">Glow radius, % of pill height</label>
@@ -678,7 +715,28 @@
                     if (el) { el.checked = preset[key] === true; }
                 });
 
+                syncSwatches();
                 renderOrder(normaliseOrder(preset.BadgeOrder));
+            }
+
+            /// Keeps the swatch and the text field showing the same colour.
+            /// The text field stays the one that is saved: it can hold something the picker
+            /// cannot represent, and silently rewriting what somebody typed is worse than
+            /// showing a swatch that has not caught up.
+            function syncSwatches() {
+                ['UniformColour', 'PartialColour'].forEach(function (key) {
+                    var text = page().querySelector('#p_' + key);
+                    var pick = page().querySelector('#pick_' + key);
+                    if (!text || !pick) { return; }
+
+                    var value = (text.value || '').trim();
+                    if (/^#[0-9a-f]{6}$/i.test(value)) {
+                        pick.value = value.toLowerCase();
+                        pick.title = value;
+                    } else {
+                        pick.title = value ? value + ' - not a #RRGGBB colour' : 'not set';
+                    }
+                });
             }
 
             function collectPresetFields() {
@@ -691,6 +749,10 @@
                     var el = p.querySelector('#p_' + key);
                     if (el) { preset[key] = el.value; }
                 });
+
+                // A preset with no name is invisible in the list, which is how one gets lost
+                // without anybody deleting it.
+                if (!preset.Name || !preset.Name.trim()) { preset.Name = 'Unnamed'; }
 
                 presetNumbers.forEach(function (key) {
                     var el = p.querySelector('#p_' + key);
@@ -1226,12 +1288,27 @@
             // preview is one small SVG per style, built from values already in the DOM.
             form.addEventListener('input', function () {
                 collectPresetFields();
+                syncSwatches();
                 renderPreview();
             });
             form.addEventListener('change', function () {
                 collectPresetFields();
                 renderPresetPicker();
+                syncSwatches();
                 renderPreview();
+            });
+
+            // The swatch writes into the text field, never straight into the preset - so there is
+            // one place the value comes from and the two cannot drift apart.
+            ['UniformColour', 'PartialColour'].forEach(function (key) {
+                var pick = page().querySelector('#pick_' + key);
+                if (!pick) { return; }
+                pick.addEventListener('input', function () {
+                    var text = page().querySelector('#p_' + key);
+                    if (!text) { return; }
+                    text.value = pick.value.toUpperCase();
+                    text.dispatchEvent(new Event('change', { bubbles: true }));
+                });
             });
 
             page().querySelector('#PresetPicker').addEventListener('change', function (e) {

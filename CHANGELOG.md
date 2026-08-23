@@ -9,6 +9,37 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Fixed
+
+- **Saving the settings page threw the presets away.** A configuration travels through two
+  serialisers: `XmlSerializer` writes the file, and `System.Text.Json` carries it to and from the
+  settings page. The first populates a read-only collection property, the second does not - and it
+  says nothing about it. So the presets were written to disk correctly, shown on the page
+  correctly, and dropped the moment Save was pressed, leaving every category pointing at a preset
+  that no longer existed. The property now carries
+  `[JsonObjectCreationHandling(JsonObjectCreationHandling.Populate)]`.
+  The XML round trip had a test from the first day; the JSON one did not, because the file format
+  was checked and the transport was assumed. It has one now, and with the attribute removed it
+  fails while the XML test still passes - which is exactly the picture that let this through.
+- **A configuration already emptied by that fault repairs itself.** The legacy flat settings were
+  kept rather than deleted, so they still hold what the lost preset held; the preset is rebuilt
+  under the very id the category is already pointing at. The look key therefore comes out
+  identical and nothing is redrawn - which matters, because a redraw starts from the cached
+  original and 30 of those already carry a badge. The repair is narrow on purpose: it only fires
+  when there are no custom presets at all and the reference is dangling.
+- **The spinner arrows now really have room.** The previous attempt added `padding-right`, which
+  was the wrong side: the spin button sits at the inline end of the field, so padding pushes the
+  arrows inwards along with the digits and the gap lands beyond them. The space belongs between
+  the two, which means a margin on the spin button itself.
+- A preset saved without a name becomes "Unnamed" rather than an invisible entry in the list.
+
+### Added
+
+- **A colour picker beside each of the two completeness colours**, with the swatch showing the
+  current value. The text field stays the thing that is saved: it can hold something the picker
+  cannot represent, and quietly rewriting what somebody typed is worse than a swatch that has not
+  caught up.
+
 ### Added
 
 - **Series, seasons and episodes are badged.** The three categories are no longer settings without

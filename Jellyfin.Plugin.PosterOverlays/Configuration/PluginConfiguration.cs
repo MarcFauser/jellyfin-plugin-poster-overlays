@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Text.Json.Serialization;
 using MediaBrowser.Model.Plugins;
 
 namespace Jellyfin.Plugin.PosterOverlays.Configuration;
@@ -222,8 +223,19 @@ public class PluginConfiguration : BasePluginConfiguration
     /// </summary>
     /// <remarks>
     /// Read-only property over a mutable collection, which is what <c>XmlSerializer</c> wants and
-    /// what the analysers want. Verified to round-trip before the design was built on it.
+    /// what the analysers want.
+    /// <para>
+    /// <b>The attribute is not decoration - without it this collection is silently thrown away.</b>
+    /// A configuration travels through two different serialisers: <c>XmlSerializer</c> writes the
+    /// file, and <c>System.Text.Json</c> carries it to and from the settings page. The first
+    /// populates a read-only collection property; the second does not, and it does not complain
+    /// either. So the page would show the presets, the user would press Save, and the round trip
+    /// would come back without them - leaving every category pointing at a preset that no longer
+    /// exists. Measured, after it happened: read-only round-trips to zero items, with the
+    /// attribute to one.
+    /// </para>
     /// </remarks>
+    [JsonObjectCreationHandling(JsonObjectCreationHandling.Populate)]
     public Collection<BadgePreset> CustomPresets { get; } = [];
 
     /// <summary>
@@ -328,9 +340,14 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <returns>True when something was migrated and the configuration should be saved.</returns>
     public bool Migrate()
     {
-        if (SettingsVersion >= 1)
+        if (SettingsVersion >= 2)
         {
             return false;
+        }
+
+        if (SettingsVersion == 1)
+        {
+            return RepairPresetsLostInTransit();
         }
 
         var carried = new BadgePreset
@@ -365,7 +382,65 @@ public class PluginConfiguration : BasePluginConfiguration
             AllowSource = ShowSourceBadges,
         };
 
-        SettingsVersion = 1;
+        SettingsVersion = 2;
+        return true;
+    }
+
+    /// <summary>
+    /// Puts back a migrated preset that the settings page lost on its first save.
+    /// </summary>
+    /// <remarks>
+    /// Version 1 shipped with <see cref="CustomPresets"/> as a plain read-only property.
+    /// <c>XmlSerializer</c> was happy with that, and it was tested; <c>System.Text.Json</c>, which
+    /// carries the configuration to and from the settings page, silently drops such a property on
+    /// the way back. So the first save after upgrading emptied the collection and left the movie
+    /// category pointing at a preset that no longer existed.
+    /// <para>
+    /// The repair is possible only because the legacy flat settings were kept rather than deleted:
+    /// they still hold exactly what the lost preset held. It rebuilds under the <b>same id</b> the
+    /// category already points at, so nothing else has to change and the look key comes out
+    /// identical - no redraw, and no second badge on the items whose cached original is already
+    /// badged.
+    /// </para>
+    /// <para>
+    /// Deliberately narrow: it only fires when there are no custom presets at all and the movie
+    /// category points at something that is neither a built-in nor present. A user who has since
+    /// made presets of their own is left alone.
+    /// </para>
+    /// </remarks>
+    /// <returns>True when something was repaired.</returns>
+    private bool RepairPresetsLostInTransit()
+    {
+        SettingsVersion = 2;
+
+        bool dangling = CustomPresets.Count == 0
+            && Movies.PresetId != Guid.Empty
+            && !BuiltInPresets.IsBuiltIn(Movies.PresetId);
+
+        if (!dangling)
+        {
+            return true;
+        }
+
+        CustomPresets.Add(new BadgePreset
+        {
+            Id = Movies.PresetId,
+            Name = "Migrated",
+            Style = Style,
+            Corner = Corner,
+            Direction = Direction,
+            PillHeightPercent = PillHeightPercent,
+            FontSizePercentOfPill = FontSizePercentOfPill,
+            PaddingPercentOfPill = PaddingPercentOfPill,
+            GapPercentOfPill = GapPercentOfPill,
+            CornerRadiusPercentOfPill = CornerRadiusPercentOfPill,
+            BorderWidthPercentOfPill = BorderWidthPercentOfPill,
+            HorizontalMarginPercent = HorizontalMarginPercent,
+            VerticalMarginPercent = VerticalMarginPercent,
+            MaxBadges = MaxBadges,
+            BadgeOrder = BadgeOrder,
+        });
+
         return true;
     }
 }
