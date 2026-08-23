@@ -364,12 +364,33 @@ $kept    = @($package.versions | Where-Object { $rebuilt -notcontains $_.version
 
 $fresh = foreach ($t in $targets)
 {
+    # A build without -Changelog must not blank the text of a version that already has one.
+    # The checksum guard above does not catch this: an unchanged source produces a
+    # byte-identical artifact, so the checksum matches and the entry is rewritten anyway -
+    # reproduced on an untouched 11.6.0.0, same md5, changelog from 323 characters to zero.
+    # And unlike a wrong checksum, which aborts the install with an error, an emptied
+    # catalogue entry is silent: nobody sees that it is gone.
+    #
+    # Keeping the published text rather than refusing the run, because a local rebuild is a
+    # legitimate thing to do - but saying so, because silently inheriting a value is exactly
+    # how the empty one would have slipped in.
+    $entryChangelog = $Changelog
+    if ([string]::IsNullOrWhiteSpace($entryChangelog))
+    {
+        $previous = @($package.versions | Where-Object { $_.version -eq $t.Version })
+        if ($previous.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($previous[0].changelog))
+        {
+            $entryChangelog = $previous[0].changelog
+            Write-Host "  Keeping the published changelog for $($t.Version) - this run supplied none." -ForegroundColor Yellow
+        }
+    }
+
     [PSCustomObject]@{
         version   = $t.Version
         targetAbi = $t.TargetAbi
         sourceUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/v$($t.Version)/$($t.ZipName)"
         checksum  = $t.Checksum
-        changelog = $Changelog
+        changelog = $entryChangelog
         timestamp = $timestamp
     }
 }

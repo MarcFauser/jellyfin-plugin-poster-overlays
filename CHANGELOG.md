@@ -19,6 +19,14 @@ for Jellyfin 12), so both lines carry the same feature set under different major
   throughout, the two persistence points say so explicitly, the separators are escaped, and a
   check refuses to continue if the timestamp is not ISO 8601 UTC. The same escaping went into
   the state file's timestamp, with a test that runs under `da-DK`.
+- **`build.ps1` no longer blanks the changelog of an already published version** when a run
+  supplies none. The checksum guard below does not catch this, and cannot: an unchanged source
+  produces a byte-identical artifact, so the checksum matches and the entry is rewritten anyway.
+  Reproduced on an untouched 11.6.0.0 - same MD5, changelog from 323 characters to zero. Unlike
+  a wrong checksum, which aborts the install with an error, an emptied catalogue entry is
+  silent. The published text is now kept and the run says so; supplying `-Changelog` still
+  overwrites it, which was checked in both directions. Found by the sibling plugin's session
+  while it was fixing the two below.
 - **`build.ps1` no longer rewrites the manifest entry of a version that already exists** with a
   different checksum. A local build without `-Publish` did exactly that after a source change
   without a version bump, leaving the repository advertising a checksum the published release
