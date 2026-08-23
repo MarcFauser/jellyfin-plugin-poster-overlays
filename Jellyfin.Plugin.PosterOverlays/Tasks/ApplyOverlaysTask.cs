@@ -186,13 +186,15 @@ public sealed class ApplyOverlaysTask : IScheduledTask
 
         _logger.LogInformation(
             "Poster overlays: {Total} items - {First} badged for the first time, {Replaced} had a new cover from a "
-            + "provider and were badged again, {Changed} redrawn because the badge set changed, {Restored} restored, "
+            + "provider and were badged again, {Changed} redrawn because the badge set changed, {Look} redrawn "
+            + "because the look changed, {Restored} restored, "
             + "{Unchanged} already correct, {NoImage} without an image, {Missing} skipped because the cached original "
             + "was gone, {Damaged} skipped because the cached original was overwritten, {Failed} failed.",
             total,
             counts.GetValueOrDefault(OverlayOutcome.FirstRun),
             counts.GetValueOrDefault(OverlayOutcome.CoverReplaced),
             counts.GetValueOrDefault(OverlayOutcome.BadgesChanged),
+            counts.GetValueOrDefault(OverlayOutcome.LookChanged),
             counts.GetValueOrDefault(OverlayOutcome.Restored),
             counts.GetValueOrDefault(OverlayOutcome.Unchanged),
             counts.GetValueOrDefault(OverlayOutcome.NoImage),

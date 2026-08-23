@@ -11,6 +11,16 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ### Fixed
 
+- **Changing how the badges look now actually redraws them.** Only the badge *set* was compared,
+  so switching the style, the corner, the direction or any size left every already badged poster
+  reported as "already correct" and untouched - the new setting only reached items that happened
+  to need a new badge anyway. A second key now records what the poster was drawn with, and a
+  change to any of those settings redraws from the cached original. Settings that do not change
+  the pixels are deliberately left out of it, so saving an exclusion list does not order a redraw
+  of the whole library.
+
+### Fixed (settings page)
+
 - **The settings page did not work at all.** Its root element carried
   `data-controller="__plugin/posteroverlays"`, pointing at a module that does not exist, where
   the official template carries `data-require="emby-input,emby-button,emby-select,emby-checkbox"`.

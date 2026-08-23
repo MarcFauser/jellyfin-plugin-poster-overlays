@@ -17,6 +17,23 @@ internal sealed class OverlayRecord
     public string BadgeKey { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the appearance the badges were drawn with - style, corner, direction and
+    /// every geometry percentage.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="BadgeKey"/> because the two answer different questions. The badge
+    /// key says <em>which</em> badges belong on the poster; this says <em>how</em> they look. A
+    /// larger pill or a different corner leaves the badge key untouched, so without this the run
+    /// would report the item as already correct and never redraw it.
+    /// <para>
+    /// An empty value means the record predates this field. That compares as different from any
+    /// real key, so the item is redrawn once - which is right: nobody knows what it was drawn
+    /// with.
+    /// </para>
+    /// </remarks>
+    public string LookKey { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the SHA-256 of the untouched original that was cached.
     /// </summary>
     public string OriginalHash { get; set; } = string.Empty;

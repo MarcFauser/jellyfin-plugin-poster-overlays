@@ -27,6 +27,12 @@ internal enum OverlayOutcome
     /// <summary>The image is still ours but the badge set changed, so it was redrawn.</summary>
     BadgesChanged,
 
+    /// <summary>
+    /// Same badges, but the look changed - a different style, corner, direction or size - so the
+    /// image was redrawn from the cached original.
+    /// </summary>
+    LookChanged,
+
     /// <summary>There is nothing left to badge, so the cached original was put back.</summary>
     Restored,
 

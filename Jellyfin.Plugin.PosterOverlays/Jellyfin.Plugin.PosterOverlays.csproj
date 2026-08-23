@@ -34,15 +34,15 @@
        repository manifest, and a server upgrading from 10.11 to 12 must see the v12 build
        as the higher version, otherwise it silently keeps running the net9.0 assembly. -->
   <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <Version>11.4.0.0</Version>
-    <AssemblyVersion>11.4.0.0</AssemblyVersion>
-    <FileVersion>11.4.0.0</FileVersion>
+    <Version>11.5.0.0</Version>
+    <AssemblyVersion>11.5.0.0</AssemblyVersion>
+    <FileVersion>11.5.0.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <Version>12.4.0.0</Version>
-    <AssemblyVersion>12.4.0.0</AssemblyVersion>
-    <FileVersion>12.4.0.0</FileVersion>
+    <Version>12.5.0.0</Version>
+    <AssemblyVersion>12.5.0.0</AssemblyVersion>
+    <FileVersion>12.5.0.0</FileVersion>
   </PropertyGroup>
 
   <!-- ControllerBase, [ApiController], [Authorize]. The server hosts ASP.NET Core; the plugin

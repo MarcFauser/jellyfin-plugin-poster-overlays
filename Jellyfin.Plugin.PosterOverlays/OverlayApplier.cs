@@ -180,7 +180,11 @@ internal sealed class OverlayApplier
                 : OverlayOutcome.OriginalMissing;
         }
 
-        if (oursOnTheItem && string.Equals(badgeKey, record!.BadgeKey, StringComparison.Ordinal))
+        string lookKey = LookKeyOf(_config);
+        bool sameBadges = oursOnTheItem && string.Equals(badgeKey, record!.BadgeKey, StringComparison.Ordinal);
+        bool sameLook = oursOnTheItem && string.Equals(lookKey, record!.LookKey, StringComparison.Ordinal);
+
+        if (sameBadges && sameLook)
         {
             return OverlayOutcome.Unchanged;
         }
@@ -204,7 +208,7 @@ internal sealed class OverlayApplier
             }
 
             original = cached;
-            outcome = OverlayOutcome.BadgesChanged;
+            outcome = sameBadges ? OverlayOutcome.LookChanged : OverlayOutcome.BadgesChanged;
         }
         else
         {
@@ -255,6 +259,7 @@ internal sealed class OverlayApplier
         _store.Set(id, new OverlayRecord
         {
             BadgeKey = badgeKey,
+            LookKey = lookKey,
             OriginalHash = OverlayStateStore.Hash(original),
             BadgedHash = badgedHash,
             OriginalExtension = extension,
@@ -340,6 +345,42 @@ internal sealed class OverlayApplier
     {
         ArgumentNullException.ThrowIfNull(item);
         return item.Id.ToString("N", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// Builds the key that says "drawn the same way as last time".
+    /// </summary>
+    /// <remarks>
+    /// Only settings that change the pixels belong in here. Anything else - which items are
+    /// excluded, whether the watcher is on, the dry run - must be left out, or every save of the
+    /// settings page would order a full redraw of the whole library.
+    /// <para>
+    /// Invariant culture throughout: these numbers become a string that is compared against one
+    /// written earlier, and on a German system "5,5" and "5.5" are the same setting with two
+    /// spellings.
+    /// </para>
+    /// </remarks>
+    /// <param name="config">The settings.</param>
+    /// <returns>The key.</returns>
+    public static string LookKeyOf(PluginConfiguration config)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+
+        var c = CultureInfo.InvariantCulture;
+        return string.Join(
+            '|',
+            config.Style.ToString(),
+            config.Corner.ToString(),
+            config.Direction.ToString(),
+            config.PillHeightPercent.ToString("R", c),
+            config.FontSizePercentOfPill.ToString("R", c),
+            config.PaddingPercentOfPill.ToString("R", c),
+            config.GapPercentOfPill.ToString("R", c),
+            config.CornerRadiusPercentOfPill.ToString("R", c),
+            config.BorderWidthPercentOfPill.ToString("R", c),
+            config.HorizontalMarginPercent.ToString("R", c),
+            config.VerticalMarginPercent.ToString("R", c),
+            config.JpegQuality.ToString(c));
     }
 
     private static string MimeType(string extension) => extension.ToLowerInvariant() switch
