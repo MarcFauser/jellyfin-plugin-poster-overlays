@@ -66,6 +66,12 @@ for Jellyfin 12), so both lines carry the same feature set under different major
   episode presets have it off, and settings that cannot reach the pixels stay out of the look key.
 - A preview that shows portrait **and** landscape, because one preset can serve both, and both
   states where the traffic light is on.
+- The glow and the partial marker are covered by render tests against the real renderer. That is
+  not routine coverage: the mock-ups that sold both ideas were drawn in a different library
+  altogether, so until now "SkiaSharp produces this" was a plan and not a measurement. The glow
+  test looks for the halo in a band strictly above the pill and has a no-glow control, because
+  otherwise "these pixels differ" would pass for a halo; the marker test sets both colours alike
+  so the border cannot account for the difference.
 - `GET /PosterOverlays/BuiltInPresets`, so the settings page does not carry a second copy of the
   built-in table that would drift from the one in code.
 

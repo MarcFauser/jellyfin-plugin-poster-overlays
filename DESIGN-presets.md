@@ -459,15 +459,22 @@ configuration equals the key computed from the old one.
 
 ---
 
-## 10. To verify before building
+## 10. Verified since
 
-Not assumptions to act on — the two things this design leans on that have not been measured yet:
+Both of the things this design leaned on have been checked, and both held.
 
-- **Can the plugin read an item's presentation key?** Series badges have to be drawn on *every* row
-  of the merge group, because Jellyfin picks which row supplies the tile, and for *The Last of Us*
-  it picks the 1080p one. Grouping by name is a proxy, not the real key.
-- **Does SkiaSharp produce the glow the mock-up shows?** The preview stacked outlines; the renderer
-  would use a blur mask filter. Similar, not the same code.
+- **The presentation key is reachable.** `InternalItemsQuery.SeriesPresentationUniqueKey`,
+  `Series.PresentationUniqueKey` and `Episode.SeriesPresentationUniqueKey` all exist and compile,
+  and the aggregation runs on them rather than on parent ids - which is what makes it describe the
+  merged tile instead of one of the rows behind it.
+- **SkiaSharp does produce the glow.** The mock-ups that sold the idea stacked outlines in a
+  different drawing library; the renderer uses `SKMaskFilter.CreateBlur`, and there is now a test
+  that renders it and looks for the halo in a band strictly above the pill, with a no-glow control
+  so that "these pixels differ" cannot pass for a halo.
+
+What has **not** been checked is the part no test can reach: none of this has run against a real
+library, and the settings page has never been opened in a browser. The last time that page changed
+it was broken in a way only the browser showed.
 
 ## 11. Deliberately not in scope
 

@@ -98,6 +98,95 @@ public class BadgeRendererTests
             + " near-white pixels - no glyphs were drawn, so the embedded typeface did not load");
     }
 
+    /// <summary>
+    /// The glow is drawn with a Skia blur mask filter, and until now that was only a plan on
+    /// paper - the mock-ups that sold the idea stacked outlines in a different drawing library
+    /// altogether. This renders it for real.
+    /// </summary>
+    /// <remarks>
+    /// Sampled in a band strictly <b>above</b> the pill, which starts at 2 % of 1500 px. A halo
+    /// that does not reach outside the pill is not a halo, so that band is where the claim lives.
+    /// The control is the same picture without the glow: without it, "these pixels differ" would
+    /// only say that two renders are not identical.
+    /// </remarks>
+    [Fact]
+    public void TheGlowReallyReachesOutsideThePill()
+    {
+        var withGlow = MoviePreset;
+        withGlow.CompletenessColours = true;
+        withGlow.Glow = true;
+        withGlow.GlowRadiusPercentOfPill = 60;
+
+        var without = MoviePreset;
+        without.CompletenessColours = true;
+        without.Glow = false;
+
+        var badges = new[] { new BadgeSpec(BadgeCategory.Resolution, "4K", BadgeAvailability.Uniform) };
+        byte[] plain = SolidPoster(SKColors.Black, SKEncodedImageFormat.Png);
+
+        using var lit = SKBitmap.Decode(BadgeRenderer.Draw(plain, badges, withGlow, 95)!);
+        using var flat = SKBitmap.Decode(BadgeRenderer.Draw(plain, badges, without, 95)!);
+        using var bare = SKBitmap.Decode(plain);
+
+        // The pill top edge is at 2 % of 1500 = 30 px, so rows 4..24 are outside it.
+        Assert.True(
+            Differs(flat, lit, lit.Width - 320, 4, 300, 20),
+            "no glow outside the pill - the blur mask filter drew nothing");
+
+        // Control: without the glow those same rows are untouched, so the assertion above is
+        // about the glow and not about two renders differing for any old reason.
+        Assert.False(
+            Differs(bare, flat, flat.Width - 320, 4, 300, 20),
+            "the control is broken: the area above the pill already differs without any glow");
+    }
+
+    /// <summary>
+    /// And the marker that says "only part of what is underneath has this".
+    /// </summary>
+    /// <remarks>
+    /// Both colours are set to the same value on purpose, so the border is identical in the two
+    /// renders and the only thing left to differ is the marker itself. Otherwise this would pass
+    /// on the colour change alone and say nothing about whether the marker was drawn.
+    /// </remarks>
+    [Fact]
+    public void ThePartialMarkerIsDrawnInsideThePill()
+    {
+        var preset = MoviePreset;
+        preset.CompletenessColours = true;
+        preset.Glow = false;
+        preset.PartialMarker = PartialMarker.Diagonal;
+        preset.UniformColour = "#3ED682";
+        preset.PartialColour = "#3ED682";
+
+        byte[] plain = SolidPoster(SKColors.Black, SKEncodedImageFormat.Png);
+        using var uniform = SKBitmap.Decode(
+            BadgeRenderer.Draw(plain, [new BadgeSpec(BadgeCategory.Resolution, "4K", BadgeAvailability.Uniform)], preset, 95)!);
+        using var partial = SKBitmap.Decode(
+            BadgeRenderer.Draw(plain, [new BadgeSpec(BadgeCategory.Resolution, "4K", BadgeAvailability.Partial)], preset, 95)!);
+
+        Assert.True(
+            Differs(uniform, partial, partial.Width - 200, 32, 165, 75),
+            "the partial marker drew nothing inside the pill");
+
+        // And with the marker switched off the two must be identical, or the difference above
+        // could be coming from something other than the marker.
+        var none = MoviePreset;
+        none.CompletenessColours = true;
+        none.Glow = false;
+        none.PartialMarker = PartialMarker.None;
+        none.UniformColour = "#3ED682";
+        none.PartialColour = "#3ED682";
+
+        using var u2 = SKBitmap.Decode(
+            BadgeRenderer.Draw(plain, [new BadgeSpec(BadgeCategory.Resolution, "4K", BadgeAvailability.Uniform)], none, 95)!);
+        using var p2 = SKBitmap.Decode(
+            BadgeRenderer.Draw(plain, [new BadgeSpec(BadgeCategory.Resolution, "4K", BadgeAvailability.Partial)], none, 95)!);
+
+        Assert.False(
+            Differs(u2, p2, p2.Width - 200, 32, 165, 75),
+            "the control is broken: with the marker off the two renders still differ");
+    }
+
     [Fact]
     public void DrawsNothingWithoutBadges()
     {
