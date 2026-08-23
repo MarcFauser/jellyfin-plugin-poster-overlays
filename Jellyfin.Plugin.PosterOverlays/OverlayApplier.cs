@@ -11,6 +11,7 @@ using Jellyfin.Plugin.PosterOverlays.Configuration;
 using Jellyfin.Plugin.PosterOverlays.Rendering;
 using Jellyfin.Plugin.PosterOverlays.State;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
@@ -132,8 +133,27 @@ internal sealed class OverlayApplier
             return OverlayOutcome.Skipped;
         }
 
+        var target = TargetOf(item);
+        var category = _config.CategoryFor(target);
+        if (!category.Enabled)
+        {
+            return OverlayOutcome.Skipped;
+        }
+
+        var preset = _config.PresetFor(target);
+        if (!_config.PresetReferenceIsIntact(target))
+        {
+            // Said out loud rather than absorbed. Drawing with settings nobody chose is the
+            // failure mode that looks like success.
+            _logger.LogWarning(
+                "Poster overlays: the {Target} category points at a preset that does not exist, so the built-in "
+                + "\"{Fallback}\" is being used. Pick a preset on the settings page.",
+                target,
+                preset.Name);
+        }
+
         _editionOverrides.TryGetValue(id, out string? editionOverride);
-        var built = BadgeBuilder.Build(item, _config, editionOverride);
+        var built = BadgeBuilder.Build(item, _config, category, preset, editionOverride);
         string badgeKey = BadgeBuilder.KeyOf(built.Badges);
 
         if (built.FolderClaimsHdr != built.StreamHasHdr && _logger.IsEnabled(LogLevel.Information))
@@ -182,7 +202,7 @@ internal sealed class OverlayApplier
                 : OverlayOutcome.OriginalMissing;
         }
 
-        string lookKey = LookKeyOf(_config);
+        string lookKey = LookKeyOf(preset, _config.JpegQuality);
         bool sameBadges = oursOnTheItem && string.Equals(badgeKey, record!.BadgeKey, StringComparison.Ordinal);
         bool sameLook = oursOnTheItem && string.Equals(lookKey, record!.LookKey, StringComparison.Ordinal);
 
@@ -225,7 +245,7 @@ internal sealed class OverlayApplier
             outcome = record is null ? OverlayOutcome.FirstRun : OverlayOutcome.CoverReplaced;
         }
 
-        byte[]? badged = BadgeRenderer.Draw(original, built.Badges, _config);
+        byte[]? badged = BadgeRenderer.Draw(original, built.Badges, preset, _config.JpegQuality);
         if (badged is null)
         {
             _logger.LogWarning("Poster overlays: {Name} - the image could not be decoded.", item.Name);
@@ -435,28 +455,64 @@ internal sealed class OverlayApplier
     /// spellings.
     /// </para>
     /// </remarks>
-    /// <param name="config">The settings.</param>
+    /// <param name="preset">The look.</param>
+    /// <param name="jpegQuality">The encoder quality, which is global rather than per preset.</param>
     /// <returns>The key.</returns>
-    public static string LookKeyOf(PluginConfiguration config)
+    public static string LookKeyOf(BadgePreset preset, int jpegQuality)
     {
-        ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(preset);
 
         var c = CultureInfo.InvariantCulture;
-        return string.Join(
+        string key = string.Join(
             '|',
-            config.Style.ToString(),
-            config.Corner.ToString(),
-            config.Direction.ToString(),
-            config.PillHeightPercent.ToString("R", c),
-            config.FontSizePercentOfPill.ToString("R", c),
-            config.PaddingPercentOfPill.ToString("R", c),
-            config.GapPercentOfPill.ToString("R", c),
-            config.CornerRadiusPercentOfPill.ToString("R", c),
-            config.BorderWidthPercentOfPill.ToString("R", c),
-            config.HorizontalMarginPercent.ToString("R", c),
-            config.VerticalMarginPercent.ToString("R", c),
-            config.JpegQuality.ToString(c));
+            preset.Style.ToString(),
+            preset.Corner.ToString(),
+            preset.Direction.ToString(),
+            preset.PillHeightPercent.ToString("R", c),
+            preset.FontSizePercentOfPill.ToString("R", c),
+            preset.PaddingPercentOfPill.ToString("R", c),
+            preset.GapPercentOfPill.ToString("R", c),
+            preset.CornerRadiusPercentOfPill.ToString("R", c),
+            preset.BorderWidthPercentOfPill.ToString("R", c),
+            preset.HorizontalMarginPercent.ToString("R", c),
+            preset.VerticalMarginPercent.ToString("R", c),
+            jpegQuality.ToString(c));
+
+        // Appended only when they can reach the pixels. That is not a micro-optimisation: the
+        // fields above are exactly the ones the flat configuration had, so a migrated movie
+        // preset produces the key it produced before presets existed, and nothing is redrawn.
+        // A redraw would start from the cached original, and some of those already carry a badge
+        // from the faulty first release.
+        if (preset.CompletenessColours)
+        {
+            key = string.Join(
+                '|',
+                key,
+                preset.UniformColour,
+                preset.PartialColour,
+                preset.PartialMarker.ToString(),
+                preset.Glow ? preset.GlowRadiusPercentOfPill.ToString("R", c) : "noglow");
+        }
+
+        return key;
     }
+
+    /// <summary>
+    /// Which category's settings apply to an item.
+    /// </summary>
+    /// <remarks>
+    /// Anything that is not one of the four falls to <see cref="BadgeTarget.Movie"/>, but that
+    /// costs nothing: the applier only ever sees items the tasks selected, and they select by kind.
+    /// </remarks>
+    /// <param name="item">The item.</param>
+    /// <returns>The target.</returns>
+    public static BadgeTarget TargetOf(BaseItem item) => item switch
+    {
+        Episode => BadgeTarget.Episode,
+        Season => BadgeTarget.Season,
+        Series => BadgeTarget.Series,
+        _ => BadgeTarget.Movie,
+    };
 
     private static string MimeType(string extension) => extension.ToLowerInvariant() switch
     {

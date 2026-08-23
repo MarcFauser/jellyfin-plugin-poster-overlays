@@ -23,6 +23,14 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         : base(applicationPaths, xmlSerializer)
     {
         Instance = this;
+
+        // Bring a configuration written before presets existed up to the current layout, once and
+        // as early as possible: everything else in this plugin resolves a preset per item, and a
+        // configuration that has not been migrated has no preset to resolve.
+        if (Configuration.Migrate())
+        {
+            SaveConfiguration();
+        }
     }
 
     /// <summary>

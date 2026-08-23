@@ -29,6 +29,69 @@
             text-align: right;
             padding-right: 0.7em;
         }
+
+        #posterOverlaysConfigPage .po-cat {
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            border-radius: 0.3em;
+            padding: 0.7em 0.9em;
+            margin-bottom: 0.7em;
+        }
+
+        #posterOverlaysConfigPage .po-cat-head {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.9em;
+        }
+
+        #posterOverlaysConfigPage .po-cat-name {
+            font-weight: 600;
+            min-width: 7em;
+        }
+
+        #posterOverlaysConfigPage .po-kinds {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.2em 1.3em;
+            margin-top: 0.6em;
+        }
+
+        #posterOverlaysConfigPage .po-check {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            margin: 0.3em 0;
+        }
+
+        #posterOverlaysConfigPage .po-banner {
+            border-radius: 0.3em;
+            padding: 0.5em 0.8em;
+            margin: 0.5em 0 1em 0;
+        }
+
+        #posterOverlaysConfigPage .po-banner-locked { background: rgba(245, 165, 36, 0.16); }
+        #posterOverlaysConfigPage .po-banner-mine   { background: rgba(62, 214, 130, 0.14); }
+
+        #posterOverlaysConfigPage .po-previews {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.4em;
+            align-items: flex-start;
+            margin: 0.8em 0;
+        }
+
+        #posterOverlaysConfigPage .po-area {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.6em;
+            border-radius: 0.2em;
+            resize: vertical;
+            font-family: inherit;
+            font-size: inherit;
+        }
+
+        #posterOverlaysConfigPage fieldset[disabled] { opacity: 0.55; }
     </style>
     <div data-role="content">
         <div class="content-primary">
@@ -37,7 +100,7 @@
                 <div class="verticalSection">
                     <h2 class="sectionTitle">Poster Overlays</h2>
                     <p class="fieldDescription">
-                        Draws a badge onto the primary image so two entries of the same film can be
+                        Draws a badge onto the primary image so two entries of the same title can be
                         told apart on the tile. The badge is not meant to survive: when a provider
                         delivers a new cover it disappears, and the next run puts it back.
                     </p>
@@ -47,231 +110,212 @@
                 <div class="verticalSection">
                     <h3 class="sectionTitle">Operation</h3>
 
-                    <div class="checkboxContainer">
-                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
-                            <input id="Enabled" name="Enabled" type="checkbox" is="emby-checkbox" />
-                            <span>Enabled</span>
-                        </label>
+                    <label class="po-check">
+                        <input id="Enabled" type="checkbox" is="emby-checkbox" />
+                        <span>Enabled</span>
+                    </label>
+                    <label class="po-check">
+                        <input id="DryRun" type="checkbox" is="emby-checkbox" />
+                        <span>Dry run - work everything out and change nothing</span>
+                    </label>
+                    <label class="po-check">
+                        <input id="WatchForImageChanges" type="checkbox" is="emby-checkbox" />
+                        <span>Re-badge as soon as an image changes</span>
+                    </label>
+                    <label class="po-check">
+                        <input id="WriteToMediaFolder" type="checkbox" is="emby-checkbox" />
+                        <span>Write the badged image into the media folder instead</span>
+                    </label>
+                    <div class="fieldDescription">
+                        The last one is off by default and deliberately so: a local file is not replaced
+                        when a provider delivers a new cover, which defeats the upkeep loop.
                     </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
-                            <input id="DryRun" name="DryRun" type="checkbox" is="emby-checkbox" />
-                            <span>Dry run - only report, change nothing</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Everything is worked out including the drawing, and then thrown away: no
-                            upload, no file, no recorded state. The task log says what it would have
-                            done. Leave this on for the first run.
-                        </div>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
-                            <input id="WatchForImageChanges" name="WatchForImageChanges" type="checkbox" is="emby-checkbox" />
-                            <span>Re-badge as soon as an image changes</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            This is what makes "Refresh metadata" in a film's own menu work as a manual
-                            trigger: the provider delivers a new cover and the badge is back seconds
-                            later. It also means the plugin writes during every library refresh.
-                        </div>
+                    <div class="inputContainer" style="margin-top:1em;">
+                        <label class="inputLabel inputLabelUnfocused" for="JpegQuality">JPEG quality</label>
+                        <input id="JpegQuality" type="number" is="emby-input" class="emby-input po-num" min="60" max="100" step="1" />
+                        <div class="fieldDescription">Jellyfin delivers at 90; below that the badged copy is visibly worse than the original.</div>
                     </div>
                 </div>
 
                 <div class="verticalSection">
-                    <h3 class="sectionTitle">What to badge</h3>
-
-                    <div class="checkboxContainer">
-                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
-                            <input id="ShowEditionBadges" name="ShowEditionBadges" type="checkbox" is="emby-checkbox" />
-                            <span>Edition (EXT, DC, UC, IMAX, ...) - read from the folder name</span>
-                        </label>
-                    </div>
-                    <div class="checkboxContainer">
-                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
-                            <input id="ShowResolutionBadges" name="ShowResolutionBadges" type="checkbox" is="emby-checkbox" />
-                            <span>Resolution (4K, 8K, ...)</span>
-                        </label>
-                    </div>
-                    <div class="checkboxContainer">
-                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
-                            <input id="ShowVideoRangeBadges" name="ShowVideoRangeBadges" type="checkbox" is="emby-checkbox" />
-                            <span>Video range (DV, HDR, HDR+, HLG)</span>
-                        </label>
-                    </div>
-                    <div class="checkboxContainer">
-                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
-                            <input id="ShowFormatBadges" name="ShowFormatBadges" type="checkbox" is="emby-checkbox" />
-                            <span>Presentation format (3D) - read from the folder name</span>
-                        </label>
-                    </div>
-                    <div class="checkboxContainer">
-                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
-                            <input id="ShowSourceBadges" name="ShowSourceBadges" type="checkbox" is="emby-checkbox" />
-                            <span>Source quality (CAM, TS, TC, SCR) - marks a placeholder rip</span>
-                        </label>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
-                            <input id="MergeDolbyVisionAndHdr" name="MergeDolbyVisionAndHdr" type="checkbox" is="emby-checkbox" />
-                            <span>Merge Dolby Vision and HDR into one pill</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Draws "DV HDR" instead of two rows, which keeps the stack shorter.
-                        </div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="MaxBadges">Maximum badges per image</label>
-                        <input id="MaxBadges" name="MaxBadges" type="number" is="emby-input" class="emby-input po-num" min="1" max="6" step="1" />
-                        <div class="fieldDescription">Anything beyond this is dropped from the bottom of the stack.</div>
-                    </div>
-                </div>
-
-                <div class="verticalSection">
-                    <h3 class="sectionTitle">Order</h3>
+                    <h3 class="sectionTitle">Categories</h3>
                     <p class="fieldDescription">
-                        Top to bottom, and this is also the priority: when there are more badges than
-                        the maximum above, the ones at the bottom are the ones that go.
+                        Each kind of entry picks its own preset and decides which badge kinds it may
+                        carry. A preset is a <em>look</em>; a category is a <em>policy</em> - which is
+                        what lets one preset serve several categories at once.
                     </p>
-                    <div id="BadgeOrderList" class="paperList" style="margin-bottom:1em;"></div>
+                    <div id="CategoryList"></div>
                 </div>
 
                 <div class="verticalSection">
-                    <h3 class="sectionTitle">Look</h3>
+                    <h3 class="sectionTitle">Presets</h3>
 
-                    <!-- The three previews ARE the style picker, so there is no dropdown saying the
-                         same thing next to them. The select is kept, hidden, because it is where the
-                         value lives and what the load and save paths read. -->
-                    <label class="selectLabel" for="Style">Style - click one</label>
-                    <select id="Style" name="Style" style="display:none;">
-                        <option value="DarkPill">Dark pill, DV and HDR merged</option>
-                        <option value="FilledAccent">Dolby Vision filled, HDR separate</option>
-                        <option value="FilledAll">All filled, fully rounded</option>
-                    </select>
-                    <div id="BadgePreview" style="display:flex; gap:1.2em; flex-wrap:wrap; margin:0.6em 0 1.4em 0;"></div>
-                    <p class="fieldDescription" style="margin-bottom:1.4em;">
-                        Drawn from the settings below as you change them - corner, direction, sizes and
-                        the order. Shapes and colours are to scale; the real thing is rendered on the
-                        poster itself.
-                    </p>
-
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="Corner">Corner</label>
-                        <select id="Corner" name="Corner" is="emby-select" class="emby-select-withcolor emby-select">
-                            <option value="TopRight">Top right</option>
-                            <option value="TopLeft">Top left</option>
-                            <option value="BottomRight">Bottom right</option>
-                            <option value="BottomLeft">Bottom left</option>
-                        </select>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="PresetPicker">Editing</label>
+                        <select id="PresetPicker" is="emby-select" class="emby-select"></select>
                     </div>
 
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="Direction">Direction</label>
-                        <select id="Direction" name="Direction" is="emby-select" class="emby-select-withcolor emby-select">
-                            <option value="Vertical">Stacked downwards</option>
-                            <option value="Horizontal">In one row along the edge</option>
-                        </select>
-                        <div class="fieldDescription">
-                            The corner says where the badges start, this says which way they grow.
-                            "Top left" plus "in one row" is the left-to-right strip along the top edge.
+                    <div id="PresetBanner" class="po-banner fieldDescription"></div>
+
+                    <div style="display:flex; flex-wrap:wrap; gap:0.5em; margin-bottom:1em;">
+                        <button is="emby-button" type="button" id="PresetDuplicate" class="raised emby-button">
+                            <span>Duplicate</span>
+                        </button>
+                        <button is="emby-button" type="button" id="PresetDelete" class="raised emby-button">
+                            <span>Delete</span>
+                        </button>
+                    </div>
+
+                    <fieldset id="PresetFields" style="border:0; padding:0; margin:0;">
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_Name">Name</label>
+                            <input id="p_Name" type="text" is="emby-input" class="emby-input" />
                         </div>
-                    </div>
 
-                    <p class="fieldDescription">
-                        All sizes are percentages, never pixels, so the same settings look the same on
-                        a 600x900 and on a 1000x1500 master.
-                    </p>
+                        <div class="po-previews" id="BadgePreview"></div>
+                        <div class="fieldDescription" style="margin-bottom:1em;">
+                            Portrait and landscape, because one preset can serve both. Click a style to
+                            choose it. Where a category aggregates - series and seasons - the second row
+                            shows what a partly available badge looks like.
+                        </div>
 
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="PillHeightPercent">Pill height, % of image height</label>
-                        <input id="PillHeightPercent" name="PillHeightPercent" type="number" is="emby-input" class="emby-input po-num" min="1" max="25" step="0.1" />
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="FontSizePercentOfPill">Font size, % of pill height</label>
-                        <input id="FontSizePercentOfPill" name="FontSizePercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="20" max="100" step="1" />
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="PaddingPercentOfPill">Horizontal padding, % of pill height</label>
-                        <input id="PaddingPercentOfPill" name="PaddingPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="200" step="1" />
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="GapPercentOfPill">Gap between pills, % of pill height</label>
-                        <input id="GapPercentOfPill" name="GapPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="200" step="1" />
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="CornerRadiusPercentOfPill">Corner radius, % of pill height</label>
-                        <input id="CornerRadiusPercentOfPill" name="CornerRadiusPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="50" step="1" />
-                        <div class="fieldDescription">50 gives fully rounded ends.</div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="BorderWidthPercentOfPill">Border width, % of pill height</label>
-                        <input id="BorderWidthPercentOfPill" name="BorderWidthPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="20" step="0.5" />
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="HorizontalMarginPercent">Side margin, % of image width</label>
-                        <input id="HorizontalMarginPercent" name="HorizontalMarginPercent" type="number" is="emby-input" class="emby-input po-num" min="0" max="25" step="0.1" />
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="VerticalMarginPercent">Top or bottom margin, % of image height</label>
-                        <input id="VerticalMarginPercent" name="VerticalMarginPercent" type="number" is="emby-input" class="emby-input po-num" min="0" max="25" step="0.1" />
-                    </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_Corner">Corner</label>
+                            <select id="p_Corner" is="emby-select" class="emby-select">
+                                <option value="TopLeft">Top left</option>
+                                <option value="TopRight">Top right</option>
+                                <option value="BottomLeft">Bottom left</option>
+                                <option value="BottomRight">Bottom right</option>
+                            </select>
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_Direction">Direction</label>
+                            <select id="p_Direction" is="emby-select" class="emby-select">
+                                <option value="Vertical">Down the edge</option>
+                                <option value="Horizontal">Along the edge</option>
+                            </select>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_MaxBadges">Maximum badges per image</label>
+                            <input id="p_MaxBadges" type="number" is="emby-input" class="emby-input po-num" min="1" max="6" step="1" />
+                            <div class="fieldDescription">Anything beyond this is dropped from the end of the order below.</div>
+                        </div>
+
+                        <div style="margin:1em 0;">
+                            <label style="display:block; margin-bottom:0.4em;">Order, and therefore priority</label>
+                            <div id="BadgeOrderList"></div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_PillHeightPercent">Pill height, % of image height</label>
+                            <input id="p_PillHeightPercent" type="number" is="emby-input" class="emby-input po-num" min="1" max="30" step="0.1" />
+                            <div class="fieldDescription">A landscape still is far shorter than a poster at the same width, so a landscape preset needs roughly double.</div>
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_FontSizePercentOfPill">Font size, % of pill height</label>
+                            <input id="p_FontSizePercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="20" max="100" step="1" />
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_PaddingPercentOfPill">Horizontal padding, % of pill height</label>
+                            <input id="p_PaddingPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="200" step="1" />
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_GapPercentOfPill">Gap between pills, % of pill height</label>
+                            <input id="p_GapPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="200" step="1" />
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_CornerRadiusPercentOfPill">Corner radius, % of pill height</label>
+                            <input id="p_CornerRadiusPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="50" step="1" />
+                            <div class="fieldDescription">50 gives fully rounded ends.</div>
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_BorderWidthPercentOfPill">Border width, % of pill height</label>
+                            <input id="p_BorderWidthPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="20" step="0.5" />
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_HorizontalMarginPercent">Side margin, % of image width</label>
+                            <input id="p_HorizontalMarginPercent" type="number" is="emby-input" class="emby-input po-num" min="0" max="25" step="0.1" />
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_VerticalMarginPercent">Top or bottom margin, % of image height</label>
+                            <input id="p_VerticalMarginPercent" type="number" is="emby-input" class="emby-input po-num" min="0" max="25" step="0.1" />
+                        </div>
+
+                        <h4 class="sectionTitle" style="margin-top:1.4em;">When something is only partly available</h4>
+                        <div class="fieldDescription" style="margin-bottom:0.6em;">
+                            Series and seasons only. A series has no resolution of its own, so what it
+                            shows is aggregated from its episodes - and every episode has to agree, once
+                            several copies of one episode are collapsed to the best.
+                        </div>
+
+                        <label class="po-check">
+                            <input id="p_CompletenessColours" type="checkbox" is="emby-checkbox" />
+                            <span>Colour the badge by whether it holds throughout</span>
+                        </label>
+                        <label class="po-check">
+                            <input id="p_Glow" type="checkbox" is="emby-checkbox" />
+                            <span>Soft glow around the pill</span>
+                        </label>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_UniformColour">Colour when everything agrees</label>
+                            <input id="p_UniformColour" type="text" is="emby-input" class="emby-input po-num" placeholder="#3ED682" />
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_PartialColour">Colour when only some do</label>
+                            <input id="p_PartialColour" type="text" is="emby-input" class="emby-input po-num" placeholder="#FFAA28" />
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_GlowRadiusPercentOfPill">Glow radius, % of pill height</label>
+                            <input id="p_GlowRadiusPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="120" step="1" />
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="p_PartialMarker">Marker besides the colour</label>
+                            <select id="p_PartialMarker" is="emby-select" class="emby-select">
+                                <option value="None">None</option>
+                                <option value="Vertical">Split down the middle</option>
+                                <option value="Diagonal">Split on a slant</option>
+                                <option value="Wave">Wavy split</option>
+                                <option value="Hatch">Hatched</option>
+                            </select>
+                            <div class="fieldDescription">
+                                Worth keeping even beside the colour: green and amber is exactly the pair
+                                that converges under the common red-green deficiency.
+                            </div>
+                        </div>
+                    </fieldset>
                 </div>
 
                 <div class="verticalSection">
-                    <h3 class="sectionTitle">Resolution ladder</h3>
+                    <h3 class="sectionTitle">Rules</h3>
+                    <label class="po-check">
+                        <input id="MergeDolbyVisionAndHdr" type="checkbox" is="emby-checkbox" />
+                        <span>Merge Dolby Vision and HDR into one pill</span>
+                    </label>
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="ResolutionLadder">Ladder</label>
-                        <input id="ResolutionLadder" name="ResolutionLadder" type="text" is="emby-input" class="emby-input" />
-                        <div class="fieldDescription">
-                            The K values a badge may show. A pixel width is divided by 960 and snapped to
-                            the nearest entry. Only 4K and 8K have standardised widths; everything above
-                            is extrapolation, which is why this is a setting.
-                        </div>
+                        <label class="inputLabel inputLabelUnfocused" for="ResolutionLadder">Resolution ladder</label>
+                        <input id="ResolutionLadder" type="text" is="emby-input" class="emby-input" />
+                        <div class="fieldDescription">Comma separated "K" numbers. Measured width / 960, snapped to the nearest entry.</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="MinimumResolutionK">Lowest rung that earns a badge</label>
-                        <input id="MinimumResolutionK" name="MinimumResolutionK" type="number" is="emby-input" class="emby-input po-num" min="1" max="32" step="1" />
-                        <div class="fieldDescription">With 4, 1080p material gets no badge.</div>
-                    </div>
-                </div>
-
-                <div class="verticalSection">
-                    <h3 class="sectionTitle">Writing back</h3>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="JpegQuality">JPEG quality</label>
-                        <input id="JpegQuality" name="JpegQuality" type="number" is="emby-input" class="emby-input po-num" min="60" max="100" step="1" />
-                        <div class="fieldDescription">Jellyfin delivers at 90; below that the badged copy is visibly worse than the original.</div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label" style="display:flex; align-items:center; gap:0.7em; margin:0.4em 0;">
-                            <input id="WriteToMediaFolder" name="WriteToMediaFolder" type="checkbox" is="emby-checkbox" />
-                            <span>Write the badged image into the media folder instead</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Off by default and deliberately so: a local file is not replaced when a
-                            provider delivers a new cover, which defeats the upkeep loop. It exists for
-                            installations that want the durable variant.
-                        </div>
+                        <input id="MinimumResolutionK" type="number" is="emby-input" class="emby-input po-num" min="1" max="32" step="1" />
+                        <div class="fieldDescription">With 4, 1080p material gets none.</div>
                     </div>
                 </div>
 
                 <div class="verticalSection">
                     <h3 class="sectionTitle">Exceptions</h3>
-                    <!-- Plain textareas with their own layout. emby-textarea is only registered by
-                         pages that import its module, which a plugin page does not, so relying on
-                         it left these as 20-column boxes wedged beside their labels. -->
                     <div class="inputContainer" style="margin-bottom:1.2em;">
                         <label for="ExcludedItemIds" style="display:block; margin-bottom:0.4em;">Never touch these items</label>
-                        <textarea id="ExcludedItemIds" name="ExcludedItemIds" rows="4" spellcheck="false"
-                                  style="display:block; width:100%; box-sizing:border-box; padding:0.6em; border-radius:0.2em; resize:vertical; font-family:inherit; font-size:inherit;"></textarea>
+                        <textarea id="ExcludedItemIds" rows="4" spellcheck="false" class="po-area"></textarea>
                         <div class="fieldDescription">One item id per line.</div>
                     </div>
                     <div class="inputContainer" style="margin-bottom:1.2em;">
                         <label for="EditionOverrides" style="display:block; margin-bottom:0.4em;">Edition overrides</label>
-                        <textarea id="EditionOverrides" name="EditionOverrides" rows="4" spellcheck="false"
-                                  style="display:block; width:100%; box-sizing:border-box; padding:0.6em; border-radius:0.2em; resize:vertical; font-family:inherit; font-size:inherit;"></textarea>
+                        <textarea id="EditionOverrides" rows="4" spellcheck="false" class="po-area"></textarea>
                         <div class="fieldDescription">
                             One per line, as <code>itemId = BADGE</code>. An empty badge suppresses the
                             edition badge for that item without excluding it entirely.
@@ -288,16 +332,40 @@
             </form>
 
             <div class="verticalSection">
+                <h3 class="sectionTitle">Backup and sharing</h3>
+                <p class="fieldDescription">
+                    Presets are portable and worth sharing; the rest of the configuration is not. The
+                    exclusion list and the edition overrides are keyed by item id, which means something
+                    on this server and nothing anywhere else.
+                </p>
+                <div style="display:flex; flex-wrap:wrap; gap:0.5em; margin-bottom:0.8em;">
+                    <button is="emby-button" type="button" id="ExportPresets" class="raised emby-button">
+                        <span>Export your presets</span>
+                    </button>
+                    <button is="emby-button" type="button" id="ImportPresets" class="raised emby-button">
+                        <span>Import from the box</span>
+                    </button>
+                </div>
+                <textarea id="PresetTransfer" rows="6" spellcheck="false" class="po-area"
+                          placeholder="Exported presets appear here. Paste presets here and press Import."></textarea>
+                <div id="TransferResult" class="fieldDescription" style="margin-top:0.6em;"></div>
+                <div class="fieldDescription" style="margin-top:0.4em;">
+                    An import never overwrites: a preset whose id is already here and whose contents
+                    differ arrives as a copy with a numbered name. Press Save afterwards.
+                </div>
+            </div>
+
+            <div class="verticalSection">
                 <h3 class="sectionTitle">Run it for one item</h3>
                 <p class="fieldDescription">
                     The item menu in the web client is built from a fixed list and cannot be extended by
-                    a plugin, so this is the place to badge a single film without waiting for the nightly
+                    a plugin, so this is the place to badge a single entry without waiting for the nightly
                     task. The id is the one in the URL when the item is open. These buttons act at once
                     and do not need Save.
                 </p>
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="SingleItemId">Item id</label>
-                    <input id="SingleItemId" name="SingleItemId" type="text" is="emby-input" class="emby-input" />
+                    <input id="SingleItemId" type="text" is="emby-input" class="emby-input" />
                 </div>
                 <button is="emby-button" type="button" id="ApplyOne" class="raised block emby-button">
                     <span>Badge this item now</span>
@@ -314,19 +382,42 @@
         (function () {
             var pluginId = '9cfb36f6-2afc-4009-ba14-8a8cad609904';
 
-            // Checkboxes, plain numbers, plain text, and the two enums. The enums are listed
-            // separately because the server sends and expects their NAMES - "DarkPill", not 0.
-            // Option values of 0..n silently matched nothing on load, so the select fell back to
-            // its first entry and the save wrote that back.
-            var flags = ['Enabled', 'DryRun', 'WatchForImageChanges', 'ShowEditionBadges',
-                'ShowResolutionBadges', 'ShowVideoRangeBadges', 'ShowFormatBadges',
-                'ShowSourceBadges', 'MergeDolbyVisionAndHdr', 'WriteToMediaFolder'];
-            var numbers = ['MaxBadges', 'PillHeightPercent', 'FontSizePercentOfPill',
+            // Everything the page is editing. The configuration object fetched on load is kept and
+            // sent back whole, because presets are nested and merging a nested edit into a freshly
+            // fetched copy is more ways to be wrong than it is worth.
+            var state = { config: null, builtIns: [], selected: null };
+
+            // Global settings, by kind. The enums are listed apart because the server sends and
+            // expects their NAMES - "DarkPill", not 0. Numeric option values silently matched
+            // nothing on load, so the select fell back to its first entry and the save wrote that.
+            var globalFlags = ['Enabled', 'DryRun', 'WatchForImageChanges', 'WriteToMediaFolder',
+                'MergeDolbyVisionAndHdr'];
+            var globalNumbers = ['JpegQuality', 'MinimumResolutionK'];
+            var globalTexts = ['ResolutionLadder', 'ExcludedItemIds', 'EditionOverrides'];
+
+            // Preset fields, by kind. The p_ prefix keeps them from colliding with the global ids.
+            var presetNumbers = ['MaxBadges', 'PillHeightPercent', 'FontSizePercentOfPill',
                 'PaddingPercentOfPill', 'GapPercentOfPill', 'CornerRadiusPercentOfPill',
                 'BorderWidthPercentOfPill', 'HorizontalMarginPercent', 'VerticalMarginPercent',
-                'MinimumResolutionK', 'JpegQuality'];
-            var texts = ['ResolutionLadder', 'ExcludedItemIds', 'EditionOverrides'];
-            var enums = ['Style', 'Corner', 'Direction'];
+                'GlowRadiusPercentOfPill'];
+            var presetTexts = ['Name', 'UniformColour', 'PartialColour'];
+            var presetEnums = ['Corner', 'Direction', 'PartialMarker'];
+            var presetFlags = ['CompletenessColours', 'Glow'];
+
+            var categoryOrder = [
+                { key: 'Movies', label: 'Movies', ready: true },
+                { key: 'Series', label: 'Series', ready: false },
+                { key: 'Seasons', label: 'Seasons', ready: false },
+                { key: 'Episodes', label: 'Episodes', ready: false }
+            ];
+
+            var badgeKinds = [
+                { flag: 'AllowEdition', label: 'Edition' },
+                { flag: 'AllowResolution', label: 'Resolution' },
+                { flag: 'AllowVideoRange', label: 'Video range' },
+                { flag: 'AllowFormat', label: '3D' },
+                { flag: 'AllowSource', label: 'Source quality' }
+            ];
 
             var categories = {
                 Edition: 'Edition (EXT, DC, UC, ...)',
@@ -336,13 +427,8 @@
                 Source: 'Source quality (CAM, TS, ...)'
             };
 
-            // One sample badge per category, and the flag that switches the category off.
             var samples = {
-                Edition: { text: 'EXT', flag: 'ShowEditionBadges' },
-                Resolution: { text: '4K', flag: 'ShowResolutionBadges' },
-                VideoRange: { text: 'DV HDR', flag: 'ShowVideoRangeBadges' },
-                Format: { text: '3D', flag: 'ShowFormatBadges' },
-                Source: { text: 'TS', flag: 'ShowSourceBadges' }
+                Edition: 'EXT', Resolution: '4K', VideoRange: 'DV HDR', Format: '3D', Source: 'TS'
             };
 
             // The same colours BadgePalette.cs uses, per style.
@@ -370,20 +456,323 @@
                 }
             };
 
-            function page() {
-                return document.querySelector('#posterOverlaysConfigPage');
-            }
+            function page() { return document.querySelector('#posterOverlaysConfigPage'); }
 
             function say(id, text) {
                 var el = page().querySelector('#' + id);
-                if (el) {
-                    el.textContent = text;
+                if (el) { el.textContent = text; }
+            }
+
+            function newId() {
+                if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                    return window.crypto.randomUUID();
+                }
+
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                    var r = Math.random() * 16 | 0;
+                    return (c === 'x' ? r : ((r & 0x3) | 0x8)).toString(16);
+                });
+            }
+
+            function sameId(a, b) {
+                return String(a || '').toLowerCase() === String(b || '').toLowerCase();
+            }
+
+            function allPresets() {
+                return state.builtIns.concat(state.config ? state.config.CustomPresets : []);
+            }
+
+            function isBuiltIn(id) {
+                return state.builtIns.some(function (p) { return sameId(p.Id, id); });
+            }
+
+            function presetById(id) {
+                var found = allPresets().filter(function (p) { return sameId(p.Id, id); });
+                return found.length ? found[0] : null;
+            }
+
+            function selectedPreset() { return presetById(state.selected); }
+
+            // ---------------------------------------------------------------- categories
+
+            function renderCategories() {
+                var host = page().querySelector('#CategoryList');
+                host.innerHTML = '';
+
+                categoryOrder.forEach(function (cat) {
+                    var settings = state.config[cat.key];
+                    var box = document.createElement('div');
+                    box.className = 'po-cat';
+
+                    var head = document.createElement('div');
+                    head.className = 'po-cat-head';
+
+                    var name = document.createElement('div');
+                    name.className = 'po-cat-name';
+                    name.textContent = cat.label;
+                    head.appendChild(name);
+
+                    var onOff = document.createElement('label');
+                    onOff.className = 'po-check';
+                    var box1 = document.createElement('input');
+                    box1.type = 'checkbox';
+                    box1.checked = settings.Enabled === true;
+                    box1.disabled = !cat.ready;
+                    box1.addEventListener('change', function () {
+                        settings.Enabled = box1.checked;
+                    });
+                    onOff.appendChild(box1);
+                    var onOffText = document.createElement('span');
+                    onOffText.textContent = cat.ready ? 'Badge these' : 'Not implemented yet';
+                    onOff.appendChild(onOffText);
+                    head.appendChild(onOff);
+
+                    var picker = document.createElement('select');
+                    picker.className = 'emby-select';
+                    picker.style.maxWidth = '18em';
+                    fillPresetOptions(picker, settings.PresetId);
+                    picker.addEventListener('change', function () {
+                        settings.PresetId = picker.value;
+                    });
+                    head.appendChild(picker);
+
+                    box.appendChild(head);
+
+                    if (!cat.ready) {
+                        var soon = document.createElement('div');
+                        soon.className = 'fieldDescription';
+                        soon.style.marginTop = '0.4em';
+                        soon.textContent = 'The settings are here and are kept, but nothing draws them yet.';
+                        box.appendChild(soon);
+                    }
+
+                    var kinds = document.createElement('div');
+                    kinds.className = 'po-kinds';
+                    badgeKinds.forEach(function (kind) {
+                        var wrap = document.createElement('label');
+                        wrap.className = 'po-check';
+                        var cb = document.createElement('input');
+                        cb.type = 'checkbox';
+                        cb.checked = settings[kind.flag] === true;
+                        cb.addEventListener('change', function () {
+                            settings[kind.flag] = cb.checked;
+                        });
+                        wrap.appendChild(cb);
+                        var span = document.createElement('span');
+                        span.textContent = kind.label;
+                        wrap.appendChild(span);
+                        kinds.appendChild(wrap);
+                    });
+                    box.appendChild(kinds);
+
+                    if (cat.key === 'Episodes') {
+                        var only = document.createElement('label');
+                        only.className = 'po-check';
+                        only.style.marginTop = '0.4em';
+                        var cb2 = document.createElement('input');
+                        cb2.type = 'checkbox';
+                        cb2.checked = settings.OnlyWhereItDisambiguates === true;
+                        cb2.addEventListener('change', function () {
+                            settings.OnlyWhereItDisambiguates = cb2.checked;
+                        });
+                        only.appendChild(cb2);
+                        var span2 = document.createElement('span');
+                        span2.textContent = 'Only where it tells two copies apart';
+                        only.appendChild(span2);
+                        box.appendChild(only);
+                    }
+
+                    host.appendChild(box);
+                });
+            }
+
+            function fillPresetOptions(select, selectedId) {
+                select.innerHTML = '';
+
+                // Two groups in one list. optgroup is plain HTML and depends on no module, which
+                // matters on a page where the emby-* elements may or may not have been registered.
+                var groups = [
+                    { label: 'Built-in', items: state.builtIns },
+                    { label: 'Your presets', items: state.config.CustomPresets }
+                ];
+
+                groups.forEach(function (group) {
+                    if (!group.items.length) { return; }
+                    var g = document.createElement('optgroup');
+                    g.label = group.label;
+                    group.items.forEach(function (preset) {
+                        var option = document.createElement('option');
+                        option.value = preset.Id;
+                        option.textContent = preset.Name;
+                        g.appendChild(option);
+                    });
+                    select.appendChild(g);
+                });
+
+                if (presetById(selectedId)) {
+                    select.value = selectedId;
+                } else if (selectedId) {
+                    // A dangling reference is shown rather than silently repointed: the server
+                    // falls back to the built-in and logs it, and the page should say the same.
+                    var orphan = document.createElement('option');
+                    orphan.value = selectedId;
+                    orphan.textContent = 'missing preset - falls back to the built-in';
+                    select.appendChild(orphan);
+                    select.value = selectedId;
                 }
             }
+
+            // ---------------------------------------------------------------- preset editor
+
+            function renderPresetPicker() {
+                fillPresetOptions(page().querySelector('#PresetPicker'), state.selected);
+            }
+
+            function loadPresetFields() {
+                var preset = selectedPreset();
+                var locked = !preset || isBuiltIn(preset.Id);
+                var p = page();
+
+                p.querySelector('#PresetFields').disabled = locked;
+                p.querySelector('#PresetDelete').disabled = locked;
+
+                var banner = p.querySelector('#PresetBanner');
+                banner.className = 'po-banner fieldDescription ' + (locked ? 'po-banner-locked' : 'po-banner-mine');
+                banner.textContent = locked
+                    ? 'Built-in - read-only. Duplicate it to make one you can change.'
+                    : 'Your preset. Changes take effect when you press Save.';
+
+                if (!preset) { return; }
+
+                presetTexts.forEach(function (key) {
+                    var el = p.querySelector('#p_' + key);
+                    if (el) {
+                        el.value = preset[key] === null || preset[key] === undefined ? '' : String(preset[key]);
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+
+                presetNumbers.forEach(function (key) {
+                    var el = p.querySelector('#p_' + key);
+                    if (el) {
+                        el.value = preset[key] === null || preset[key] === undefined ? '' : String(preset[key]);
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+
+                presetEnums.forEach(function (key) {
+                    var el = p.querySelector('#p_' + key);
+                    if (el && preset[key] !== null && preset[key] !== undefined) {
+                        el.value = String(preset[key]);
+                    }
+                });
+
+                presetFlags.forEach(function (key) {
+                    var el = p.querySelector('#p_' + key);
+                    if (el) { el.checked = preset[key] === true; }
+                });
+
+                renderOrder(normaliseOrder(preset.BadgeOrder));
+            }
+
+            function collectPresetFields() {
+                var preset = selectedPreset();
+                if (!preset || isBuiltIn(preset.Id)) { return; }
+
+                var p = page();
+
+                presetTexts.forEach(function (key) {
+                    var el = p.querySelector('#p_' + key);
+                    if (el) { preset[key] = el.value; }
+                });
+
+                presetNumbers.forEach(function (key) {
+                    var el = p.querySelector('#p_' + key);
+                    if (!el) { return; }
+
+                    // An empty field parses to NaN, JSON turns NaN into null, and the server
+                    // refuses null for a number - which is what once left the page spinning
+                    // forever. Keeping what is already stored is the honest fallback.
+                    var parsed = parseFloat(el.value);
+                    if (!isNaN(parsed)) { preset[key] = parsed; }
+                });
+
+                presetEnums.forEach(function (key) {
+                    var el = p.querySelector('#p_' + key);
+                    if (el && el.value) { preset[key] = el.value; }
+                });
+
+                presetFlags.forEach(function (key) {
+                    var el = p.querySelector('#p_' + key);
+                    if (el) { preset[key] = el.checked; }
+                });
+
+                preset.BadgeOrder = currentOrder().join(',');
+            }
+
+            function duplicateSelected() {
+                var source = selectedPreset();
+                if (!source) { return; }
+
+                var copy = JSON.parse(JSON.stringify(source));
+                copy.Id = newId();
+                copy.Name = uniqueName(source.Name + ' (copy)');
+                state.config.CustomPresets.push(copy);
+                state.selected = copy.Id;
+
+                renderPresetPicker();
+                renderCategories();
+                loadPresetFields();
+                renderPreview();
+            }
+
+            function uniqueName(wanted) {
+                var taken = allPresets().map(function (p) { return p.Name; });
+                if (taken.indexOf(wanted) < 0) { return wanted; }
+
+                for (var n = 2; n < 999; n++) {
+                    var candidate = wanted + ' (' + n + ')';
+                    if (taken.indexOf(candidate) < 0) { return candidate; }
+                }
+
+                return wanted + ' ' + newId().slice(0, 6);
+            }
+
+            function deleteSelected() {
+                var preset = selectedPreset();
+                if (!preset || isBuiltIn(preset.Id)) { return; }
+
+                // Refused rather than handled: preventing the dangling reference beats coping
+                // with one, and the message says exactly which categories are in the way.
+                var users = categoryOrder.filter(function (cat) {
+                    return sameId(state.config[cat.key].PresetId, preset.Id);
+                }).map(function (cat) { return cat.label; });
+
+                if (users.length) {
+                    say('posterOverlaysSaveResult',
+                        'Not deleted: ' + users.join(', ') + ' still use this preset. Point them at another one first.');
+                    return;
+                }
+
+                state.config.CustomPresets = state.config.CustomPresets.filter(function (p) {
+                    return !sameId(p.Id, preset.Id);
+                });
+                state.selected = allPresets()[0].Id;
+
+                renderPresetPicker();
+                renderCategories();
+                loadPresetFields();
+                renderPreview();
+                say('posterOverlaysSaveResult', 'Deleted. Press Save to keep it that way.');
+            }
+
+            // ---------------------------------------------------------------- badge order
 
             function renderOrder(order) {
                 var list = page().querySelector('#BadgeOrderList');
                 list.innerHTML = '';
+
+                var locked = !selectedPreset() || isBuiltIn(state.selected);
 
                 order.forEach(function (key, index) {
                     var row = document.createElement('div');
@@ -405,9 +794,8 @@
                         b.style.minWidth = '3em';
                         b.style.marginLeft = '0.4em';
                         b.textContent = pair[0];
-                        b.addEventListener('click', function () {
-                            move(key, pair[1]);
-                        });
+                        b.disabled = locked;
+                        b.addEventListener('click', function () { move(key, pair[1]); });
                         row.appendChild(b);
                     });
 
@@ -419,18 +807,14 @@
 
             function currentOrder() {
                 var rows = page().querySelectorAll('#BadgeOrderList [data-key]');
-                return Array.prototype.map.call(rows, function (r) {
-                    return r.getAttribute('data-key');
-                });
+                return Array.prototype.map.call(rows, function (r) { return r.getAttribute('data-key'); });
             }
 
             function move(key, delta) {
                 var order = currentOrder();
                 var from = order.indexOf(key);
                 var to = from + delta;
-                if (from < 0 || to < 0 || to >= order.length) {
-                    return;
-                }
+                if (from < 0 || to < 0 || to >= order.length) { return; }
 
                 order.splice(to, 0, order.splice(from, 1)[0]);
                 renderOrder(order);
@@ -446,133 +830,81 @@
                 // Anything the stored value forgot is appended rather than lost, so a hand-edited
                 // setting cannot make a category disappear from the page.
                 Object.keys(categories).forEach(function (key) {
-                    if (wanted.indexOf(key) < 0) {
-                        wanted.push(key);
-                    }
+                    if (wanted.indexOf(key) < 0) { wanted.push(key); }
                 });
 
                 return wanted;
             }
 
-            function load(config) {
-                var p = page();
+            // ---------------------------------------------------------------- preview
 
-                flags.forEach(function (id) {
-                    var el = p.querySelector('#' + id);
-                    if (el) {
-                        el.checked = config[id] === true;
-                    }
-                });
-
-                numbers.concat(texts).forEach(function (id) {
-                    var el = p.querySelector('#' + id);
-                    if (!el) {
-                        return;
-                    }
-
-                    el.value = config[id] === null || config[id] === undefined ? '' : String(config[id]);
-
-                    // emby-input decides whether the label floats when the value changes. It has
-                    // already upgraded by now, so without this the label sits over a filled field.
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                });
-
-                enums.forEach(function (id) {
-                    var el = p.querySelector('#' + id);
-                    if (el && config[id] !== null && config[id] !== undefined) {
-                        el.value = String(config[id]);
-                    }
-                });
-
-                renderOrder(normaliseOrder(config.BadgeOrder));
-            }
-
-            function collect(config) {
-                var p = page();
-
-                flags.forEach(function (id) {
-                    var el = p.querySelector('#' + id);
-                    if (el) {
-                        config[id] = el.checked;
-                    }
-                });
-
-                numbers.forEach(function (id) {
-                    var el = p.querySelector('#' + id);
-                    if (!el) {
-                        return;
-                    }
-
-                    // An empty field parses to NaN, JSON turns NaN into null, and the server
-                    // refuses null for a number - which is what left the page spinning forever.
-                    // Keeping the value that is already in the configuration is the honest
-                    // fallback: the user did not type anything, so nothing should change.
-                    var parsed = parseFloat(el.value);
-                    if (!isNaN(parsed)) {
-                        config[id] = parsed;
-                    }
-                });
-
-                texts.forEach(function (id) {
-                    var el = p.querySelector('#' + id);
-                    if (el) {
-                        config[id] = el.value;
-                    }
-                });
-
-                enums.forEach(function (id) {
-                    var el = p.querySelector('#' + id);
-                    if (el && el.value) {
-                        config[id] = el.value;
-                    }
-                });
-
-                config.BadgeOrder = currentOrder().join(',');
-                return config;
-            }
-
-            function num(id, fallback) {
-                var el = page().querySelector('#' + id);
+            function pnum(key, fallback) {
+                var el = page().querySelector('#p_' + key);
                 var v = el ? parseFloat(el.value) : NaN;
                 return isNaN(v) ? fallback : v;
             }
 
-            function pick(id, fallback) {
-                var el = page().querySelector('#' + id);
+            function ppick(key, fallback) {
+                var el = page().querySelector('#p_' + key);
                 return el && el.value ? el.value : fallback;
+            }
+
+            function pflag(key) {
+                var el = page().querySelector('#p_' + key);
+                return el ? el.checked : false;
             }
 
             function svgEscape(s) {
                 return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             }
 
-            /// Draws one poster with the current geometry, in the given style.
-            function previewSvg(style) {
-                var w = 130, h = 195;                              // the shape of a poster
-                var pillH = h * (num('PillHeightPercent', 5.5) / 100);
-                var fontSize = pillH * (num('FontSizePercentOfPill', 60) / 100);
-                var padX = pillH * (num('PaddingPercentOfPill', 42) / 100);
-                var gap = pillH * (num('GapPercentOfPill', 33) / 100);
-                var radius = pillH * (num('CornerRadiusPercentOfPill', 20) / 100);
-                var stroke = Math.max(0.4, pillH * (num('BorderWidthPercentOfPill', 3.5) / 100));
-                var marginX = w * (num('HorizontalMarginPercent', 3) / 100);
-                var marginY = h * (num('VerticalMarginPercent', 2) / 100);
+            function lighten(hex) {
+                var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(hex || '');
+                if (!m) { return '#4A4C56'; }
+                var mix = function (v) {
+                    var n = parseInt(v, 16);
+                    return ('0' + Math.round(n + ((255 - n) * 0.30)).toString(16)).slice(-2);
+                };
+                return '#' + mix(m[1]) + mix(m[2]) + mix(m[3]);
+            }
 
-                var corner = pick('Corner', 'TopRight');
-                var horizontal = pick('Direction', 'Vertical') === 'Horizontal';
+            /// One mock image with the current geometry, in the given style.
+            /// landscape swaps the shape; partial shows what a half-available badge looks like.
+            function previewSvg(style, landscape, partial) {
+                var w = landscape ? 190 : 130;
+                var h = landscape ? 107 : 195;
+
+                var pillH = h * (pnum('PillHeightPercent', 5.5) / 100);
+                var fontSize = pillH * (pnum('FontSizePercentOfPill', 60) / 100);
+                var padX = pillH * (pnum('PaddingPercentOfPill', 42) / 100);
+                var gap = pillH * (pnum('GapPercentOfPill', 33) / 100);
+                var radius = pillH * (pnum('CornerRadiusPercentOfPill', 20) / 100);
+                var stroke = Math.max(0.4, pillH * (pnum('BorderWidthPercentOfPill', 3.5) / 100));
+                var marginX = w * (pnum('HorizontalMarginPercent', 3) / 100);
+                var marginY = h * (pnum('VerticalMarginPercent', 2) / 100);
+
+                var corner = ppick('Corner', 'TopRight');
+                var horizontal = ppick('Direction', 'Vertical') === 'Horizontal';
                 var right = corner === 'TopRight' || corner === 'BottomRight';
                 var bottom = corner === 'BottomRight' || corner === 'BottomLeft';
 
+                var signalling = pflag('CompletenessColours');
+                var signal = partial ? ppick('PartialColour', '#FFAA28') : ppick('UniformColour', '#3ED682');
+                var marker = ppick('PartialMarker', 'Diagonal');
+                var glow = pflag('Glow');
+
+                var allowed = allowedKindsForPreview();
                 var chosen = currentOrder().filter(function (key) {
-                    var el = page().querySelector('#' + samples[key].flag);
-                    return el ? el.checked : true;
-                }).slice(0, Math.max(1, num('MaxBadges', 3)));
+                    return allowed.indexOf(key) >= 0;
+                }).slice(0, Math.max(1, pnum('MaxBadges', 3)));
+
+                if (!chosen.length) { chosen = ['Resolution']; }
 
                 // Rough text metrics are enough here: the pill only has to look right.
                 var pills = chosen.map(function (key) {
-                    var text = samples[key].text;
+                    var text = samples[key];
                     var textW = text.length * fontSize * 0.62;
-                    return { key: key, text: text, width: textW + (2 * padX), textWidth: textW };
+                    return { key: key, text: text, width: textW + (2 * padX) };
                 });
 
                 var rowWidth = pills.reduce(function (sum, p) { return sum + p.width; }, 0)
@@ -582,66 +914,266 @@
                 var y = bottom ? h - marginY - stackH : marginY;
                 var x = right ? w - marginX - rowWidth : marginX;
 
-                var parts = [
-                    '<rect width="' + w + '" height="' + h + '" rx="4" fill="#1E293B"/>',
-                    '<circle cx="' + (w * 0.32) + '" cy="' + (h * 0.34) + '" r="' + (w * 0.15) + '" fill="#334155"/>',
-                    '<path d="M0 ' + (h * 0.72) + ' L' + (w * 0.34) + ' ' + (h * 0.52)
-                        + ' L' + (w * 0.62) + ' ' + (h * 0.74) + ' L' + w + ' ' + (h * 0.58)
-                        + ' V' + h + ' H0 Z" fill="#0F172A"/>'
-                ];
+                var uid = 'g' + Math.random().toString(36).slice(2, 8);
+                var parts = ['<defs><filter id="' + uid + '" x="-60%" y="-60%" width="220%" height="220%">'
+                    + '<feGaussianBlur stdDeviation="' + (pillH * (pnum('GlowRadiusPercentOfPill', 25) / 100) / 3)
+                    + '"/></filter></defs>'];
+
+                parts.push('<rect width="' + w + '" height="' + h + '" rx="4" fill="#1E293B"/>');
+                parts.push('<circle cx="' + (w * 0.32) + '" cy="' + (h * 0.34) + '" r="' + (Math.min(w, h) * 0.19) + '" fill="#334155"/>');
+                parts.push('<path d="M0 ' + (h * 0.72) + ' L' + (w * 0.34) + ' ' + (h * 0.52)
+                    + ' L' + (w * 0.62) + ' ' + (h * 0.74) + ' L' + w + ' ' + (h * 0.58)
+                    + ' V' + h + ' H0 Z" fill="#0F172A"/>');
 
                 pills.forEach(function (p) {
                     var colours = palettes[style][p.key];
                     var px = horizontal ? x : (right ? w - marginX - p.width : marginX);
                     var py = y;
 
+                    if (signalling && glow) {
+                        parts.push('<rect x="' + px + '" y="' + py + '" width="' + p.width + '" height="' + pillH
+                            + '" rx="' + radius + '" fill="' + signal + '" opacity="0.45" filter="url(#' + uid + ')"/>');
+                    }
+
                     parts.push('<rect x="' + px + '" y="' + py + '" width="' + p.width + '" height="' + pillH
-                        + '" rx="' + radius + '" fill="' + colours[0] + '"'
-                        + (colours[2] ? ' stroke="' + colours[2] + '" stroke-width="' + stroke + '"' : '') + '/>');
+                        + '" rx="' + radius + '" fill="' + colours[0] + '"/>');
+
+                    if (signalling && partial && marker !== 'None') {
+                        parts.push(markerShape(marker, px, py, p.width, pillH, lighten(colours[0]), radius));
+                    }
+
+                    var border = signalling ? signal : colours[2];
+                    if (border) {
+                        parts.push('<rect x="' + px + '" y="' + py + '" width="' + p.width + '" height="' + pillH
+                            + '" rx="' + radius + '" fill="none" stroke="' + border + '" stroke-width="' + stroke + '"/>');
+                    }
+
                     parts.push('<text x="' + (px + (p.width / 2)) + '" y="' + (py + (pillH / 2))
                         + '" font-family="Inter, Segoe UI, sans-serif" font-size="' + fontSize
                         + '" font-weight="600" fill="' + colours[1]
                         + '" text-anchor="middle" dominant-baseline="central">' + svgEscape(p.text) + '</text>');
 
-                    if (horizontal) {
-                        x += p.width + gap;
-                    } else {
-                        y += pillH + gap;
-                    }
+                    if (horizontal) { x += p.width + gap; } else { y += pillH + gap; }
                 });
 
                 return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h
                     + '" xmlns="http://www.w3.org/2000/svg">' + parts.join('') + '</svg>';
             }
 
-            function renderPreview() {
-                var host = page().querySelector('#BadgePreview');
-                if (!host) {
-                    return;
+            function markerShape(marker, px, py, pw, ph, colour, radius) {
+                var clip = 'cl' + Math.random().toString(36).slice(2, 8);
+                var shape;
+
+                if (marker === 'Vertical') {
+                    shape = '<rect x="' + (px + (pw / 2)) + '" y="' + py + '" width="' + (pw / 2) + '" height="' + ph + '"/>';
+                } else if (marker === 'Wave') {
+                    var d = 'M' + (px + pw) + ' ' + py;
+                    for (var i = 0; i <= 16; i++) {
+                        var t = i / 16;
+                        d += ' L' + (px + (pw * 0.5) + (Math.sin(t * Math.PI * 2) * pw * 0.07)) + ' ' + (py + (ph * t));
+                    }
+                    d += ' L' + (px + pw) + ' ' + (py + ph) + ' Z';
+                    shape = '<path d="' + d + '"/>';
+                } else if (marker === 'Hatch') {
+                    shape = '';
+                    for (var sx = px - ph; sx < px + pw + ph; sx += ph * 0.34) {
+                        shape += '<line x1="' + sx + '" y1="' + (py + ph) + '" x2="' + (sx + ph) + '" y2="' + py
+                            + '" stroke="' + colour + '" stroke-width="' + (ph * 0.13) + '"/>';
+                    }
+                } else {
+                    shape = '<path d="M' + (px + (pw * 0.62)) + ' ' + py + ' L' + (px + pw) + ' ' + py
+                        + ' L' + (px + pw) + ' ' + (py + ph) + ' L' + (px + (pw * 0.38)) + ' ' + (py + ph) + ' Z"/>';
                 }
 
-                var selected = pick('Style', 'DarkPill');
-                var labels = {
-                    DarkPill: 'Dark pill',
-                    FilledAccent: 'DV filled',
-                    FilledAll: 'All filled'
-                };
+                var body = marker === 'Hatch'
+                    ? shape
+                    : shape.replace('/>', ' fill="' + colour + '"/>');
+
+                return '<clipPath id="' + clip + '"><rect x="' + px + '" y="' + py + '" width="' + pw
+                    + '" height="' + ph + '" rx="' + radius + '"/></clipPath>'
+                    + '<g clip-path="url(#' + clip + ')">' + body + '</g>';
+            }
+
+            /// Which badge kinds to show in the preview: the union over every category that uses
+            /// this preset, so the picture matches what the preset is actually for.
+            function allowedKindsForPreview() {
+                var map = { AllowEdition: 'Edition', AllowResolution: 'Resolution', AllowVideoRange: 'VideoRange', AllowFormat: 'Format', AllowSource: 'Source' };
+                var users = categoryOrder.filter(function (cat) {
+                    return sameId(state.config[cat.key].PresetId, state.selected);
+                });
+
+                if (!users.length) { return Object.keys(categories); }
+
+                var allowed = [];
+                users.forEach(function (cat) {
+                    Object.keys(map).forEach(function (flag) {
+                        if (state.config[cat.key][flag] === true && allowed.indexOf(map[flag]) < 0) {
+                            allowed.push(map[flag]);
+                        }
+                    });
+                });
+
+                return allowed;
+            }
+
+            function renderPreview() {
+                var host = page().querySelector('#BadgePreview');
+                if (!host || !state.config) { return; }
+
+                var selectedStyle = presetStyle();
+                var labels = { DarkPill: 'Dark pill', FilledAccent: 'DV filled', FilledAll: 'All filled' };
+                var signalling = pflag('CompletenessColours');
 
                 host.innerHTML = '';
                 Object.keys(labels).forEach(function (style) {
                     var box = document.createElement('div');
                     box.style.textAlign = 'center';
-                    box.style.opacity = style === selected ? '1' : '0.45';
-                    box.innerHTML = previewSvg(style)
-                        + '<div class="fieldDescription" style="margin-top:0.3em;">'
-                        + labels[style] + (style === selected ? ' (selected)' : '') + '</div>';
+                    box.style.opacity = style === selectedStyle ? '1' : '0.45';
+                    box.style.cursor = 'pointer';
+
+                    var html = '<div style="display:flex; gap:0.5em; align-items:flex-start;">'
+                        + previewSvg(style, false, false) + previewSvg(style, true, false) + '</div>';
+
+                    if (signalling) {
+                        html += '<div style="display:flex; gap:0.5em; align-items:flex-start; margin-top:0.4em;">'
+                            + previewSvg(style, false, true) + previewSvg(style, true, true) + '</div>';
+                    }
+
+                    html += '<div class="fieldDescription" style="margin-top:0.3em;">'
+                        + labels[style] + (style === selectedStyle ? ' (selected)' : '') + '</div>';
+
+                    box.innerHTML = html;
                     box.addEventListener('click', function () {
-                        var el = page().querySelector('#Style');
-                        el.value = style;
+                        var preset = selectedPreset();
+                        if (!preset || isBuiltIn(preset.Id)) { return; }
+                        preset.Style = style;
                         renderPreview();
                     });
-                    box.style.cursor = 'pointer';
                     host.appendChild(box);
+                });
+            }
+
+            function presetStyle() {
+                var preset = selectedPreset();
+                return preset ? preset.Style : 'DarkPill';
+            }
+
+            // ---------------------------------------------------------------- transfer
+
+            function exportPresets() {
+                collectPresetFields();
+                var payload = {
+                    format: 'jellyfin-poster-overlays-presets',
+                    schema: 1,
+                    presets: state.config.CustomPresets
+                };
+                page().querySelector('#PresetTransfer').value = JSON.stringify(payload, null, 2);
+                say('TransferResult', state.config.CustomPresets.length + ' preset(s) written into the box.');
+            }
+
+            function importPresets() {
+                var raw = page().querySelector('#PresetTransfer').value.trim();
+                if (!raw) {
+                    say('TransferResult', 'Paste an exported preset into the box first.');
+                    return;
+                }
+
+                var payload;
+                try {
+                    payload = JSON.parse(raw);
+                } catch (e) {
+                    say('TransferResult', 'That is not valid JSON: ' + e.message);
+                    return;
+                }
+
+                if (!payload || payload.format !== 'jellyfin-poster-overlays-presets') {
+                    say('TransferResult', 'This does not look like an exported preset file.');
+                    return;
+                }
+
+                if (payload.schema !== 1) {
+                    // Refused rather than guessed. A newer file may mean things this build does
+                    // not know, and silently dropping them is how a preset arrives subtly wrong.
+                    say('TransferResult', 'This file is schema ' + payload.schema + ' and this plugin understands 1.');
+                    return;
+                }
+
+                var incoming = Array.isArray(payload.presets) ? payload.presets : [];
+                var added = 0, identical = 0, renamed = 0;
+
+                incoming.forEach(function (preset) {
+                    if (!preset || !preset.Id) { return; }
+
+                    var existing = presetById(preset.Id);
+                    if (existing) {
+                        // Deduplicate by content, not blindly: importing the same file twice
+                        // should not leave two copies.
+                        if (JSON.stringify(existing) === JSON.stringify(preset)) {
+                            identical++;
+                            return;
+                        }
+
+                        preset = JSON.parse(JSON.stringify(preset));
+                        preset.Id = newId();
+                        renamed++;
+                    }
+
+                    preset.Name = uniqueName(preset.Name || 'Imported');
+                    state.config.CustomPresets.push(preset);
+                    added++;
+                });
+
+                renderPresetPicker();
+                renderCategories();
+                loadPresetFields();
+                renderPreview();
+
+                say('TransferResult',
+                    added + ' added' + (identical ? ', ' + identical + ' already here' : '')
+                    + (renamed ? ', ' + renamed + ' arrived as a copy because the id was taken' : '')
+                    + '. Press Save to keep them.');
+            }
+
+            // ---------------------------------------------------------------- load and save
+
+            function loadGlobals() {
+                var p = page();
+
+                globalFlags.forEach(function (id) {
+                    var el = p.querySelector('#' + id);
+                    if (el) { el.checked = state.config[id] === true; }
+                });
+
+                globalNumbers.concat(globalTexts).forEach(function (id) {
+                    var el = p.querySelector('#' + id);
+                    if (!el) { return; }
+                    var v = state.config[id];
+                    el.value = v === null || v === undefined ? '' : String(v);
+
+                    // emby-input decides whether the label floats when the value changes. It has
+                    // already upgraded by now, so without this the label sits over a filled field.
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+            }
+
+            function collectGlobals() {
+                var p = page();
+
+                globalFlags.forEach(function (id) {
+                    var el = p.querySelector('#' + id);
+                    if (el) { state.config[id] = el.checked; }
+                });
+
+                globalNumbers.forEach(function (id) {
+                    var el = p.querySelector('#' + id);
+                    if (!el) { return; }
+                    var parsed = parseFloat(el.value);
+                    if (!isNaN(parsed)) { state.config[id] = parsed; }
+                });
+
+                globalTexts.forEach(function (id) {
+                    var el = p.querySelector('#' + id);
+                    if (el) { state.config[id] = el.value; }
                 });
             }
 
@@ -682,18 +1214,60 @@
                 });
             }
 
-            // Any change to a geometry or style field redraws the preview. Cheap: it is one
-            // small SVG per style, built from values already in the DOM.
-            document.querySelector('#posterOverlaysConfigForm').addEventListener('change', renderPreview);
-            document.querySelector('#posterOverlaysConfigForm').addEventListener('input', renderPreview);
+            var form = document.querySelector('#posterOverlaysConfigForm');
+
+            // Any edit to a preset field writes it straight back into the object and redraws. The
+            // preview is one small SVG per style, built from values already in the DOM.
+            form.addEventListener('input', function () {
+                collectPresetFields();
+                renderPreview();
+            });
+            form.addEventListener('change', function () {
+                collectPresetFields();
+                renderPresetPicker();
+                renderPreview();
+            });
+
+            page().querySelector('#PresetPicker').addEventListener('change', function (e) {
+                state.selected = e.target.value;
+                loadPresetFields();
+                renderPreview();
+            });
+
+            page().querySelector('#PresetDuplicate').addEventListener('click', duplicateSelected);
+            page().querySelector('#PresetDelete').addEventListener('click', deleteSelected);
+            page().querySelector('#ExportPresets').addEventListener('click', exportPresets);
+            page().querySelector('#ImportPresets').addEventListener('click', importPresets);
 
             page().addEventListener('pageshow', function () {
                 Dashboard.showLoadingMsg();
-                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                    load(config);
+
+                Promise.all([
+                    ApiClient.getPluginConfiguration(pluginId),
+                    ApiClient.ajax({
+                        type: 'GET',
+                        url: ApiClient.getUrl('PosterOverlays/BuiltInPresets'),
+                        dataType: 'json'
+                    })
+                ]).then(function (results) {
+                    state.config = results[0];
+                    state.builtIns = results[1] || [];
+                    if (!Array.isArray(state.config.CustomPresets)) {
+                        state.config.CustomPresets = [];
+                    }
+
+                    state.selected = state.config.Movies && presetById(state.config.Movies.PresetId)
+                        ? state.config.Movies.PresetId
+                        : allPresets()[0].Id;
+
+                    loadGlobals();
+                    renderCategories();
+                    renderPresetPicker();
+                    loadPresetFields();
+                    renderPreview();
                     showStatus();
                     Dashboard.hideLoadingMsg();
-                }, function (error) {
+                }).catch(function (error) {
                     // Never leave the spinner running. A page that spins forever tells the user
                     // nothing, and it is what hid the first version of this bug.
                     Dashboard.hideLoadingMsg();
@@ -711,14 +1285,15 @@
                 runForOneItem('Restore');
             });
 
-            document.querySelector('#posterOverlaysConfigForm').addEventListener('submit', function (e) {
+            form.addEventListener('submit', function (e) {
                 e.preventDefault();
                 say('posterOverlaysSaveResult', '');
                 Dashboard.showLoadingMsg();
 
-                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                    return ApiClient.updatePluginConfiguration(pluginId, collect(config));
-                }).then(function (result) {
+                collectGlobals();
+                collectPresetFields();
+
+                ApiClient.updatePluginConfiguration(pluginId, state.config).then(function (result) {
                     Dashboard.processPluginConfigurationUpdateResult(result);
                     say('posterOverlaysSaveResult', 'Saved.');
                     showStatus();

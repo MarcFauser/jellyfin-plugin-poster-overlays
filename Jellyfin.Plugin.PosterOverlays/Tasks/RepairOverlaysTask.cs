@@ -110,7 +110,13 @@ public sealed class RepairOverlaysTask : IScheduledTask
             progress.Report(i * 100.0 / Math.Max(1, items.Count));
 
             var item = items[i];
-            var built = BadgeBuilder.Build(item, plugin.Configuration, null);
+            var target = OverlayApplier.TargetOf(item);
+            var built = BadgeBuilder.Build(
+                item,
+                plugin.Configuration,
+                plugin.Configuration.CategoryFor(target),
+                plugin.Configuration.PresetFor(target),
+                null);
             if (!applier.NeedsRepair(item, built.Badges.Count))
             {
                 continue;

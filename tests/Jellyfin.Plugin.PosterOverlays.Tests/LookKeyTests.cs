@@ -16,12 +16,14 @@ namespace Jellyfin.Plugin.PosterOverlays.Tests;
 /// </remarks>
 public class LookKeyTests
 {
+    private static BadgePreset Preset => BuiltInPresets.Get(BuiltInPresets.MovieId)!;
+
     [Fact]
     public void TheSameSettingsGiveTheSameKey()
     {
         Assert.Equal(
-            OverlayApplier.LookKeyOf(new PluginConfiguration()),
-            OverlayApplier.LookKeyOf(new PluginConfiguration()));
+            OverlayApplier.LookKeyOf(Preset, 95),
+            OverlayApplier.LookKeyOf(Preset, 95));
     }
 
     [Theory]
@@ -39,8 +41,10 @@ public class LookKeyTests
     [InlineData("JpegQuality")]
     public void EverySettingThatChangesThePixelsChangesTheKey(string property)
     {
-        var before = new PluginConfiguration();
-        var after = new PluginConfiguration();
+        var before = Preset;
+        var after = Preset;
+        int qualityBefore = 95;
+        int qualityAfter = 95;
 
         switch (property)
         {
@@ -55,11 +59,63 @@ public class LookKeyTests
             case "BorderWidthPercentOfPill": after.BorderWidthPercentOfPill = 5; break;
             case "HorizontalMarginPercent": after.HorizontalMarginPercent = 4; break;
             case "VerticalMarginPercent": after.VerticalMarginPercent = 4; break;
-            case "JpegQuality": after.JpegQuality = 90; break;
+            case "JpegQuality": qualityAfter = 90; break;
             default: Assert.Fail("unhandled property " + property); break;
         }
 
-        Assert.NotEqual(OverlayApplier.LookKeyOf(before), OverlayApplier.LookKeyOf(after));
+        Assert.NotEqual(
+            OverlayApplier.LookKeyOf(before, qualityBefore),
+            OverlayApplier.LookKeyOf(after, qualityAfter));
+    }
+
+    /// <summary>
+    /// The completeness settings reach the pixels too - but only where the traffic light is on at
+    /// all, which is what keeps a movie preset producing the key it produced before presets.
+    /// </summary>
+    [Theory]
+    [InlineData("UniformColour")]
+    [InlineData("PartialColour")]
+    [InlineData("PartialMarker")]
+    [InlineData("Glow")]
+    [InlineData("GlowRadiusPercentOfPill")]
+    public void TheCompletenessSettingsCountWhenTheTrafficLightIsOn(string property)
+    {
+        var before = Preset;
+        var after = Preset;
+        before.CompletenessColours = true;
+        after.CompletenessColours = true;
+        before.Glow = true;
+        after.Glow = true;
+
+        switch (property)
+        {
+            case "UniformColour": after.UniformColour = "#00FF00"; break;
+            case "PartialColour": after.PartialColour = "#FF0000"; break;
+            case "PartialMarker": after.PartialMarker = PartialMarker.Hatch; break;
+            case "Glow": after.Glow = false; break;
+            case "GlowRadiusPercentOfPill": after.GlowRadiusPercentOfPill = 40; break;
+            default: Assert.Fail("unhandled property " + property); break;
+        }
+
+        Assert.NotEqual(OverlayApplier.LookKeyOf(before, 95), OverlayApplier.LookKeyOf(after, 95));
+    }
+
+    /// <summary>
+    /// And with the traffic light off they must not, or a movie would be redrawn for a colour it
+    /// never shows.
+    /// </summary>
+    [Fact]
+    public void TheCompletenessSettingsAreIgnoredWhenTheTrafficLightIsOff()
+    {
+        var before = Preset;
+        var after = Preset;
+        after.UniformColour = "#00FF00";
+        after.PartialColour = "#FF0000";
+        after.PartialMarker = PartialMarker.Hatch;
+        after.GlowRadiusPercentOfPill = 99;
+
+        Assert.False(before.CompletenessColours, "the movie preset is supposed to have the traffic light off");
+        Assert.Equal(OverlayApplier.LookKeyOf(before, 95), OverlayApplier.LookKeyOf(after, 95));
     }
 
     /// <summary>
@@ -68,18 +124,12 @@ public class LookKeyTests
     [Fact]
     public void SettingsThatDoNotChangeThePixelsLeaveTheKeyAlone()
     {
-        var before = new PluginConfiguration();
-        var after = new PluginConfiguration
-        {
-            Enabled = false,
-            DryRun = true,
-            WatchForImageChanges = false,
-            WriteToMediaFolder = true,
-            ExcludedItemIds = "abc\ndef",
-            EditionOverrides = "abc = EXT",
-        };
+        var before = Preset;
+        var after = Preset;
+        after.Id = System.Guid.NewGuid();
+        after.Name = "Something else entirely";
 
-        Assert.Equal(OverlayApplier.LookKeyOf(before), OverlayApplier.LookKeyOf(after));
+        Assert.Equal(OverlayApplier.LookKeyOf(before, 95), OverlayApplier.LookKeyOf(after, 95));
     }
 
     /// <summary>
@@ -89,16 +139,19 @@ public class LookKeyTests
     [Fact]
     public void TheKeyDoesNotDependOnTheCulture()
     {
-        var config = new PluginConfiguration { PillHeightPercent = 5.5 };
+        var config = Preset;
+        config.PillHeightPercent = 5.5;
 
         var previous = Thread.CurrentThread.CurrentCulture;
         try
         {
+            // new CultureInfo, not GetCultureInfo: the cached one carries no user overrides, so a
+            // check against it is systematically gentler than what production code actually meets.
             Thread.CurrentThread.CurrentCulture = new CultureInfo("de-DE");
-            string german = OverlayApplier.LookKeyOf(config);
+            string german = OverlayApplier.LookKeyOf(config, 95);
 
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-            string invariant = OverlayApplier.LookKeyOf(config);
+            string invariant = OverlayApplier.LookKeyOf(config, 95);
 
             Assert.Equal(invariant, german);
             Assert.Contains("5.5", german, System.StringComparison.Ordinal);

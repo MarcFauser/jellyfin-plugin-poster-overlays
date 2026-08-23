@@ -9,6 +9,53 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Added
+
+- **Presets.** How a badge looks is now a named preset, and each kind of entry - movies, series,
+  seasons, episodes - picks one. A preset is a *look* and a category is a *policy*, which is what
+  lets one preset serve several categories at once and keeps changing the style a single edit
+  rather than four. Four presets ship with the plugin and are **read-only**: the fields are
+  disabled while one is selected and a Duplicate button makes a copy that is not. Built-in and
+  custom presets are two `optgroup`s in one list, which is plain HTML and therefore does not
+  depend on the `emby-*` elements a plugin page cannot rely on.
+- Presets are referenced by id, never by name, so renaming one cannot break an assignment and two
+  configurations that both contain a "Compact" can be merged without one quietly winning. The
+  built-in ids are counted from one (`...0001` to `...0004`) rather than random - they are never
+  generated, so collision is not a risk, and a category pointing at `...0002` is visibly pointing
+  at something shipped. One is the first number on purpose: all zeroes is `Guid.Empty`, which is
+  what an unset id holds, and that has to keep falling back loudly instead of resolving to a
+  built-in nobody chose.
+- **Export and import of presets**, as JSON with a schema version, through a box on the settings
+  page rather than a file dialog a plugin page cannot rely on. Presets only: the rest of the
+  configuration is keyed by item id and means nothing on another server. An import never
+  overwrites - identical content is recognised and skipped, a taken id arrives as a copy with a
+  numbered name, and a newer schema is refused rather than guessed at.
+- **Support in the renderer for showing that a badge only holds for part of what is underneath**:
+  a colour for uniform and one for partial, an optional glow, and a marker - split vertically, on
+  a slant, wavy, or hatched. Every option keeps a filled background under the whole label; a
+  half-empty pill loses its text over the empty half on a bright poster, which is the one thing
+  the pill exists to prevent. Only series and seasons can be in that state, so the movie and
+  episode presets have it off, and settings that cannot reach the pixels stay out of the look key.
+- A preview that shows portrait **and** landscape, because one preset can serve both, and both
+  states where the traffic light is on.
+- `GET /PosterOverlays/BuiltInPresets`, so the settings page does not carry a second copy of the
+  built-in table that would drift from the one in code.
+
+### Changed
+
+- The configuration migrates itself once, on load, and **nothing changes**: the old flat values
+  become a custom preset byte for byte and the movie category points at it - deliberately not at
+  the built-in, whose defaults are not necessarily what was configured. The other three categories
+  stay off. There is a test asserting the movie look key is unchanged, and it was made to fail on
+  purpose to prove it can: without it an upgrade would redraw every badged movie, and a redraw
+  starts from the cached original, of which 31 already carry a badge from the faulty first release.
+- The old flat settings are kept in the configuration class rather than deleted. `XmlSerializer`
+  ignores elements it does not know, so removing a property does not fail - it silently loses
+  whatever was stored. They can go one release after every configuration has been migrated.
+- Series, season and episode categories are visible on the settings page and their settings are
+  kept, but nothing draws them yet; the rows say so rather than offering a switch that does
+  nothing.
+
 ### Changed
 
 - **"Repair poster overlays" no longer looks for an inconsistent cache, because that cannot be

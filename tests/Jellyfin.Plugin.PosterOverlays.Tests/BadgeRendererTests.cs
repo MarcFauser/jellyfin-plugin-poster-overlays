@@ -22,6 +22,13 @@ public class BadgeRendererTests
     };
 
     /// <summary>
+    /// The built-in movie look: portrait, top right, no completeness colours. The same values the
+    /// flat configuration had before presets existed, which is why these tests did not have to
+    /// change their expectations.
+    /// </summary>
+    private static BadgePreset MoviePreset => BuiltInPresets.Get(BuiltInPresets.MovieId)!;
+
+    /// <summary>
     /// The resource name is a claim about how MSBuild names an embedded file, and a wrong claim
     /// fails at runtime inside a Jellyfin server rather than here. So it is asserted here.
     /// </summary>
@@ -40,7 +47,7 @@ public class BadgeRendererTests
     {
         byte[] plain = SolidPoster(SKColors.DarkSlateGray);
 
-        byte[]? badged = BadgeRenderer.Draw(plain, ThreeBadges, new PluginConfiguration());
+        byte[]? badged = BadgeRenderer.Draw(plain, ThreeBadges, MoviePreset, 95);
 
         Assert.NotNull(badged);
         using var before = SKBitmap.Decode(plain);
@@ -73,8 +80,8 @@ public class BadgeRendererTests
         byte[] plain = SolidPoster(SKColors.DarkSlateGray, SKEncodedImageFormat.Png);
         var blank = new[] { new BadgeSpec(BadgeCategory.Edition, " ") };
 
-        using var withText = SKBitmap.Decode(BadgeRenderer.Draw(plain, ThreeBadges, new PluginConfiguration())!);
-        using var without = SKBitmap.Decode(BadgeRenderer.Draw(plain, blank, new PluginConfiguration())!);
+        using var withText = SKBitmap.Decode(BadgeRenderer.Draw(plain, ThreeBadges, MoviePreset, 95)!);
+        using var without = SKBitmap.Decode(BadgeRenderer.Draw(plain, blank, MoviePreset, 95)!);
 
         int inked = NearWhitePixels(withText, withText.Width - 190, 15, 180, 70);
         int empty = NearWhitePixels(without, without.Width - 190, 15, 180, 70);
@@ -94,14 +101,14 @@ public class BadgeRendererTests
     [Fact]
     public void DrawsNothingWithoutBadges()
     {
-        Assert.Null(BadgeRenderer.Draw(SolidPoster(SKColors.Black), Array.Empty<BadgeSpec>(), new PluginConfiguration()));
+        Assert.Null(BadgeRenderer.Draw(SolidPoster(SKColors.Black), Array.Empty<BadgeSpec>(), MoviePreset, 95));
     }
 
     [Fact]
     public void KeepsThePngFormatOfThePngItWasGiven()
     {
         byte[] png = SolidPoster(SKColors.DarkSlateGray, SKEncodedImageFormat.Png);
-        byte[]? badged = BadgeRenderer.Draw(png, ThreeBadges, new PluginConfiguration());
+        byte[]? badged = BadgeRenderer.Draw(png, ThreeBadges, MoviePreset, 95);
 
         using var codec = SKCodec.Create(new System.IO.MemoryStream(badged!));
         Assert.Equal(SKEncodedImageFormat.Png, codec.EncodedFormat);

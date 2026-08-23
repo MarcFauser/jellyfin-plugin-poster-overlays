@@ -151,7 +151,8 @@ public sealed class ApplyOverlaysTask : IScheduledTask
         Dictionary<string, List<GroupEntry>> groups,
         Dictionary<string, int> unmapped)
     {
-        var built = BadgeBuilder.Build(item, config, null);
+        var target = OverlayApplier.TargetOf(item);
+        var built = BadgeBuilder.Build(item, config, config.CategoryFor(target), config.PresetFor(target), null);
 
         string? candidate = FolderNameParser.UnmappedEditionCandidate(built.TagZone);
         if (candidate is not null)

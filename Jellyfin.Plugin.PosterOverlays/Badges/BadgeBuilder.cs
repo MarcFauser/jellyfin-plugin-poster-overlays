@@ -22,23 +22,32 @@ internal static class BadgeBuilder
     /// Builds the badge list for an item.
     /// </summary>
     /// <param name="item">The library item.</param>
-    /// <param name="config">The settings.</param>
+    /// <param name="config">The settings that are the same everywhere - the resolution ladder,
+    /// the minimum rung, whether DV and HDR share a pill.</param>
+    /// <param name="category">
+    /// The policy for this kind of item: which badge kinds it may carry. Separate from the preset
+    /// because it depends on the item, not on the look - a season has no use for an edition badge
+    /// however it is drawn.
+    /// </param>
+    /// <param name="preset">The look, which also carries the order and the maximum count.</param>
     /// <param name="editionOverride">
     /// An edition badge forced by configuration, an empty string to suppress the edition badge,
     /// or null when nothing was configured for this item.
     /// </param>
     /// <returns>The result, never null.</returns>
-    public static Built Build(BaseItem item, PluginConfiguration config, string? editionOverride)
+    public static Built Build(BaseItem item, PluginConfiguration config, CategorySettings category, BadgePreset preset, string? editionOverride)
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(category);
+        ArgumentNullException.ThrowIfNull(preset);
 
         string? folderName = FolderName(item);
         var parsed = FolderNameParser.Parse(folderName, item.Name, item.OriginalTitle);
 
         var badges = new List<BadgeSpec>();
 
-        if (config.ShowEditionBadges)
+        if (category.AllowEdition)
         {
             string? edition = editionOverride ?? parsed.Edition;
             if (!string.IsNullOrEmpty(edition))
@@ -49,7 +58,7 @@ internal static class BadgeBuilder
 
         var video = item.GetMediaStreams()?.FirstOrDefault(s => s.Type == MediaStreamType.Video);
 
-        if (config.ShowResolutionBadges && video?.Width is int width)
+        if (category.AllowResolution && video?.Width is int width)
         {
             string? resolution = TechnicalBadges.Resolution(width, config.ResolutionLadder, config.MinimumResolutionK);
             if (resolution is not null)
@@ -59,7 +68,7 @@ internal static class BadgeBuilder
         }
 
         var ranges = TechnicalBadges.VideoRange(video?.VideoRangeType.ToString(), config.MergeDolbyVisionAndHdr);
-        if (config.ShowVideoRangeBadges)
+        if (category.AllowVideoRange)
         {
             foreach (string range in ranges)
             {
@@ -67,23 +76,23 @@ internal static class BadgeBuilder
             }
         }
 
-        if (config.ShowFormatBadges && parsed.Format is not null)
+        if (category.AllowFormat && parsed.Format is not null)
         {
             badges.Add(new BadgeSpec(BadgeCategory.Format, parsed.Format));
         }
 
-        if (config.ShowSourceBadges && parsed.Source is not null)
+        if (category.AllowSource && parsed.Source is not null)
         {
             badges.Add(new BadgeSpec(BadgeCategory.Source, parsed.Source));
         }
 
         // Sort before trimming, because the order is also the priority: what falls off the end
         // is decided by where the user put it.
-        badges = Order(badges, config.BadgeOrder);
+        badges = Order(badges, preset.BadgeOrder);
 
-        if (badges.Count > config.MaxBadges)
+        if (badges.Count > preset.MaxBadges)
         {
-            badges = badges.Take(Math.Max(0, config.MaxBadges)).ToList();
+            badges = badges.Take(Math.Max(0, preset.MaxBadges)).ToList();
         }
 
         return new Built(

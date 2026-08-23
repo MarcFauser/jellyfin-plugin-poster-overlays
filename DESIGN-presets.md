@@ -155,13 +155,29 @@ The middle row is the important one, and it is the same silent-clobber failure t
 elsewhere in this project: a name collision that resolves quietly is worse than one that is
 reported.
 
-Built-in presets have **fixed GUIDs declared as constants in code**. They are opaque in the XML,
-which is the one drawback; the export format therefore carries the name next to the id, so a
-shared file is legible. **On import the id decides and the name is only shown.**
+Built-in presets have **fixed GUIDs declared as constants in code**, and they are *counted* rather
+than random:
+
+```
+00000000-0000-0000-0000-000000000001   Movie
+00000000-0000-0000-0000-000000000002   Series
+00000000-0000-0000-0000-000000000003   Season
+00000000-0000-0000-0000-000000000004   Episode
+```
+
+Collision is not a risk for values that are never generated, and the payoff is legibility: a
+category pointing at `...0002` in the configuration file or in a shared export is visibly pointing
+at something shipped, where a random id would be indistinguishable from one the user made.
+
+**Numbering starts at one, and that is load-bearing.** All zeroes is `Guid.Empty`, which is also
+what an unset `PresetId` holds. If that resolved to a built-in, a category nobody configured would
+quietly draw with somebody's defaults instead of reporting that it has no preset - the failure
+that looks like success. There is a test for it.
 
 `Guid` was chosen over a readable string id (`builtin:movie`) deliberately: it is a type
 `XmlSerializer` handles natively, comparison is exact, and there is no reserved-prefix rule for a
-user to collide with by accident or on purpose.
+user to collide with by accident or on purpose. The export format carries the name next to the id
+so a shared file reads well; **on import the id decides and the name is only shown.**
 
 ### The shape
 

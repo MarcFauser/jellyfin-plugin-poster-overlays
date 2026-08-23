@@ -39,13 +39,14 @@ internal static class BadgeRenderer
     /// </summary>
     /// <param name="original">The encoded original image.</param>
     /// <param name="badges">The badges, already trimmed to the configured maximum.</param>
-    /// <param name="config">The settings.</param>
+    /// <param name="preset">The look.</param>
+    /// <param name="jpegQuality">Encoder quality, used only when the source was a JPEG.</param>
     /// <returns>The encoded badged image, or null when there was nothing to draw.</returns>
-    public static byte[]? Draw(byte[] original, IReadOnlyList<BadgeSpec> badges, PluginConfiguration config)
+    public static byte[]? Draw(byte[] original, IReadOnlyList<BadgeSpec> badges, BadgePreset preset, int jpegQuality)
     {
         ArgumentNullException.ThrowIfNull(original);
         ArgumentNullException.ThrowIfNull(badges);
-        ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(preset);
 
         if (badges.Count == 0)
         {
@@ -63,28 +64,28 @@ internal static class BadgeRenderer
         using (var canvas = new SKCanvas(target))
         {
             canvas.DrawBitmap(source, 0, 0);
-            DrawStack(canvas, badges, config, source.Width, source.Height);
+            DrawStack(canvas, badges, preset, source.Width, source.Height);
         }
 
         using var image = SKImage.FromBitmap(target);
-        using var data = image.Encode(format, config.JpegQuality);
+        using var data = image.Encode(format, jpegQuality);
         return data.ToArray();
     }
 
-    private static void DrawStack(SKCanvas canvas, IReadOnlyList<BadgeSpec> badges, PluginConfiguration config, int width, int height)
+    private static void DrawStack(SKCanvas canvas, IReadOnlyList<BadgeSpec> badges, BadgePreset preset, int width, int height)
     {
-        float pillHeight = (float)(height * config.PillHeightPercent / 100.0);
-        float fontSize = (float)(pillHeight * config.FontSizePercentOfPill / 100.0);
-        float padding = (float)(pillHeight * config.PaddingPercentOfPill / 100.0);
-        float gap = (float)(pillHeight * config.GapPercentOfPill / 100.0);
-        float radius = (float)(pillHeight * config.CornerRadiusPercentOfPill / 100.0);
-        float border = Math.Max(1f, (float)(pillHeight * config.BorderWidthPercentOfPill / 100.0));
-        float marginX = (float)(width * config.HorizontalMarginPercent / 100.0);
-        float marginY = (float)(height * config.VerticalMarginPercent / 100.0);
+        float pillHeight = (float)(height * preset.PillHeightPercent / 100.0);
+        float fontSize = (float)(pillHeight * preset.FontSizePercentOfPill / 100.0);
+        float padding = (float)(pillHeight * preset.PaddingPercentOfPill / 100.0);
+        float gap = (float)(pillHeight * preset.GapPercentOfPill / 100.0);
+        float radius = (float)(pillHeight * preset.CornerRadiusPercentOfPill / 100.0);
+        float border = Math.Max(1f, (float)(pillHeight * preset.BorderWidthPercentOfPill / 100.0));
+        float marginX = (float)(width * preset.HorizontalMarginPercent / 100.0);
+        float marginY = (float)(height * preset.VerticalMarginPercent / 100.0);
 
-        bool right = config.Corner is BadgeCorner.TopRight or BadgeCorner.BottomRight;
-        bool bottom = config.Corner is BadgeCorner.BottomLeft or BadgeCorner.BottomRight;
-        bool horizontal = config.Direction == BadgeDirection.Horizontal;
+        bool right = preset.Corner is BadgeCorner.TopRight or BadgeCorner.BottomRight;
+        bool bottom = preset.Corner is BadgeCorner.BottomLeft or BadgeCorner.BottomRight;
+        bool horizontal = preset.Direction == BadgeDirection.Horizontal;
 
         using var font = new SKFont(Typeface(), fontSize) { Edging = SKFontEdging.SubpixelAntialias };
         using var fill = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Fill };
@@ -114,7 +115,7 @@ internal static class BadgeRenderer
         for (int i = 0; i < badges.Count; i++)
         {
             var badge = badges[i];
-            var palette = BadgePalette.For(badge.Category, badge.Text, config.Style);
+            var palette = BadgePalette.For(badge.Category, badge.Text, preset.Style);
             float pillWidth = widths[i] + (2 * padding);
 
             SKRect rect;
@@ -131,12 +132,32 @@ internal static class BadgeRenderer
                 y += pillHeight + gap;
             }
 
+            // The traffic light, where there is anything to signal. It replaces the border colour
+            // rather than the fill: the fill is what guarantees the text stays readable over
+            // artwork nobody controls, and that job is not up for negotiation.
+            bool signalling = preset.CompletenessColours && badge.Availability != BadgeAvailability.NotApplicable;
+            bool partial = signalling && badge.Availability == BadgeAvailability.Partial;
+            SKColor signal = partial
+                ? ParseColour(preset.PartialColour, new SKColor(0xFF, 0xAA, 0x28))
+                : ParseColour(preset.UniformColour, new SKColor(0x3E, 0xD6, 0x82));
+
+            if (signalling && preset.Glow)
+            {
+                DrawGlow(canvas, rect, radius, signal, (float)(pillHeight * preset.GlowRadiusPercentOfPill / 100.0));
+            }
+
             fill.Color = palette.Fill;
             canvas.DrawRoundRect(rect, radius, radius, fill);
 
-            if (palette.Border.Alpha > 0)
+            if (partial && preset.PartialMarker != PartialMarker.None)
             {
-                stroke.Color = palette.Border;
+                DrawPartialMarker(canvas, rect, radius, palette.Fill, preset.PartialMarker);
+            }
+
+            SKColor borderColour = signalling ? signal : palette.Border;
+            if (borderColour.Alpha > 0)
+            {
+                stroke.Color = borderColour;
                 canvas.DrawRoundRect(SKRect.Inflate(rect, -border / 2, -border / 2), radius, radius, stroke);
             }
 
@@ -145,6 +166,136 @@ internal static class BadgeRenderer
             text.Color = palette.Ink;
             canvas.DrawText(badge.Text, rect.MidX - (widths[i] / 2f), rect.MidY - ((inks[i].Top + inks[i].Bottom) / 2f), font, text);
         }
+    }
+
+    /// <summary>
+    /// Reads a <c>#RRGGBB</c> setting, falling back rather than throwing.
+    /// </summary>
+    /// <remarks>
+    /// The value comes out of a configuration file a person can edit, so it is foreign input. An
+    /// unreadable colour must not stop a library run - but it must not be invented either, which
+    /// is why the fallback is the built-in default and the caller reports it.
+    /// </remarks>
+    private static SKColor ParseColour(string? value, SKColor fallback) =>
+        SKColor.TryParse(value, out SKColor parsed) ? parsed : fallback;
+
+    /// <summary>
+    /// Lifts the pill off busy artwork with a soft halo in the signal colour.
+    /// </summary>
+    private static void DrawGlow(SKCanvas canvas, SKRect rect, float radius, SKColor colour, float blurRadius)
+    {
+        if (blurRadius <= 0)
+        {
+            return;
+        }
+
+        // Sigma rather than radius: Skia's blur takes a standard deviation, and the visible
+        // extent is roughly three of them. Dividing by three makes the setting mean what its
+        // name says.
+        using var glow = new SKPaint
+        {
+            IsAntialias = true,
+            Style = SKPaintStyle.Fill,
+            Color = colour.WithAlpha(0x77),
+            MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, blurRadius / 3f),
+        };
+
+        canvas.DrawRoundRect(rect, radius, radius, glow);
+    }
+
+    /// <summary>
+    /// Marks a pill whose claim only holds for part of what sits underneath it.
+    /// </summary>
+    /// <remarks>
+    /// Always by <b>adding</b> a lighter tone, never by leaving anything unfilled. A half-empty
+    /// pill loses the text over the empty half on a bright poster, which is the one thing the pill
+    /// exists to prevent.
+    /// </remarks>
+    private static void DrawPartialMarker(SKCanvas canvas, SKRect rect, float radius, SKColor fill, PartialMarker marker)
+    {
+        using var lighter = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Fill, Color = Lighten(fill) };
+
+        int saved = canvas.Save();
+        canvas.ClipRoundRect(new SKRoundRect(rect, radius, radius), SKClipOperation.Intersect, antialias: true);
+
+        switch (marker)
+        {
+            case PartialMarker.Hatch:
+                DrawHatch(canvas, rect, lighter);
+                break;
+
+            case PartialMarker.Vertical:
+                canvas.DrawRect(new SKRect(rect.MidX, rect.Top, rect.Right, rect.Bottom), lighter);
+                break;
+
+            case PartialMarker.Diagonal:
+                using (var slant = new SKPath())
+                {
+                    slant.MoveTo(rect.Left + (rect.Width * 0.62f), rect.Top);
+                    slant.LineTo(rect.Right, rect.Top);
+                    slant.LineTo(rect.Right, rect.Bottom);
+                    slant.LineTo(rect.Left + (rect.Width * 0.38f), rect.Bottom);
+                    slant.Close();
+                    canvas.DrawPath(slant, lighter);
+                }
+
+                break;
+
+            case PartialMarker.Wave:
+                using (var wave = new SKPath())
+                {
+                    wave.MoveTo(rect.Right, rect.Top);
+                    for (int step = 0; step <= 16; step++)
+                    {
+                        float t = step / 16f;
+                        float wx = rect.Left + (rect.Width * 0.5f)
+                                   + (float)(Math.Sin(t * Math.PI * 2) * rect.Width * 0.07);
+                        wave.LineTo(wx, rect.Top + (rect.Height * t));
+                    }
+
+                    wave.LineTo(rect.Right, rect.Bottom);
+                    wave.Close();
+                    canvas.DrawPath(wave, lighter);
+                }
+
+                break;
+
+            default:
+                break;
+        }
+
+        canvas.RestoreToCount(saved);
+    }
+
+    private static void DrawHatch(SKCanvas canvas, SKRect rect, SKPaint paint)
+    {
+        float step = rect.Height * 0.34f;
+        float thickness = rect.Height * 0.13f;
+        using var stripe = new SKPaint
+        {
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = thickness,
+            Color = paint.Color,
+        };
+
+        for (float x = rect.Left - rect.Height; x < rect.Right + rect.Height; x += step)
+        {
+            canvas.DrawLine(x, rect.Bottom, x + rect.Height, rect.Top, stripe);
+        }
+    }
+
+    /// <summary>
+    /// Blends a colour towards white, keeping its alpha. Used for the "not everywhere" half.
+    /// </summary>
+    private static SKColor Lighten(SKColor colour)
+    {
+        const double Amount = 0.30;
+        return new SKColor(
+            (byte)(colour.Red + ((255 - colour.Red) * Amount)),
+            (byte)(colour.Green + ((255 - colour.Green) * Amount)),
+            (byte)(colour.Blue + ((255 - colour.Blue) * Amount)),
+            colour.Alpha);
     }
 
     private static SKTypeface Typeface()

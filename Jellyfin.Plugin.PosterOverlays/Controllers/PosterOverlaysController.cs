@@ -1,8 +1,10 @@
 using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.PosterOverlays.Configuration;
 using Jellyfin.Plugin.PosterOverlays.Models;
 using Jellyfin.Plugin.PosterOverlays.State;
 using MediaBrowser.Common.Api;
@@ -195,6 +197,20 @@ public class PosterOverlaysController : ControllerBase
             DryRun = false,
         };
     }
+
+    /// <summary>
+    /// Lists the presets that ship with the plugin.
+    /// </summary>
+    /// <remarks>
+    /// Served rather than repeated in the settings page's own script. A second copy of the same
+    /// table in JavaScript would drift from the one in code the first time a default changes, and
+    /// the drift would show up as a preset that looks different once it is duplicated.
+    /// </remarks>
+    /// <response code="200">The built-in presets.</response>
+    /// <returns>The built-ins, in the order they should be listed.</returns>
+    [HttpGet("BuiltInPresets")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<Collection<BadgePreset>> BuiltInPresetList() => BuiltInPresets.All();
 
     /// <summary>
     /// Reports how many items the plugin currently looks after.
