@@ -76,7 +76,10 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ### Changed (settings page layout)
 
-- Number fields are narrow and right aligned instead of stretching across the page.
+- Number fields are narrow and right aligned instead of stretching across the page, with room
+  between the digits and the spinner arrows - right alignment alone puts the value flush against
+  the up/down control. The eleven copies of that inline style are now one scoped rule, so the next
+  adjustment is one edit rather than eleven.
 - The exception boxes are full-width textareas with their label above them, and the checkbox
   rows lay themselves out. None of it depends on the `emby-*` custom elements any more: those
   are registered by whichever page imported their module, and a plugin configuration page

@@ -17,6 +17,19 @@
      and layout are set here, and the is= attributes are a bonus when they happen to work. -->
 <div id="posterOverlaysConfigPage" data-role="page" class="page type-interior pluginConfigurationPage"
      data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <style>
+        /* Every selector is prefixed with the page id: a plugin page is injected into the running
+           client, so an unscoped rule would apply to the rest of Jellyfin's interface as well. */
+
+        /* Right aligned numbers read better in a column, but the digits then sit directly against
+           the browser's spinner arrows. The padding is what keeps them apart; without it the value
+           and the up/down control touch. */
+        #posterOverlaysConfigPage .po-num {
+            max-width: 9em;
+            text-align: right;
+            padding-right: 0.7em;
+        }
+    </style>
     <div data-role="content">
         <div class="content-primary">
             <form id="posterOverlaysConfigForm">
@@ -111,7 +124,7 @@
 
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="MaxBadges">Maximum badges per image</label>
-                        <input id="MaxBadges" name="MaxBadges" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="1" max="6" step="1" />
+                        <input id="MaxBadges" name="MaxBadges" type="number" is="emby-input" class="emby-input po-num" min="1" max="6" step="1" />
                         <div class="fieldDescription">Anything beyond this is dropped from the bottom of the stack.</div>
                     </div>
                 </div>
@@ -173,36 +186,36 @@
 
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="PillHeightPercent">Pill height, % of image height</label>
-                        <input id="PillHeightPercent" name="PillHeightPercent" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="1" max="25" step="0.1" />
+                        <input id="PillHeightPercent" name="PillHeightPercent" type="number" is="emby-input" class="emby-input po-num" min="1" max="25" step="0.1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="FontSizePercentOfPill">Font size, % of pill height</label>
-                        <input id="FontSizePercentOfPill" name="FontSizePercentOfPill" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="20" max="100" step="1" />
+                        <input id="FontSizePercentOfPill" name="FontSizePercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="20" max="100" step="1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="PaddingPercentOfPill">Horizontal padding, % of pill height</label>
-                        <input id="PaddingPercentOfPill" name="PaddingPercentOfPill" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="0" max="200" step="1" />
+                        <input id="PaddingPercentOfPill" name="PaddingPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="200" step="1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="GapPercentOfPill">Gap between pills, % of pill height</label>
-                        <input id="GapPercentOfPill" name="GapPercentOfPill" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="0" max="200" step="1" />
+                        <input id="GapPercentOfPill" name="GapPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="200" step="1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="CornerRadiusPercentOfPill">Corner radius, % of pill height</label>
-                        <input id="CornerRadiusPercentOfPill" name="CornerRadiusPercentOfPill" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="0" max="50" step="1" />
+                        <input id="CornerRadiusPercentOfPill" name="CornerRadiusPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="50" step="1" />
                         <div class="fieldDescription">50 gives fully rounded ends.</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="BorderWidthPercentOfPill">Border width, % of pill height</label>
-                        <input id="BorderWidthPercentOfPill" name="BorderWidthPercentOfPill" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="0" max="20" step="0.5" />
+                        <input id="BorderWidthPercentOfPill" name="BorderWidthPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="20" step="0.5" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="HorizontalMarginPercent">Side margin, % of image width</label>
-                        <input id="HorizontalMarginPercent" name="HorizontalMarginPercent" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="0" max="25" step="0.1" />
+                        <input id="HorizontalMarginPercent" name="HorizontalMarginPercent" type="number" is="emby-input" class="emby-input po-num" min="0" max="25" step="0.1" />
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="VerticalMarginPercent">Top or bottom margin, % of image height</label>
-                        <input id="VerticalMarginPercent" name="VerticalMarginPercent" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="0" max="25" step="0.1" />
+                        <input id="VerticalMarginPercent" name="VerticalMarginPercent" type="number" is="emby-input" class="emby-input po-num" min="0" max="25" step="0.1" />
                     </div>
                 </div>
 
@@ -219,7 +232,7 @@
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="MinimumResolutionK">Lowest rung that earns a badge</label>
-                        <input id="MinimumResolutionK" name="MinimumResolutionK" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="1" max="32" step="1" />
+                        <input id="MinimumResolutionK" name="MinimumResolutionK" type="number" is="emby-input" class="emby-input po-num" min="1" max="32" step="1" />
                         <div class="fieldDescription">With 4, 1080p material gets no badge.</div>
                     </div>
                 </div>
@@ -228,7 +241,7 @@
                     <h3 class="sectionTitle">Writing back</h3>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="JpegQuality">JPEG quality</label>
-                        <input id="JpegQuality" name="JpegQuality" type="number" is="emby-input" class="emby-input" style="max-width:9em; text-align:right;" min="60" max="100" step="1" />
+                        <input id="JpegQuality" name="JpegQuality" type="number" is="emby-input" class="emby-input po-num" min="60" max="100" step="1" />
                         <div class="fieldDescription">Jellyfin delivers at 90; below that the badged copy is visibly worse than the original.</div>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
