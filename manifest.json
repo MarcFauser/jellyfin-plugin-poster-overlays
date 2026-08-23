@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.8.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.8.0.0/jellyfin-plugin-poster-overlays_12.8.0.0.zip",
+        "checksum": "6d3111c2e8eae356e99ae4d703b097e6",
+        "changelog": "Presets: how a badge looks is now a named preset that any category points at, with four read-only built-ins, duplicate-to-edit, and export/import of presets as JSON. Series, seasons and episodes are badged: what a series may claim is aggregated from its episodes, with several copies of one episode collapsed to the best first, so a show that is available throughout in 4K is not reported as mixed. Where it is genuinely mixed the badge is marked, by colour and by a marker that keeps the label readable. Episodes are badged only where two rows carry the same episode and nothing else tells them apart. Existing settings migrate unchanged: the movie look key is byte-identical, so nothing already badged is redrawn.",
+        "timestamp": "2026-08-23T22:53:22Z"
+      },
+      {
         "version": "12.7.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.7.0.0/jellyfin-plugin-poster-overlays_12.7.0.0.zip",
@@ -62,6 +70,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.8.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.8.0.0/jellyfin-plugin-poster-overlays_11.8.0.0.zip",
+        "checksum": "d61664fa4f4a8a02fb0b5ef197ec3b6c",
+        "changelog": "Presets: how a badge looks is now a named preset that any category points at, with four read-only built-ins, duplicate-to-edit, and export/import of presets as JSON. Series, seasons and episodes are badged: what a series may claim is aggregated from its episodes, with several copies of one episode collapsed to the best first, so a show that is available throughout in 4K is not reported as mixed. Where it is genuinely mixed the badge is marked, by colour and by a marker that keeps the label readable. Episodes are badged only where two rows carry the same episode and nothing else tells them apart. Existing settings migrate unchanged: the movie look key is byte-identical, so nothing already badged is redrawn.",
+        "timestamp": "2026-08-23T22:53:22Z"
       },
       {
         "version": "11.7.0.0",
