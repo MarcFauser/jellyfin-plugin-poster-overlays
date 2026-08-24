@@ -149,3 +149,39 @@ So the repair task stays, for a server whose owner cannot script two HTTP calls,
 `NeedsRepair` is the only thing that knows which items are in scope. It was not what fixed this
 library. Worth remembering before writing the next piece of recovery machinery: the host may
 already expose the operation, and more precisely than the reimplementation.
+
+## 2026-08-24 — an empty value looks like a decision
+
+The two completeness colours came back as a bug report that named the wrong culprit, and so did
+my first reading of it: the swatches showed black and picking a colour appeared to do nothing, so
+the picker was suspect. The picker was fine. The presets held empty strings, written by the
+load-time clobber of the release before — and an `<input type="color">` with no value renders
+`#000000`. Nothing was broken at the point where it was visible.
+
+That is the shape worth keeping: **an absence and a choice can look identical**, and when they do,
+the absence wins the argument because it is the one that renders. The same defect had already
+appeared twice in this project under other names — a preset with no name became invisible rather
+than reported, a dangling preset id fell back silently. Each time the fix was the same: make the
+blank state impossible to reach, or impossible to mistake.
+
+Filling the default back in was the obvious repair and the one I nearly did not dare make. Writing
+a value into a preset changes the look key, the look key decides whether an item is redrawn, and a
+redraw starts from the cached original — of which thirty still carry a badge from the faulty first
+release. The way out was not to be careful with the write but to make the write irrelevant: every
+reader of a colour now goes through one accessor that treats blank as the default, the look key
+included, so blank and `#3ED682` had already been producing the same key. The repair is free by
+construction rather than by inspection. The test that pins it fails the moment the key reads the
+raw property, which is how I know it is a guard and not a claim.
+
+Two smaller things, both the same lesson in miniature. The "doubled" preview was the two halves of
+the completeness setting shown without captions — the difference between them *is* the setting,
+and it was left to be inferred. And the step buttons are centred by flex rather than by line
+height, because `+` and `−` do not share an ink height; a centred box is not centred ink, which
+this project learned once already on a different control.
+
+One note about measuring. There is no Node here, so the page script was parsed with the Windows
+JScript engine, which is ES3 and rejects `.catch(` as a property name. The first run reported a
+syntax error in code that has been shipping and working for weeks. **A tool that reports a fault
+in known-good code is describing itself**, and the honest response is to fix the probe rather than
+the subject; the positive control — a deliberately broken copy — was what made the difference
+visible instead of leaving both runs looking equally red.
