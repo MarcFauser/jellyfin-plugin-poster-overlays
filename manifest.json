@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.12.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.12.0.0/jellyfin-plugin-poster-overlays_12.12.0.0.zip",
+        "checksum": "07065ea83dce8244cfdc3825fa4ebd0b",
+        "changelog": "Added: episodes are read from their file name, so two copies of one episode in the same resolution can finally be told apart. A movie keeps its release tags in its folder name, but a flattened season is one folder with every episode beside each other in it, so for episodes the file name is the only place they live. The episode title is subtracted first, exactly as a film title is - otherwise an ordinary title like \"The Extended Family\" would be read as an edition - and the remaining text must contain a known release tag or it is discarded whole. Movies are unaffected.\n\nAdded: records whose item no longer exists are cleared at the end of the nightly run, together with their cached originals. Until now they stayed on disk forever. This matters more than tidiness, because repairing a wrong metadata match recreates the entry under a new id. The sweep refuses to act when the library looks wrong rather than smaller, since a cached original is the only copy of an unbadged cover.",
+        "timestamp": "2026-08-24T07:43:02Z"
+      },
+      {
         "version": "12.11.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.11.0.0/jellyfin-plugin-poster-overlays_12.11.0.0.zip",
@@ -94,6 +102,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.12.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.12.0.0/jellyfin-plugin-poster-overlays_11.12.0.0.zip",
+        "checksum": "0c7d6d6b9e884b297bd70dc118e09da8",
+        "changelog": "Added: episodes are read from their file name, so two copies of one episode in the same resolution can finally be told apart. A movie keeps its release tags in its folder name, but a flattened season is one folder with every episode beside each other in it, so for episodes the file name is the only place they live. The episode title is subtracted first, exactly as a film title is - otherwise an ordinary title like \"The Extended Family\" would be read as an edition - and the remaining text must contain a known release tag or it is discarded whole. Movies are unaffected.\n\nAdded: records whose item no longer exists are cleared at the end of the nightly run, together with their cached originals. Until now they stayed on disk forever. This matters more than tidiness, because repairing a wrong metadata match recreates the entry under a new id. The sweep refuses to act when the library looks wrong rather than smaller, since a cached original is the only copy of an unbadged cover.",
+        "timestamp": "2026-08-24T07:43:02Z"
       },
       {
         "version": "11.11.0.0",
