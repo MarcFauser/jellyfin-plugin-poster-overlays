@@ -9,6 +9,45 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Added
+
+- **Episodes are read from their file name, so two copies in the same resolution can finally be
+  told apart.** A movie keeps its release tags in its folder name; a flattened season is one
+  folder with every episode beside each other in it, so for episodes the file name is the only
+  place they live. About 201 duplicate episodes in the reference library sit in the *same*
+  resolution, which makes every technical badge read identically on both — the edition token is
+  the only difference there is:
+
+  ```
+  buck.rogers.s01e01.german.dl.1080p.fs.bluray.x264-excited.mkv          -> no badge
+  buck.rogers.s01e01e02.german.dl.alternate.cut.1080p.bluray.x264-excited.mkv -> ALT
+  ```
+
+  The design note that proposed this called `SxxExx` a hard delimiter and treated everything after
+  it as release text. That is a position rule, and the movie parser exists partly to document why
+  those fail: measured against the catalogue, **twelve of twelve** plausible episode titles fire a
+  rule, including *The Extended Family*, because the bare word `extended` is enough. Three
+  harmless titles fired nothing, which is the control. So the anchor only marks the end of the
+  series title, the episode title is subtracted exactly as a film title is, and the remaining zone
+  must contain a known release tag or it is discarded whole — a stricter demand than the movie
+  parser can make, and affordable only because the anchor is hard. Films are untouched: the
+  non-episode path is the same call it always was, so nothing is redrawn.
+
+- **Records whose item no longer exists are cleared at the end of the nightly run.** Nothing tells
+  a plugin that an item was deleted, so every record and cached original stayed on disk forever
+  and only the task that undoes the whole plugin ever collected them. That is more than tidiness
+  now: shedding a stale provider id requires the entry to be *recreated*, which mints a new id, so
+  ordinary metadata repair produces orphans.
+
+  A reconciliation rather than a smarter key, deliberately. A GUID dies when an entry is
+  recreated, a path dies on rename, and a virtual entry never had one — every key has a lifetime,
+  and a comparison against the library does not care which one expired. The sweep refuses to act
+  when the library looks wrong rather than smaller (nothing found at all, or more than half the
+  records unmatched) because the asymmetry is severe: a kept dead record wastes half a megabyte,
+  while a wrongly dropped one destroys the only unbadged copy of that cover and the next run then
+  draws a badge on top of a badge. A record whose key is not an item id is reported and never
+  removed.
+
 ### Fixed
 
 - **The two colour swatches showed black and a colour picked in them had no effect.** Not the

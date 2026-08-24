@@ -478,9 +478,14 @@ it was broken in a way only the browser showed.
 
 ## 11. Deliberately not in scope
 
-- Edition parsing from **file** names for episodes, which is what the 201 same-resolution
-  duplicates would need. Worth doing, and cleanly separable: `SxxExx` is a hard delimiter, so
-  everything after it is release zone — arguably a better anchor than the title subtraction the
-  movie parser needs.
+- ~~Edition parsing from **file** names for episodes~~ — **done**, and the reasoning above was
+  half wrong, which is worth keeping rather than quietly deleting. `SxxExx` is indeed a hard
+  delimiter, but calling it "a better anchor than the title subtraction" was exactly the position
+  rule the movie parser exists to warn about. Measured against the catalogue: of twelve plausible
+  episode titles, **twelve** fire a rule — *Final Cut* → FIN, *Restored* → REM, and *The Extended
+  Family*, an ordinary title, → EXT, because the bare word `extended` is enough. Three harmless
+  titles fired nothing, which is what makes those twelve a measurement. So the anchor only says
+  where the *series* title ends; the episode title still has to be subtracted, and the zone after
+  it has to contain a known release tag or be dropped whole. See `EpisodeFileNameParser`.
 - Image types other than Primary.
 - Any threshold or gauge for the partial state. Binary, by decision.

@@ -185,3 +185,43 @@ syntax error in code that has been shipping and working for weeks. **A tool that
 in known-good code is describing itself**, and the honest response is to fix the probe rather than
 the subject; the positive control — a deliberately broken copy — was what made the difference
 visible instead of leaving both runs looking equally red.
+## 2026-08-24 — the anchor that was not a guard
+
+Two pieces of work that had been sitting on the list, and the first one arrived with its own
+answer already written down. The design note said: `SxxExx` is a hard delimiter, so everything
+after it is release zone — "arguably a better anchor than the title subtraction the movie parser
+needs." Confident, plausible, and a **position rule**, which is the one thing `FolderNameParser`
+carries three paragraphs of warning about. I had written both.
+
+Measuring it took a minute and settled it: of twelve plausible episode titles run against the
+catalogue, twelve fire a rule. *Final Cut* gives FIN, *Restored* gives REM, *Recut* gives RC — and
+*The Extended Family*, an entirely ordinary title, gives EXT, because the bare word `extended` is
+enough on its own. Three harmless titles fired nothing, which is what turns those twelve from an
+anecdote into a measurement.
+
+So the anchor earns its place, but not the one it was given: it marks where the *series* title
+ends and nothing more. After it the episode title is subtracted exactly as a film title is, and
+then one extra demand the movie parser cannot make — the remaining zone has to contain a known
+release tag or it is dropped whole. That is affordable precisely *because* the anchor is hard:
+after it there is nothing but title and release tags, so a zone with no tag in it is all title.
+Where the movie parser widens its search when it distrusts the title, this one gives up. A missing
+badge is a nuisance; a wrong one is a lie about which copy you are looking at.
+
+**The orphan sweep is the other half, and its risk runs the opposite way.** Keeping a dead record
+wastes half a megabyte. Dropping a live one destroys the only unbadged copy of that cover, so the
+item keeps its badged image forever and the next run caches *that* as the original and draws on
+top of it — the failure this plugin already shipped once and spent a day recovering from. So the
+sweep refuses rather than trusts itself: no item found at all, or more than half the records
+unmatched, and it does nothing but say so. Those are not a tuned threshold, they are the two
+shapes a lookup failure takes.
+
+Both guards were then made to fail on purpose, which is the only reason it is worth saying they
+pass. Removing the title subtraction turned exactly the six title tests red and nothing else;
+hard-coding the refusal to false turned exactly the four refusal tests red. A guard that has only
+ever been observed not firing is a claim.
+
+A note on the shape of the fix, from the neighbouring session that had proposed keying by path
+instead of by GUID and then withdrew it: *where every key has a lifetime, the answer is not a
+different key but a reconciliation.* A GUID dies when an entry is recreated, a path dies on
+rename, a virtual entry never had one. That sentence is why the sweep is the right build rather
+than the option left over after the others failed.

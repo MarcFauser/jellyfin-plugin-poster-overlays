@@ -152,11 +152,92 @@ public sealed class ApplyOverlaysTask : IScheduledTask
         }
         else
         {
+            ForgetOrphanedRecords(store, cancellationToken);
             store.Flush();
         }
 
         Report(counts, groups, unmapped, items.Count);
         progress.Report(100);
+    }
+
+    /// <summary>
+    /// Drops records whose item no longer exists, together with their cached originals.
+    /// </summary>
+    /// <remarks>
+    /// Nothing tells this plugin that an item was deleted - there is no <c>ItemRemoved</c>
+    /// subscription, deliberately, because that would put plugin code on the path of every
+    /// deletion the server performs, including bulk ones. So the records are reconciled here
+    /// instead, once a night, off the hot path.
+    /// <para>
+    /// A reconciliation rather than a better key, and that is the whole design: a GUID dies when
+    /// an entry is recreated - which is the only way to shed a stale provider id, so it happens
+    /// during ordinary metadata repair - a path dies on rename, and a virtual entry never had one.
+    /// Every key has a lifetime; a comparison against the library does not care which one expired.
+    /// </para>
+    /// <para>
+    /// <b>The risk here is not deleting too little.</b> A cached original is the only copy of the
+    /// unbadged cover. Throw one away for an item that does exist and that item keeps its badged
+    /// image forever, and the next run treats that image as its "original" and draws on top of it
+    /// - badges stacking on badges, the one failure the cache exists to prevent. So the sweep
+    /// refuses to act on a library that looks wrong rather than trusting itself: if it cannot find
+    /// a single item, or more than half the records look orphaned, something is off with the
+    /// library and not with the records.
+    /// </para>
+    /// </remarks>
+    private void ForgetOrphanedRecords(OverlayStateStore store, CancellationToken cancellationToken)
+    {
+        var ids = store.KnownItemIds();
+        if (ids.Count == 0)
+        {
+            return;
+        }
+
+        var plan = OrphanSweep.Decide(
+            ids,
+            guid =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return _libraryManager.GetItemById(guid) is not null;
+            });
+
+        foreach (string id in plan.Unreadable)
+        {
+            _logger.LogWarning(
+                "Poster overlays: the state file holds a record under \"{Id}\", which is not an item id. "
+                + "It was left untouched.",
+                id);
+        }
+
+        if (plan.Orphans.Count == 0)
+        {
+            return;
+        }
+
+        if (plan.Refused)
+        {
+            _logger.LogWarning(
+                "Poster overlays: {Orphans} of {Total} records point at items the library does not know. That is too "
+                + "large a share to be ordinary deletion, so nothing was removed - a cached original is the only copy "
+                + "of an unbadged cover, and discarding one by mistake cannot be undone. If the library really did "
+                + "shrink that much, run \"Remove poster overlays\", which restores what it can and clears the rest.",
+                plan.Orphans.Count,
+                ids.Count);
+            return;
+        }
+
+        foreach (string id in plan.Orphans)
+        {
+            store.Forget(id);
+        }
+
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Poster overlays: {Count} record(s) whose item no longer exists were dropped, with their cached "
+                + "originals. This is normal after a deletion or after an entry was recreated - repairing a wrong "
+                + "metadata match gives an item a new id.",
+                plan.Orphans.Count);
+        }
     }
 
     /// <summary>

@@ -112,6 +112,28 @@ internal static class FolderNameParser
         return null;
     }
 
+    /// <summary>
+    /// Applies one vocabulary to an already determined tag zone.
+    /// </summary>
+    /// <remarks>
+    /// Internal so <see cref="EpisodeFileNameParser"/> can share it. The two parsers differ only
+    /// in how they find the zone - an episode's release tags live in its file name, a movie's in
+    /// its folder name - and everything after that, catalogue and capitals rule included, has to
+    /// stay one implementation or the two would drift apart.
+    /// </remarks>
+    /// <param name="zone">The normalised tag zone.</param>
+    /// <param name="tokens">The tokens the zone was built from.</param>
+    /// <param name="skip">How many leading tokens the zone drops.</param>
+    /// <param name="rules">The spelled-out rules, highest priority first.</param>
+    /// <param name="capsRules">The short tokens that are only accepted in capitals.</param>
+    /// <returns>The badge, or null.</returns>
+    internal static string? MatchZone(
+        string zone,
+        IReadOnlyList<FolderTokenizer.Token> tokens,
+        int skip,
+        IReadOnlyList<EditionCatalog.Rule> rules,
+        IReadOnlyList<EditionCatalog.CapsRule> capsRules) => Match(zone, tokens, skip, rules, capsRules);
+
     private static string? Match(
         string zone,
         IReadOnlyList<FolderTokenizer.Token> tokens,

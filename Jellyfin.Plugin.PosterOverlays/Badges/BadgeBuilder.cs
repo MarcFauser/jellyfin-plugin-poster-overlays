@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Jellyfin.Plugin.PosterOverlays.Configuration;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Entities;
 
 namespace Jellyfin.Plugin.PosterOverlays.Badges;
@@ -42,8 +43,7 @@ internal static class BadgeBuilder
         ArgumentNullException.ThrowIfNull(category);
         ArgumentNullException.ThrowIfNull(preset);
 
-        string? folderName = FolderName(item);
-        var parsed = FolderNameParser.Parse(folderName, item.Name, item.OriginalTitle);
+        var parsed = ParseReleaseName(item);
         var ranges = TechnicalBadges.VideoRange(
             item.GetMediaStreams()?.FirstOrDefault(s => s.Type == MediaStreamType.Video)?.VideoRangeType.ToString(),
             config.MergeDolbyVisionAndHdr);
@@ -84,8 +84,7 @@ internal static class BadgeBuilder
         ArgumentNullException.ThrowIfNull(config);
         ArgumentNullException.ThrowIfNull(category);
 
-        string? folderName = FolderName(item);
-        var parsed = FolderNameParser.Parse(folderName, item.Name, item.OriginalTitle);
+        var parsed = ParseReleaseName(item);
 
         var badges = new List<BadgeSpec>();
 
@@ -185,6 +184,39 @@ internal static class BadgeBuilder
     /// An item in a mixed folder shares that folder with other films, so its name says nothing
     /// about this item and is not used.
     /// </remarks>
+    /// <summary>
+    /// Reads the release tags of an item from wherever that item keeps them.
+    /// </summary>
+    /// <remarks>
+    /// A movie keeps them in its folder name. An episode keeps them in its file name, because a
+    /// flattened season is one folder with every episode beside each other in it - so the folder
+    /// is called <c>Season 01</c> and says nothing.
+    /// <para>
+    /// The file is tried first and the folder is the fallback, which covers the other layout
+    /// without a setting: a series that was not flattened gives each episode its own release
+    /// folder, and there the folder is exactly right. The fallback is safe in the flattened case
+    /// too - <c>Season 01</c> tokenises to two words that match no rule.
+    /// </para>
+    /// <para>
+    /// "Found nothing" and "found something" are kept whole rather than merged. Mixing a zone
+    /// from the file with one from the folder would produce a tag zone that exists nowhere on
+    /// disk, and that zone is also what the HDR cross-check reads.
+    /// </para>
+    /// </remarks>
+    private static FolderNameParser.Result ParseReleaseName(BaseItem item)
+    {
+        if (item is Episode)
+        {
+            var fromFile = EpisodeFileNameParser.Parse(item.Path, item.Name);
+            if (fromFile.Edition is not null || fromFile.Source is not null || fromFile.Format is not null)
+            {
+                return fromFile;
+            }
+        }
+
+        return FolderNameParser.Parse(FolderName(item), item.Name, item.OriginalTitle);
+    }
+
     private static string? FolderName(BaseItem item)
     {
         if (item.IsInMixedFolder)
