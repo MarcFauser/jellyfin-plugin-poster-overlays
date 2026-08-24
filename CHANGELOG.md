@@ -11,6 +11,23 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ### Fixed
 
+- **The two colour swatches showed black and a colour picked in them had no effect.** Not the
+  picker: the presets themselves held empty strings, written by the load-time clobber fixed in the
+  release before this one. An `<input type="color">` with no value is `#000000`, so an absence
+  looked like a choice. Blank colours are now filled in with the default when the configuration is
+  loaded and when the page shows a preset, and the swatch never renders a colour that is not the
+  one in use. Repairing the stored value is free rather than destructive because everything that
+  reads a colour - the look key included - goes through one accessor that treats blank as the
+  default, so blank and `#3ED682` already produced the same key. A test pins that, and with the
+  key reverted to the raw property it fails; nothing is redrawn by the repair, which matters for
+  the items whose cached original already carries a badge.
+- **Ticking "Color the badge by whether it holds throughout" appeared to show the picture twice.**
+  It was showing both halves of that setting - everything agrees, and only some do - with nothing
+  to say which was which. Both rows are captioned now. The difference between them is the entire
+  point of the setting, so it is spelled out rather than left to be inferred.
+- **The step buttons are smaller and centred**, and centred by flex rather than by line height:
+  `+` and `−` do not have the same ink height, and a box that is centred is not the same as ink
+  that is centred.
 - **The settings page overwrote the selected preset while it was still loading.** Filling a field
   dispatches a change event, the event bubbles to the form, and the form handler writes the fields
   back into the preset - so during page setup, with the preset fields still empty, it wrote blanks

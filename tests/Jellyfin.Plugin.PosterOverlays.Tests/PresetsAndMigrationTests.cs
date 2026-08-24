@@ -269,6 +269,64 @@ public class PresetsAndMigrationTests
         Assert.Equal(2, healthy.SettingsVersion);
     }
 
+    /// <summary>
+    /// A colour the settings page emptied is filled back in, and doing so must not move the look
+    /// key - otherwise the repair itself would redraw every badged item.
+    /// </summary>
+    /// <remarks>
+    /// The second half is the one worth having. The first only says the field is no longer blank;
+    /// the second says the fix is free, and it is free only because the key is built from
+    /// <see cref="BadgePreset.EffectiveUniformColour"/> rather than from the stored string.
+    /// </remarks>
+    [Fact]
+    public void ABlankColourIsFilledInWithoutMovingTheLookKey()
+    {
+        var config = new PluginConfiguration { SettingsVersion = 2 };
+        var damaged = new BadgePreset
+        {
+            Id = Guid.NewGuid(),
+            Name = "Mine",
+            CompletenessColours = true,
+            UniformColour = string.Empty,
+            PartialColour = "   ",
+        };
+
+        config.CustomPresets.Add(damaged);
+        string before = OverlayApplier.LookKeyOf(damaged, config.JpegQuality);
+
+        Assert.True(config.Migrate());
+
+        Assert.Equal(BadgePreset.DefaultUniformColour, damaged.UniformColour);
+        Assert.Equal(BadgePreset.DefaultPartialColour, damaged.PartialColour);
+        Assert.Equal(before, OverlayApplier.LookKeyOf(damaged, config.JpegQuality));
+
+        // The control: the key is not simply insensitive to the colours. A colour somebody really
+        // chose moves it, which is what makes the equality above mean something.
+        damaged.UniformColour = "#112233";
+        Assert.NotEqual(before, OverlayApplier.LookKeyOf(damaged, config.JpegQuality));
+    }
+
+    /// <summary>
+    /// And the fill-in reports nothing to save when there was nothing wrong, so a healthy
+    /// configuration is not rewritten on every start.
+    /// </summary>
+    [Fact]
+    public void AColourThatIsSetIsLeftAlone()
+    {
+        var config = new PluginConfiguration { SettingsVersion = 2 };
+        config.CustomPresets.Add(new BadgePreset
+        {
+            Id = Guid.NewGuid(),
+            Name = "Mine",
+            UniformColour = "#112233",
+            PartialColour = "#445566",
+        });
+
+        Assert.False(config.Migrate());
+        Assert.Equal("#112233", config.CustomPresets[0].UniformColour);
+        Assert.Equal("#445566", config.CustomPresets[0].PartialColour);
+    }
+
     [Fact]
     public void ABuiltInCannotBeChangedThroughWhatTheAccessorHandsOut()
     {

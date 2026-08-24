@@ -49,12 +49,18 @@
             gap: 0.55em;
         }
 
+        /// Flex centring rather than line-height: the two glyphs have different ink heights, and a
+        /// box that is centred is not the same as ink that is centred.
         #posterOverlaysConfigPage .po-step {
-            min-width: 2.2em;
-            height: 2.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.6em;
+            height: 1.6em;
+            min-width: 0;
             padding: 0;
             line-height: 1;
-            font-size: 1.05em;
+            font-size: 0.9em;
             border: 1px solid rgba(255, 255, 255, 0.25);
             border-radius: 0.2em;
             background: rgba(255, 255, 255, 0.08);
@@ -359,7 +365,7 @@
 
                         <label class="po-check">
                             <input id="p_CompletenessColours" type="checkbox" is="emby-checkbox" />
-                            <span>Colour the badge by whether it holds throughout</span>
+                            <span>Color the badge by whether it holds throughout</span>
                         </label>
                         <label class="po-check">
                             <input id="p_Glow" type="checkbox" is="emby-checkbox" />
@@ -367,17 +373,17 @@
                         </label>
 
                         <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="p_UniformColour">Colour when everything agrees</label>
+                            <label class="inputLabel inputLabelUnfocused" for="p_UniformColour">Color when everything agrees</label>
                             <div class="po-colour-row">
                                 <input id="p_UniformColour" type="text" is="emby-input" class="emby-input po-colourtext" placeholder="#3ED682" />
-                                <input id="pick_UniformColour" type="color" class="po-swatch" aria-label="Pick the colour for everything agrees" />
+                                <input id="pick_UniformColour" type="color" class="po-swatch" aria-label="Pick the color for everything agrees" />
                             </div>
                         </div>
                         <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="p_PartialColour">Colour when only some do</label>
+                            <label class="inputLabel inputLabelUnfocused" for="p_PartialColour">Color when only some do</label>
                             <div class="po-colour-row">
                                 <input id="p_PartialColour" type="text" is="emby-input" class="emby-input po-colourtext" placeholder="#FFAA28" />
-                                <input id="pick_PartialColour" type="color" class="po-swatch" aria-label="Pick the colour for only some" />
+                                <input id="pick_PartialColour" type="color" class="po-swatch" aria-label="Pick the color for only some" />
                             </div>
                         </div>
                         <div class="inputContainer">
@@ -385,7 +391,7 @@
                             <input id="p_GlowRadiusPercentOfPill" type="number" is="emby-input" class="emby-input po-num" min="0" max="120" step="1" />
                         </div>
                         <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="p_PartialMarker">Marker besides the colour</label>
+                            <label class="inputLabel inputLabelUnfocused" for="p_PartialMarker">Marker besides the color</label>
                             <select id="p_PartialMarker" is="emby-select" class="emby-select">
                                 <option value="None">None</option>
                                 <option value="Vertical">Split down the middle</option>
@@ -394,7 +400,7 @@
                                 <option value="Hatch">Hatched</option>
                             </select>
                             <div class="fieldDescription">
-                                Worth keeping even beside the colour: green and amber is exactly the pair
+                                Worth keeping even beside the color: green and amber is exactly the pair
                                 that converges under the common red-green deficiency.
                             </div>
                         </div>
@@ -519,6 +525,11 @@
                 'BorderWidthPercentOfPill', 'HorizontalMarginPercent', 'VerticalMarginPercent',
                 'GlowRadiusPercentOfPill'];
             var presetTexts = ['Name', 'UniformColour', 'PartialColour'];
+
+            // The two colours have a default that has to exist in the page as well as in C#: a
+            // blank one must never reach the swatch, or it shows black and looks chosen.
+            var colourDefaults = { UniformColour: '#3ED682', PartialColour: '#FFAA28' };
+
             var presetEnums = ['Corner', 'Direction', 'PartialMarker'];
             var presetFlags = ['CompletenessColours', 'Glow'];
 
@@ -770,10 +781,22 @@
 
                 presetTexts.forEach(function (key) {
                     var el = p.querySelector('#p_' + key);
-                    if (el) {
-                        el.value = preset[key] === null || preset[key] === undefined ? '' : String(preset[key]);
-                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    if (!el) { return; }
+
+                    var value = preset[key] === null || preset[key] === undefined ? '' : String(preset[key]);
+
+                    // A colour that is blank is not a choice, it is damage - the load-time clobber
+                    // of 11.9.0.0 wrote empty strings into both. Left blank the field shows only its
+                    // placeholder and the swatch falls back to black, which reads as a setting.
+                    // Filling in the default here also writes it back on the next save, so the
+                    // preset heals itself instead of staying half empty.
+                    if (!value && colourDefaults[key]) {
+                        value = colourDefaults[key];
+                        preset[key] = value;
                     }
+
+                    el.value = value;
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
                 });
 
                 presetNumbers.forEach(function (key) {
@@ -803,9 +826,11 @@
             /// Keeps the swatch and the text field showing the same colour.
             /// The text field stays the one that is saved: it can hold something the picker
             /// cannot represent, and silently rewriting what somebody typed is worse than
-            /// showing a swatch that has not caught up.
+            /// showing a swatch that has not caught up. What the swatch must never do is sit
+            /// there black - an unset colour input defaults to #000000, which looks like a
+            /// setting rather than an absence.
             function syncSwatches() {
-                ['UniformColour', 'PartialColour'].forEach(function (key) {
+                Object.keys(colourDefaults).forEach(function (key) {
                     var text = page().querySelector('#p_' + key);
                     var pick = page().querySelector('#pick_' + key);
                     if (!text || !pick) { return; }
@@ -815,7 +840,10 @@
                         pick.value = value.toLowerCase();
                         pick.title = value;
                     } else {
-                        pick.title = value ? value + ' - not a #RRGGBB colour' : 'not set';
+                        pick.value = colourDefaults[key].toLowerCase();
+                        pick.title = value
+                            ? value + ' - not a #RRGGBB color, ' + colourDefaults[key] + ' is used'
+                            : 'not set, ' + colourDefaults[key] + ' is used';
                     }
                 });
             }
@@ -1182,13 +1210,7 @@
                     box.style.opacity = style === selectedStyle ? '1' : '0.45';
                     box.style.cursor = 'pointer';
 
-                    var html = '<div style="display:flex; gap:0.5em; align-items:flex-start;">'
-                        + previewSvg(style, false, false) + previewSvg(style, true, false) + '</div>';
-
-                    if (signalling) {
-                        html += '<div style="display:flex; gap:0.5em; align-items:flex-start; margin-top:0.4em;">'
-                            + previewSvg(style, false, true) + previewSvg(style, true, true) + '</div>';
-                    }
+                    var html = previewRows(style, signalling);
 
                     html += '<div class="fieldDescription" style="margin-top:0.3em;">'
                         + labels[style] + (style === selectedStyle ? ' (selected)' : '') + '</div>';
@@ -1211,6 +1233,29 @@
                 return preset ? preset.Style : 'DarkPill';
             }
 
+            /// One row without the completeness colours, and - when they are on - a second row
+            /// showing the other half of that setting.
+            ///
+            /// The second row is captioned rather than left to speak for itself: without a caption
+            /// it reads as the same picture drawn twice, which is what it was reported as. The
+            /// difference between the two is the whole point of the setting, so it is spelled out.
+            function previewRows(style, signalling) {
+                var row = function (partial) {
+                    return '<div style="display:flex; gap:0.5em; align-items:flex-start;">'
+                        + previewSvg(style, false, partial) + previewSvg(style, true, partial) + '</div>';
+                };
+
+                if (!signalling) { return row(false); }
+
+                var caption = function (text) {
+                    return '<div class="fieldDescription" style="margin:0.15em 0 0.1em;">' + text + '</div>';
+                };
+
+                return caption('every copy agrees') + row(false)
+                    + '<div style="margin-top:0.5em;"></div>'
+                    + caption('only some do') + row(true);
+            }
+
             /// The selected style again, pinned to the right edge so it stays in view while the
             /// fields that change it are being edited. Deliberately only the selected one: the
             /// row above is for choosing, this is for watching.
@@ -1220,15 +1265,8 @@
 
                 var body = host.querySelector('[data-body]');
                 var style = presetStyle();
-                var html = '<div style="display:flex; gap:0.5em; align-items:flex-start;">'
-                    + previewSvg(style, false, false) + previewSvg(style, true, false) + '</div>';
 
-                if (pflag('CompletenessColours')) {
-                    html += '<div style="display:flex; gap:0.5em; align-items:flex-start; margin-top:0.4em;">'
-                        + previewSvg(style, false, true) + previewSvg(style, true, true) + '</div>';
-                }
-
-                body.innerHTML = html;
+                body.innerHTML = previewRows(style, pflag('CompletenessColours'));
                 host.querySelector('[data-name]').textContent =
                     (selectedPreset() ? selectedPreset().Name : '') + '  -  ' + style;
             }

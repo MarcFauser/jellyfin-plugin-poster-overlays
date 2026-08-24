@@ -30,6 +30,16 @@ namespace Jellyfin.Plugin.PosterOverlays.Configuration;
 public class BadgePreset
 {
     /// <summary>
+    /// The colour used when every child agrees and nothing has been set.
+    /// </summary>
+    public const string DefaultUniformColour = "#3ED682";
+
+    /// <summary>
+    /// The colour used when only some children have it and nothing has been set.
+    /// </summary>
+    public const string DefaultPartialColour = "#FFAA28";
+
+    /// <summary>
     /// Gets or sets the stable identity a category points at.
     /// </summary>
     /// <remarks>
@@ -132,7 +142,7 @@ public class BadgePreset
     /// <summary>
     /// Gets or sets the border colour used when every child agrees, as <c>#RRGGBB</c>.
     /// </summary>
-    public string UniformColour { get; set; } = "#3ED682";
+    public string UniformColour { get; set; } = DefaultUniformColour;
 
     /// <summary>
     /// Gets or sets the border colour used when only some children have it, as <c>#RRGGBB</c>.
@@ -142,7 +152,7 @@ public class BadgePreset
     /// which is why <see cref="PartialMarker"/> stays available as a second channel even though it
     /// is nearly redundant beside the colour.
     /// </remarks>
-    public string PartialColour { get; set; } = "#FFAA28";
+    public string PartialColour { get; set; } = DefaultPartialColour;
 
     /// <summary>
     /// Gets or sets a value indicating whether a soft glow is drawn around the pill.
@@ -162,6 +172,26 @@ public class BadgePreset
     /// Gets or sets how a partly available badge is marked apart from its colour.
     /// </summary>
     public PartialMarker PartialMarker { get; set; } = PartialMarker.Diagonal;
+
+    /// <summary>
+    /// The colour actually used when every child agrees.
+    /// </summary>
+    /// <remarks>
+    /// A blank value is not a choice, it is damage: 11.9.0.0 wrote empty strings into both colours
+    /// while the settings page was still filling itself in. Everything that reads a colour reads it
+    /// through here, so a blank one and the default are the same thing everywhere - including in
+    /// the look key, which is what keeps repairing the stored value from causing a redraw.
+    /// </remarks>
+    /// <returns>The stored colour, or the default when it is blank.</returns>
+    public string EffectiveUniformColour() =>
+        string.IsNullOrWhiteSpace(UniformColour) ? DefaultUniformColour : UniformColour;
+
+    /// <summary>
+    /// The colour actually used when only some children have it.
+    /// </summary>
+    /// <returns>The stored colour, or the default when it is blank.</returns>
+    public string EffectivePartialColour() =>
+        string.IsNullOrWhiteSpace(PartialColour) ? DefaultPartialColour : PartialColour;
 
     /// <summary>
     /// Copies this preset under a new identity, which is the only way to edit a built-in.

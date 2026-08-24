@@ -340,14 +340,19 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <returns>True when something was migrated and the configuration should be saved.</returns>
     public bool Migrate()
     {
+        // Runs whatever the version says. A blank colour is damaged data rather than an old shape,
+        // so it can sit in a configuration that is otherwise current.
+        bool changed = FillInBlankColours();
+
         if (SettingsVersion >= 2)
         {
-            return false;
+            return changed;
         }
 
         if (SettingsVersion == 1)
         {
-            return RepairPresetsLostInTransit();
+            RepairPresetsLostInTransit();
+            return true;
         }
 
         var carried = new BadgePreset
@@ -408,6 +413,44 @@ public class PluginConfiguration : BasePluginConfiguration
     /// made presets of their own is left alone.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// Puts the default back into a colour the settings page emptied.
+    /// </summary>
+    /// <remarks>
+    /// 11.9.0.0 collected the preset fields while the page was still filling them in, so both
+    /// colours were saved as empty strings. Blank is not a colour anybody can have chosen - the
+    /// page offers a picker and a <c>#RRGGBB</c> box, neither of which produces one - so there is
+    /// nothing to preserve.
+    /// <para>
+    /// Safe to do because everything that reads a colour goes through
+    /// <see cref="BadgePreset.EffectiveUniformColour"/>, the look key included. Blank and the
+    /// default already produce the same key, so writing the default down redraws nothing - which
+    /// matters for the items whose cached original is already badged.
+    /// </para>
+    /// </remarks>
+    /// <returns>True when at least one colour was filled in.</returns>
+    private bool FillInBlankColours()
+    {
+        bool changed = false;
+
+        foreach (var preset in CustomPresets)
+        {
+            if (string.IsNullOrWhiteSpace(preset.UniformColour))
+            {
+                preset.UniformColour = BadgePreset.DefaultUniformColour;
+                changed = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(preset.PartialColour))
+            {
+                preset.PartialColour = BadgePreset.DefaultPartialColour;
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
     /// <returns>True when something was repaired.</returns>
     private bool RepairPresetsLostInTransit()
     {

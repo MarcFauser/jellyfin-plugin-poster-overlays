@@ -138,8 +138,8 @@ internal static class BadgeRenderer
             bool signalling = preset.CompletenessColours && badge.Availability != BadgeAvailability.NotApplicable;
             bool partial = signalling && badge.Availability == BadgeAvailability.Partial;
             SKColor signal = partial
-                ? ParseColour(preset.PartialColour, new SKColor(0xFF, 0xAA, 0x28))
-                : ParseColour(preset.UniformColour, new SKColor(0x3E, 0xD6, 0x82));
+                ? ParseColour(preset.EffectivePartialColour(), new SKColor(0xFF, 0xAA, 0x28))
+                : ParseColour(preset.EffectiveUniformColour(), new SKColor(0x3E, 0xD6, 0x82));
 
             if (signalling && preset.Glow)
             {

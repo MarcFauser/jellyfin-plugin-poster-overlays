@@ -523,8 +523,8 @@ internal sealed class OverlayApplier
             key = string.Join(
                 '|',
                 key,
-                preset.UniformColour,
-                preset.PartialColour,
+                preset.EffectiveUniformColour(),
+                preset.EffectivePartialColour(),
                 preset.PartialMarker.ToString(),
                 preset.Glow ? preset.GlowRadiusPercentOfPill.ToString("R", c) : "noglow");
         }
