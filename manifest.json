@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.11.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.11.0.0/jellyfin-plugin-poster-overlays_12.11.0.0.zip",
+        "checksum": "e0eed30f5a2c5b3f6112ade99f8d280f",
+        "changelog": "Fixed: the two completeness colour swatches showed black and picking a colour had no effect. The presets held empty strings written by an earlier load-time fault, and a colour input with no value renders as black - so an absence looked like a choice. A blank colour is now filled in with the default, and every reader of a colour treats blank and the default alike, so repairing the stored value redraws nothing.\n\nFixed: ticking \"Color the badge by whether it holds throughout\" looked like it showed the preview twice. It was showing both halves of that setting; both rows are captioned now.\n\nFixed: the step buttons beside the numeric fields are smaller and properly centred.",
+        "timestamp": "2026-08-24T00:04:59Z"
+      },
+      {
         "version": "12.10.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.10.0.0/jellyfin-plugin-poster-overlays_12.10.0.0.zip",
@@ -86,6 +94,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.11.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.11.0.0/jellyfin-plugin-poster-overlays_11.11.0.0.zip",
+        "checksum": "1ca6a64aa563ae9c41c494a993b6ebee",
+        "changelog": "Fixed: the two completeness colour swatches showed black and picking a colour had no effect. The presets held empty strings written by an earlier load-time fault, and a colour input with no value renders as black - so an absence looked like a choice. A blank colour is now filled in with the default, and every reader of a colour treats blank and the default alike, so repairing the stored value redraws nothing.\n\nFixed: ticking \"Color the badge by whether it holds throughout\" looked like it showed the preview twice. It was showing both halves of that setting; both rows are captioned now.\n\nFixed: the step buttons beside the numeric fields are smaller and properly centred.",
+        "timestamp": "2026-08-24T00:04:59Z"
       },
       {
         "version": "11.10.0.0",
