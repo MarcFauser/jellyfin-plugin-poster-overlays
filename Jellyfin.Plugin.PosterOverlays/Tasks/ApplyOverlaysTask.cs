@@ -164,10 +164,20 @@ public sealed class ApplyOverlaysTask : IScheduledTask
     /// Drops records whose item no longer exists, together with their cached originals.
     /// </summary>
     /// <remarks>
-    /// Nothing tells this plugin that an item was deleted - there is no <c>ItemRemoved</c>
-    /// subscription, deliberately, because that would put plugin code on the path of every
-    /// deletion the server performs, including bulk ones. So the records are reconciled here
-    /// instead, once a night, off the hot path.
+    /// There is no <c>ItemRemoved</c> subscription, and the reason is not that it would be
+    /// expensive - <b>it is that the event does not report what would need reporting.</b> Read at
+    /// <c>Emby.Server.Implementations/Library/LibraryManager.cs</c> on <c>release-10.11.z</c>:
+    /// <c>DeleteItem</c> collects the recursive children, removes the whole set from the
+    /// repository in one call, drops each child from the cache in a loop - and then raises the
+    /// event <b>once, for the root item only</b>. Delete a series and exactly one notification
+    /// arrives; its episodes vanish silently. Episodes are precisely the records at stake here,
+    /// so subscribing would leak everything it was meant to catch.
+    /// <para>
+    /// And an event only helps while something is listening. A deletion during an upgrade, a
+    /// crash between the removal and the write, an entry recreated rather than deleted - none of
+    /// them produce a notification, and each leaves an orphan that no later event will mention.
+    /// A comparison against the library has no such gaps.
+    /// </para>
     /// <para>
     /// A reconciliation rather than a better key, and that is the whole design: a GUID dies when
     /// an entry is recreated - which is the only way to shed a stale provider id, so it happens

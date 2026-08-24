@@ -33,11 +33,18 @@ for Jellyfin 12), so both lines carry the same feature set under different major
   parser can make, and affordable only because the anchor is hard. Films are untouched: the
   non-episode path is the same call it always was, so nothing is redrawn.
 
-- **Records whose item no longer exists are cleared at the end of the nightly run.** Nothing tells
-  a plugin that an item was deleted, so every record and cached original stayed on disk forever
-  and only the task that undoes the whole plugin ever collected them. That is more than tidiness
-  now: shedding a stale provider id requires the entry to be *recreated*, which mints a new id, so
-  ordinary metadata repair produces orphans.
+- **Records whose item no longer exists are cleared at the end of the nightly run.** Until now
+  every record and cached original stayed on disk forever, and only the task that undoes the whole
+  plugin ever collected them. That is more than tidiness: shedding a stale provider id requires
+  the entry to be *recreated*, which mints a new id, so ordinary metadata repair produces orphans.
+
+  Not an `ItemRemoved` subscription, and not for cost reasons — **the event does not report what
+  would need reporting.** In `LibraryManager.DeleteItem` on `release-10.11.z` the recursive
+  children are removed from the repository in one call and dropped from the cache in a loop, and
+  then the event is raised *once, for the root item only*. Delete a series and exactly one
+  notification arrives while its episodes vanish silently — and episodes are precisely the records
+  at stake. An event also only helps while something is listening: a deletion during an upgrade or
+  a crash between removal and write leaves an orphan no later event will ever mention.
 
   A reconciliation rather than a smarter key, deliberately. A GUID dies when an entry is
   recreated, a path dies on rename, and a virtual entry never had one — every key has a lifetime,

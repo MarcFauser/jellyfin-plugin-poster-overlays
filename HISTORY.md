@@ -225,3 +225,32 @@ instead of by GUID and then withdrew it: *where every key has a lifetime, the an
 different key but a reconciliation.* A GUID dies when an entry is recreated, a path dies on
 rename, a virtual entry never had one. That sentence is why the sweep is the right build rather
 than the option left over after the others failed.
+### The same day, an addendum: the reason I gave was invented
+
+The user asked why there is no `ItemRemoved` subscription. The answer in the code said it would
+put plugin code on the path of every deletion, including bulk ones. I had written that sentence
+twice — once in the project note, once in the source — and never checked it.
+
+Read at the source, `LibraryManager.DeleteItem` on `release-10.11.z`:
+
+```csharp
+_itemRepository.DeleteItem([item.Id, .. children.Select(f => f.Id)]);   // 453: all children, one call
+foreach (var child in children) { _cache.TryRemove(child.Id, out _); }  // 455: cache only, no event
+ReportItemRemoved(item, parent);                                        // 466: once, root only
+```
+
+Both halves of my reason were wrong, and in opposite directions. The handler sits inside a
+`try`/`catch` that logs, so it cannot break a deletion — cheaper than I claimed. And bulk deletion
+does not call it per item at all — so the cost I was avoiding does not exist.
+
+What the source does say is far more decisive than what I made up: **delete a series and exactly
+one notification arrives, while its episodes vanish silently.** Episodes are the records at stake,
+so a subscription would leak precisely what it was meant to catch. The right verdict is not "more
+expensive than a sweep" but "cheaper than claimed and useless" — and only the second one settles
+the question.
+
+The lesson is not about Jellyfin. A plausible reason for a correct decision is still an invented
+reason, and it is worse than none: it looks checked, so nobody checks it, and the decision it is
+attached to survives on the wrong grounds until someone asks. Here someone asked after a day. The
+guard against this is not more caution while writing — it is noticing that a *justification* is a
+factual claim like any other, and citing where it was read.
