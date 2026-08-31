@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.13.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.13.0.0/jellyfin-plugin-poster-overlays_12.13.0.0.zip",
+        "checksum": "79b18726e6ed53c10d3887ec616d6517",
+        "changelog": "Changed: a folder that says two independent things now gets two edition badges. \"REMASTERED.EXTENDED\" used to draw EXT alone, because both rules matched and only the first was ever used.\n\nCollecting every match would be wrong the other way round - it would turn \"Extended Directors Cut\" into three badges for one version. So each rule now declares what kind of statement it makes: which cut this is, how the picture is framed or coloured, how the copy was mastered. Within one kind the first match still wins, so a combination like EDC stays a single badge; across kinds the badges stand side by side, with the cut first because that is what tells two copies of a film apart.\n\nMeasured over 2380 real folders, six carry two edition tokens and no folder carries two of the same kind, so this is a small and predictable change.",
+        "timestamp": "2026-08-31T23:24:42Z"
+      },
+      {
         "version": "12.12.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.12.0.0/jellyfin-plugin-poster-overlays_12.12.0.0.zip",
@@ -102,6 +110,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.13.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.13.0.0/jellyfin-plugin-poster-overlays_11.13.0.0.zip",
+        "checksum": "5a0d1c66a7dca93ba150e70b4b8fd131",
+        "changelog": "Changed: a folder that says two independent things now gets two edition badges. \"REMASTERED.EXTENDED\" used to draw EXT alone, because both rules matched and only the first was ever used.\n\nCollecting every match would be wrong the other way round - it would turn \"Extended Directors Cut\" into three badges for one version. So each rule now declares what kind of statement it makes: which cut this is, how the picture is framed or coloured, how the copy was mastered. Within one kind the first match still wins, so a combination like EDC stays a single badge; across kinds the badges stand side by side, with the cut first because that is what tells two copies of a film apart.\n\nMeasured over 2380 real folders, six carry two edition tokens and no folder carries two of the same kind, so this is a small and predictable change.",
+        "timestamp": "2026-08-31T23:24:42Z"
       },
       {
         "version": "11.12.0.0",
