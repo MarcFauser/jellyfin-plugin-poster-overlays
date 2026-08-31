@@ -9,6 +9,24 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Changed
+
+- **A folder that says two independent things now gets two edition badges.**
+  `Ritter.aus.Leidenschaft.2001.REMASTERED.EXTENDED…` used to draw `EXT` alone: both rules
+  matched, the first in the list won, and exactly one edition badge was ever drawn.
+
+  The fix is not "draw everything that matches" — that would turn `Extended Directors Cut` into
+  `EDC EXT DC`. Each rule now declares a **facet**: which cut this is, how the picture is framed
+  or coloured, how the copy was mastered. Within a facet the first match still wins; across
+  facets the badges stand side by side, in facet order, so the cut comes first and is the one
+  that survives if `MaxBadges` trims the row. The cut is what tells two copies apart; the rest
+  describes how a copy was made.
+
+  Measured over 2380 real folders: exactly six carry two edition tokens, in three shapes — REM+UC
+  four times, OM+UC once, EXT+REM once. All three are a cut plus something that is not a cut, and
+  no pair within one facet occurs at all, which is why the rule is about meaning rather than a
+  count. Those six are the only films whose badges change.
+
 ### Added
 
 - **Episodes are read from their file name, so two copies in the same resolution can finally be

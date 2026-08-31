@@ -90,10 +90,25 @@ internal static class BadgeBuilder
 
         if (category.AllowEdition)
         {
-            string? edition = editionOverride ?? parsed.Edition;
-            if (!string.IsNullOrEmpty(edition))
+            // An override replaces the whole set rather than the first entry. It is how somebody
+            // says "this folder means EXT whatever you read in it", and honouring it while still
+            // appending a parsed REM would be answering a question that was not asked.
+            if (editionOverride is not null)
             {
-                badges.Add(new BadgeSpec(BadgeCategory.Edition, edition));
+                if (editionOverride.Length > 0)
+                {
+                    badges.Add(new BadgeSpec(BadgeCategory.Edition, editionOverride));
+                }
+            }
+            else
+            {
+                foreach (string edition in parsed.Editions)
+                {
+                    if (!string.IsNullOrEmpty(edition))
+                    {
+                        badges.Add(new BadgeSpec(BadgeCategory.Edition, edition));
+                    }
+                }
             }
         }
 

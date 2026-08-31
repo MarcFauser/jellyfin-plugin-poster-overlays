@@ -254,3 +254,36 @@ reason, and it is worse than none: it looks checked, so nobody checks it, and th
 attached to survives on the wrong grounds until someone asks. Here someone asked after a day. The
 guard against this is not more caution while writing — it is noticing that a *justification* is a
 factual claim like any other, and citing where it was read.
+## 2026-08-24 — one badge per facet, and a folder name that lied
+
+The user asked why *Ritter aus Leidenschaft* showed EXT but not REM. The catalogue answered it in
+one measurement: both rules match, EXT sits at position 11 and REM at 31, the first match wins,
+and exactly one edition badge was ever drawn. Not a bug — the documented design, and the same
+mechanism that keeps "Extended Directors Cut" from degrading into EXT or DC.
+
+He wanted both. The naive fix is to collect every match, and it produces `EDC EXT DC` on the very
+folder the design was built to protect. What separates the two cases is not how many rules match
+but **what kind of statement each one makes**: extended and remastered say two independent things,
+extended and director's cut say one thing twice. So every rule now declares a facet — cut,
+presentation, master — and one badge is drawn per facet, in facet order so that the cut leads.
+
+The measurement that made this cheap to decide: over 2380 real folders, exactly **six** carry two
+edition tokens, in three shapes — REM+UC four times, OM+UC once, EXT+REM once. Every one is a cut
+plus a non-cut, and no within-facet pair occurs at all. So the rule is about meaning, not a cap
+chosen to fit the sample, and six films change.
+
+**The side quest was better than the main one.** The folder said `1080p`; the stream said
+3840×1604, so I reported that the badge was right and the folder lied. Then the user came back
+with PotPlayer reporting 1920×802 — exactly half, in both dimensions. That is not a different
+file, that is a downscale, but "exactly half" is also what a stale metadata row would look like,
+so the honest move was to stop arguing from Jellyfin's database and measure the bytes. ffprobe
+over Jellyfin's own `/Videos/{id}/stream` reads only the header and needs no share mapping:
+3840×1604, HEVC 10-bit, `color_transfer=smpte2084`. The file really is 4K HDR; the folder name was
+wrong and has since been corrected.
+
+Worth keeping from that: **when two sources disagree, neither one's summary is evidence.** The
+Jellyfin row and the player were both second-hand. The bytes were one call away the whole time.
+
+And a small piece of luck: renaming the folder gave the film a new item id, which makes it the
+first real customer of last night's orphan sweep — the old record and its cached original now
+point at an id that will never be asked for again.

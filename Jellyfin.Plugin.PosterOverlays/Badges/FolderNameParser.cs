@@ -30,6 +30,17 @@ internal static class FolderNameParser
     private static readonly Regex PureYear = new(@"^(?:19|20)[0-9]{2}$", RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     /// <summary>
+    /// Facet order is drawing order. Declared here rather than taken from <c>Enum.GetValues</c>
+    /// so that reordering the enum for readability cannot silently reorder anybody's badges.
+    /// </summary>
+    private static readonly EditionFacet[] Facets =
+    [
+        EditionFacet.Cut,
+        EditionFacet.Presentation,
+        EditionFacet.Master,
+    ];
+
+    /// <summary>
     /// Parses a release folder name.
     /// </summary>
     /// <param name="folderName">The leaf folder name, for example
@@ -43,7 +54,7 @@ internal static class FolderNameParser
         var tokens = FolderTokenizer.Tokenize(folderName);
         if (tokens.Count == 0)
         {
-            return new Result(null, null, null, false, string.Empty);
+            return new Result([], null, null, false, string.Empty);
         }
 
         int skip = Math.Max(TitlePrefixLength(tokens, itemName), TitlePrefixLength(tokens, originalTitle));
@@ -60,7 +71,7 @@ internal static class FolderNameParser
         string zone = FolderTokenizer.NormalisedText(tokens, skip);
 
         return new Result(
-            Match(zone, tokens, skip, EditionCatalog.Editions, EditionCatalog.EditionCapsTokens),
+            MatchEditions(zone, tokens, skip),
             Match(zone, tokens, skip, EditionCatalog.Sources, EditionCatalog.SourceCapsTokens),
             Match(zone, tokens, skip, EditionCatalog.Formats, EditionCatalog.FormatCapsTokens),
             trusted,
@@ -134,6 +145,77 @@ internal static class FolderNameParser
         IReadOnlyList<EditionCatalog.Rule> rules,
         IReadOnlyList<EditionCatalog.CapsRule> capsRules) => Match(zone, tokens, skip, rules, capsRules);
 
+    /// <summary>
+    /// Applies the edition vocabulary and returns one badge per <see cref="EditionFacet"/>.
+    /// </summary>
+    /// <remarks>
+    /// Within a facet the first rule wins, exactly as before; across facets the results stand
+    /// side by side. So "Extended Directors Cut" is still one badge - both rules are cuts and the
+    /// combination rule above them wins - while "Extended Remastered" is two, because a cut and a
+    /// mastering are independent statements.
+    /// <para>
+    /// The order is the facet declaration order and not the rule order, so the cut always comes
+    /// first. That is deliberate: the cut is what distinguishes two copies of a film, and the
+    /// badge that does the distinguishing should be the one that survives <c>MaxBadges</c>.
+    /// </para>
+    /// </remarks>
+    /// <param name="zone">The normalised tag zone.</param>
+    /// <param name="tokens">The tokens the zone was built from.</param>
+    /// <param name="skip">How many leading tokens the zone drops.</param>
+    /// <returns>The badges, in facet order, possibly empty.</returns>
+    internal static IReadOnlyList<string> MatchEditions(
+        string zone,
+        IReadOnlyList<FolderTokenizer.Token> tokens,
+        int skip)
+    {
+        var found = new List<string>();
+
+        foreach (var facet in Facets)
+        {
+            string? hit = Match(
+                zone,
+                tokens,
+                skip,
+                OfFacet(EditionCatalog.Editions, facet),
+                OfFacet(EditionCatalog.EditionCapsTokens, facet));
+
+            if (hit is not null)
+            {
+                found.Add(hit);
+            }
+        }
+
+        return found;
+    }
+
+    private static List<EditionCatalog.Rule> OfFacet(IReadOnlyList<EditionCatalog.Rule> rules, EditionFacet facet)
+    {
+        var subset = new List<EditionCatalog.Rule>();
+        foreach (var rule in rules)
+        {
+            if (rule.Facet == facet)
+            {
+                subset.Add(rule);
+            }
+        }
+
+        return subset;
+    }
+
+    private static List<EditionCatalog.CapsRule> OfFacet(IReadOnlyList<EditionCatalog.CapsRule> rules, EditionFacet facet)
+    {
+        var subset = new List<EditionCatalog.CapsRule>();
+        foreach (var rule in rules)
+        {
+            if (rule.Facet == facet)
+            {
+                subset.Add(rule);
+            }
+        }
+
+        return subset;
+    }
+
     private static string? Match(
         string zone,
         IReadOnlyList<FolderTokenizer.Token> tokens,
@@ -205,7 +287,11 @@ internal static class FolderNameParser
     /// <summary>
     /// What the parser found, plus what it had to work with.
     /// </summary>
-    /// <param name="Edition">The edition badge, or null.</param>
+    /// <param name="Editions">
+    /// The edition badges, at most one per <see cref="EditionFacet"/> and in facet order.
+    /// Usually empty or a single entry; two occur when a folder says both which cut it is and
+    /// how it was mastered, as in "REMASTERED.EXTENDED".
+    /// </param>
     /// <param name="Source">The source-quality badge, or null.</param>
     /// <param name="Format">The presentation-format badge, currently only 3D, or null.</param>
     /// <param name="TitleTrusted">
@@ -213,5 +299,17 @@ internal static class FolderNameParser
     /// Worth logging: it means the item has no metadata match.
     /// </param>
     /// <param name="TagZone">The normalised text the rules were applied to.</param>
-    internal sealed record Result(string? Edition, string? Source, string? Format, bool TitleTrusted, string TagZone);
+    internal sealed record Result(
+        IReadOnlyList<string> Editions,
+        string? Source,
+        string? Format,
+        bool TitleTrusted,
+        string TagZone)
+    {
+        /// <summary>
+        /// Gets the leading edition badge, or null. Kept because most callers and every
+        /// diagnostic only ever want the one that distinguishes two copies, and that is the cut.
+        /// </summary>
+        public string? Edition => Editions.Count > 0 ? Editions[0] : null;
+    }
 }

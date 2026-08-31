@@ -25,58 +25,67 @@ namespace Jellyfin.Plugin.PosterOverlays.Badges;
 internal static class EditionCatalog
 {
     /// <summary>
-    /// Gets the edition rules, highest priority first. The first match wins and exactly one
-    /// edition badge is drawn.
+    /// Gets the edition rules, highest priority first. Within one <see cref="EditionFacet"/> the
+    /// first match wins; across facets one badge each may be drawn.
     /// </summary>
     /// <remarks>
     /// Combinations come before singles so that "Extended Directors Cut" never degrades to
     /// EXT or DC.
+    /// <para>
+    /// The facet is what lets a folder carry two edition badges without producing nonsense.
+    /// "Extended Remastered" says two independent things - which cut, and how it was mastered -
+    /// while "Extended Directors Cut" says one thing twice, and only the first kind may be drawn
+    /// side by side. Measured on the reference library: of 2380 films exactly six carry two
+    /// tokens, in three shapes - REM+UC four times, OM+UC once, EXT+REM once - and all three are
+    /// a cut plus something that is not a cut. There is no attested pair within one facet, which
+    /// is why "one per facet" is a rule about meaning and not a cap picked to fit the data.
+    /// </para>
     /// </remarks>
     public static IReadOnlyList<Rule> Editions { get; } = new[]
     {
         // combinations
-        new Rule("EDC",  @"extended directors cut|recut directors cut"),
-        new Rule("UEC",  @"unrated extended (?:cut|edition|version)|extended unrated"),
-        new Rule("UEE",  @"ultimate extended (?:cut|edition)"),
+        new Rule(EditionFacet.Cut, "EDC",  @"extended directors cut|recut directors cut"),
+        new Rule(EditionFacet.Cut, "UEC",  @"unrated extended (?:cut|edition|version)|extended unrated"),
+        new Rule(EditionFacet.Cut, "UEE",  @"ultimate extended (?:cut|edition)"),
 
         // named cuts - unambiguous, so they may stand above the generic ones
-        new Rule("DON",  @"(?:richard )?donner cut"),
-        new Rule("SNY",  @"snyder cut"),
-        new Rule("RGC",  @"ro[gu]e cut"),
-        new Rule("ASC",  @"assembly cut"),
-        new Rule("PRC",  @"producers cut"),
-        new Rule("DESP", @"despecial[iy][sz]ed"),
+        new Rule(EditionFacet.Cut, "DON",  @"(?:richard )?donner cut"),
+        new Rule(EditionFacet.Cut, "SNY",  @"snyder cut"),
+        new Rule(EditionFacet.Cut, "RGC",  @"ro[gu]e cut"),
+        new Rule(EditionFacet.Cut, "ASC",  @"assembly cut"),
+        new Rule(EditionFacet.Cut, "PRC",  @"producers cut"),
+        new Rule(EditionFacet.Cut, "DESP", @"despecial[iy][sz]ed"),
 
         // generic cuts
-        new Rule("DC",   @"directors? cut|directors (?:edition|version)|regiefassung"),
-        new Rule("EXT",  @"extended(?: (?:cut|edition|version))?|langfassung|lange fassung"),
-        new Rule("ULT",  @"ultimate (?:cut|edition|version)"),
-        new Rule("FIN",  @"final (?:cut|edition|version)"),
-        new Rule("RDX",  @"redux"),
-        new Rule("RC",   @"recut"),
-        new Rule("FAN",  @"fan ?edit(?:ion)?"),
-        new Rule("INT",  @"international (?:cut|version)|internationale fassung"),
+        new Rule(EditionFacet.Cut, "DC",   @"directors? cut|directors (?:edition|version)|regiefassung"),
+        new Rule(EditionFacet.Cut, "EXT",  @"extended(?: (?:cut|edition|version))?|langfassung|lange fassung"),
+        new Rule(EditionFacet.Cut, "ULT",  @"ultimate (?:cut|edition|version)"),
+        new Rule(EditionFacet.Cut, "FIN",  @"final (?:cut|edition|version)"),
+        new Rule(EditionFacet.Cut, "RDX",  @"redux"),
+        new Rule(EditionFacet.Cut, "RC",   @"recut"),
+        new Rule(EditionFacet.Cut, "FAN",  @"fan ?edit(?:ion)?"),
+        new Rule(EditionFacet.Cut, "INT",  @"international (?:cut|version)|internationale fassung"),
 
         // framing and presentation
-        new Rule("IMAX", @"(?<!non )imax(?: (?:enhanced|edition|version))?"),
-        new Rule("OM",   @"open ?matte"),
-        new Rule("THR",  @"theatrical(?: (?:cut|edition|version))?|kinofassung|kinoversion"),
+        new Rule(EditionFacet.Presentation, "IMAX", @"(?<!non )imax(?: (?:enhanced|edition|version))?"),
+        new Rule(EditionFacet.Presentation, "OM",   @"open ?matte"),
+        new Rule(EditionFacet.Cut, "THR",  @"theatrical(?: (?:cut|edition|version))?|kinofassung|kinoversion"),
 
         // content
-        new Rule("UC",   @"uncut|ungeschnitten|ungekuerzt"),
-        new Rule("UNZ",  @"uncensored|unzensiert(?:e fassung)?"),
-        new Rule("UR",   @"unrated(?: (?:cut|edition|version))?"),
-        new Rule("BW",   @"black and chrome|black chrome|logan noir|justice is gray|minus colou?r"),
-        new Rule("COL",  @"colou?rized|kolorierte fassung"),
-        new Rule("ALT",  @"alternat(?:e|ive) (?:cut|ending|version)"),
-        new Rule("2IN1", @"[234]in1"),
+        new Rule(EditionFacet.Cut, "UC",   @"uncut|ungeschnitten|ungekuerzt"),
+        new Rule(EditionFacet.Cut, "UNZ",  @"uncensored|unzensiert(?:e fassung)?"),
+        new Rule(EditionFacet.Cut, "UR",   @"unrated(?: (?:cut|edition|version))?"),
+        new Rule(EditionFacet.Presentation, "BW",   @"black and chrome|black chrome|logan noir|justice is gray|minus colou?r"),
+        new Rule(EditionFacet.Presentation, "COL",  @"colou?rized|kolorierte fassung"),
+        new Rule(EditionFacet.Cut, "ALT",  @"alternat(?:e|ive) (?:cut|ending|version)"),
+        new Rule(EditionFacet.Cut, "2IN1", @"[234]in1"),
 
         // packaging that still tells two folders apart
-        new Rule("SE",   @"special (?:edition|cut)|sonderedition"),
-        new Rule("CE",   @"collectors (?:edition|cut)|sammleredition"),
-        new Rule("AE",   @"anniversary edition|[0-9]{1,3}(?:st|nd|rd|th) anniversary|jubilaeumsedition"),
-        new Rule("REM",  @"remastere?d?|restored|restauriert(?:e fassung)?|4k restoration"),
-        new Rule("TVF",  @"tv (?:cut|version|fassung)|deutsche tv fassung|fernsehfassung"),
+        new Rule(EditionFacet.Cut, "SE",   @"special (?:edition|cut)|sonderedition"),
+        new Rule(EditionFacet.Cut, "CE",   @"collectors (?:edition|cut)|sammleredition"),
+        new Rule(EditionFacet.Cut, "AE",   @"anniversary edition|[0-9]{1,3}(?:st|nd|rd|th) anniversary|jubilaeumsedition"),
+        new Rule(EditionFacet.Master, "REM",  @"remastere?d?|restored|restauriert(?:e fassung)?|4k restoration"),
+        new Rule(EditionFacet.Cut, "TVF",  @"tv (?:cut|version|fassung)|deutsche tv fassung|fernsehfassung"),
     };
 
     /// <summary>
@@ -91,11 +100,11 @@ internal static class EditionCatalog
     /// </remarks>
     public static IReadOnlyList<CapsRule> EditionCapsTokens { get; } = new[]
     {
-        new CapsRule("DC", "DC"),
-        new CapsRule("SE", "SE"),
-        new CapsRule("OM", "OM"),
-        new CapsRule("BW", "BW"),
-        new CapsRule("CHR", "CHRONO"),
+        new CapsRule(EditionFacet.Cut, "DC", "DC"),
+        new CapsRule(EditionFacet.Cut, "SE", "SE"),
+        new CapsRule(EditionFacet.Presentation, "OM", "OM"),
+        new CapsRule(EditionFacet.Presentation, "BW", "BW"),
+        new CapsRule(EditionFacet.Cut, "CHR", "CHRONO"),
     };
 
     /// <summary>
@@ -165,11 +174,27 @@ internal static class EditionCatalog
     /// <summary>
     /// A vocabulary entry.
     /// </summary>
+    /// <param name="Facet">
+    /// Which kind of statement this token makes. Only meaningful for <see cref="Editions"/> -
+    /// formats and sources are single-valued and never grouped, so they use the constructor
+    /// below and their facet is never read.
+    /// </param>
     /// <param name="Badge">The label to draw.</param>
     /// <param name="Pattern">Alternation matched against the normalised tag zone.</param>
-    internal sealed record Rule(string Badge, string Pattern)
+    internal sealed record Rule(EditionFacet Facet, string Badge, string Pattern)
     {
         private Regex? _compiled;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rule"/> class for a vocabulary that has
+        /// no facets.
+        /// </summary>
+        /// <param name="badge">The label to draw.</param>
+        /// <param name="pattern">Alternation matched against the normalised tag zone.</param>
+        public Rule(string badge, string pattern)
+            : this(EditionFacet.Cut, badge, pattern)
+        {
+        }
 
         /// <summary>
         /// Tests the rule against a normalised tag zone.
@@ -188,7 +213,20 @@ internal static class EditionCatalog
     /// <summary>
     /// A short token that is only accepted when the folder spells it in capitals.
     /// </summary>
+    /// <param name="Facet">Which kind of statement this token makes.</param>
     /// <param name="Badge">The label to draw.</param>
     /// <param name="Token">The exact upper case spelling in the folder name.</param>
-    internal sealed record CapsRule(string Badge, string Token);
+    internal sealed record CapsRule(EditionFacet Facet, string Badge, string Token)
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CapsRule"/> class for a vocabulary that
+        /// has no facets.
+        /// </summary>
+        /// <param name="badge">The label to draw.</param>
+        /// <param name="token">The exact upper case spelling in the folder name.</param>
+        public CapsRule(string badge, string token)
+            : this(EditionFacet.Cut, badge, token)
+        {
+        }
+    }
 }

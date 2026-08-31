@@ -68,7 +68,7 @@ internal static class EpisodeFileNameParser
     /// Nothing found. <c>TitleTrusted</c> is false so a caller cannot mistake silence for a
     /// searched-and-empty zone.
     /// </summary>
-    private static readonly FolderNameParser.Result Empty = new(null, null, null, false, string.Empty);
+    private static readonly FolderNameParser.Result Empty = new([], null, null, false, string.Empty);
 
     /// <summary>
     /// Parses an episode file name.
@@ -107,7 +107,7 @@ internal static class EpisodeFileNameParser
         }
 
         return new FolderNameParser.Result(
-            FolderNameParser.MatchZone(zone, tokens, skip, EditionCatalog.Editions, EditionCatalog.EditionCapsTokens),
+            FolderNameParser.MatchEditions(zone, tokens, skip),
             FolderNameParser.MatchZone(zone, tokens, skip, EditionCatalog.Sources, EditionCatalog.SourceCapsTokens),
             FolderNameParser.MatchZone(zone, tokens, skip, EditionCatalog.Formats, EditionCatalog.FormatCapsTokens),
             TitleTrusted: true,
