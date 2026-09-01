@@ -69,7 +69,10 @@ internal static class EditionCatalog
         // framing and presentation
         new Rule(EditionFacet.Presentation, "IMAX", @"(?<!non )imax(?: (?:enhanced|edition|version))?"),
         new Rule(EditionFacet.Presentation, "OM",   @"open ?matte"),
-        new Rule(EditionFacet.Cut, "THR",  @"theatrical(?: (?:cut|edition|version))?|kinofassung|kinoversion"),
+        // "kino ?fassung" rather than "kinofassung": the nightly run reported a folder spelling it
+        // as two words, and the catalogue only knew the compound. The optional space costs nothing
+        // and cannot widen the match - "kino" alone still matches no rule.
+        new Rule(EditionFacet.Cut, "THR",  @"theatrical(?: (?:cut|edition|version))?|kino ?(?:fassung|version)"),
 
         // content
         new Rule(EditionFacet.Cut, "UC",   @"uncut|ungeschnitten|ungekuerzt"),

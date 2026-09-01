@@ -41,6 +41,9 @@ public class FolderNameParserTests
     [InlineData("Der.toedliche.Schwarm.1978.KiNOFASSUNG.German.DL.1080p.BluRay.x264-PL3X", "Der tödliche Schwarm", null, "THR")]
     [InlineData("Der.toedliche.Schwarm.1978.LANGFASSUNG.German.DL.1080p.BluRay.x264-PL3X", "Der tödliche Schwarm", null, "EXT")]
 
+    // --- written as two words, which the nightly run reported as unmapped -------------
+    [InlineData("Vier.Faeuste.fuer.ein.Halleluja.Kino.Fassung.1971.German.AC3.1080p.BluRay.x264-iND", "Vier Fäuste für ein Halleluja", null, "THR")]
+
     // --- umlaut in the folder, transliteration in the sibling, and vice versa --------
     [InlineData("Zurueck.in.die.Zukunft.1.1985.REMASTERED.German.EAC3.DL.1080p.BluRay.x265-VECTOR", "Zurück in die Zukunft", null, "REM")]
 

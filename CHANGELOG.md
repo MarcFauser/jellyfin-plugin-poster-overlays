@@ -9,6 +9,18 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Added
+
+- **`Kino Fassung` written as two words is recognised as the theatrical cut.** The catalogue only
+  knew the compound `kinofassung`, so a folder spelling it apart got no edition badge at all — it
+  turned up in the nightly "edition-looking phrase with no rule for it" report. The pattern now
+  tolerates the space (`kino ?(?:fassung|version)`), which cannot widen the match: `kino` on its
+  own still fires no rule. One film in the reference library is affected.
+
+  The other seven phrases from that report were looked at and deliberately left alone: two were
+  spelling mistakes in the release name that have since been corrected at the source, and five are
+  too particular to earn a catalogue entry.
+
 ### Documented
 
 - **The repair path never downloads from an image provider that is switched off for that
