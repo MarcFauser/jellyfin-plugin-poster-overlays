@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.15.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.15.0.0/jellyfin-plugin-poster-overlays_12.15.0.0.zip",
+        "checksum": "0f6ed119cb8043886d6912f45a0d4e0e",
+        "changelog": "Added: two centred badge positions, \"Top, centred\" and \"Bottom, centred\", for images a client crops on the sides. Jellyfin's episode list shows a still in a container of its own proportions and takes the difference off the left and right, so a badge near either edge is cut in half - and raising the margin does not help, because the crop is proportional rather than a fixed number of pixels.\n\nCentred sidesteps that instead of fighting it: the crop may take as much as it likes off both sides and a badge in the middle stays whole, so only the vertical distance still has to fit. The horizontal margin is ignored in these two positions, because a margin is a distance from an edge and there is none. With a vertical badge direction each pill is centred on its own rather than the column as a block.\n\nExisting presets are unaffected: the new values are appended, so the four corners keep the meaning they had.",
+        "timestamp": "2026-09-01T18:10:13Z"
+      },
+      {
         "version": "12.14.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.14.0.0/jellyfin-plugin-poster-overlays_12.14.0.0.zip",
@@ -118,6 +126,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.15.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.15.0.0/jellyfin-plugin-poster-overlays_11.15.0.0.zip",
+        "checksum": "3d622718e7c9d5a949b53c8774c781b6",
+        "changelog": "Added: two centred badge positions, \"Top, centred\" and \"Bottom, centred\", for images a client crops on the sides. Jellyfin's episode list shows a still in a container of its own proportions and takes the difference off the left and right, so a badge near either edge is cut in half - and raising the margin does not help, because the crop is proportional rather than a fixed number of pixels.\n\nCentred sidesteps that instead of fighting it: the crop may take as much as it likes off both sides and a badge in the middle stays whole, so only the vertical distance still has to fit. The horizontal margin is ignored in these two positions, because a margin is a distance from an edge and there is none. With a vertical badge direction each pill is centred on its own rather than the column as a block.\n\nExisting presets are unaffected: the new values are appended, so the four corners keep the meaning they had.",
+        "timestamp": "2026-09-01T18:10:13Z"
       },
       {
         "version": "11.14.0.0",
