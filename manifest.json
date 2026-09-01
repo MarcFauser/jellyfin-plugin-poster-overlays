@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.14.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.14.0.0/jellyfin-plugin-poster-overlays_12.14.0.0.zip",
+        "checksum": "fd5a8f757bfb011a9ed585ec15b442c8",
+        "changelog": "Added: \"Kino Fassung\" written as two words is now recognised as the theatrical cut. The catalogue only knew the compound spelling, so a folder that separated the words got no edition badge at all and instead turned up in the nightly report of edition-looking phrases with no rule for them. The optional space cannot widen the match - \"kino\" on its own still fires no rule.\n\nDocumented: the repair path never downloads from an image provider that is switched off for the library the item belongs to, and the code now says why that is not automatic. Passing the item does not restrict the providers by itself; \"disabled\" is defined relative to a library, so the item supplies the frame of reference and the query flag applies it. No behaviour change - the guard was already there, but it read like tidiness somebody could remove.",
+        "timestamp": "2026-09-01T16:45:05Z"
+      },
+      {
         "version": "12.13.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.13.0.0/jellyfin-plugin-poster-overlays_12.13.0.0.zip",
@@ -110,6 +118,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.14.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.14.0.0/jellyfin-plugin-poster-overlays_11.14.0.0.zip",
+        "checksum": "23681d629b8e012387bbe279b62947e8",
+        "changelog": "Added: \"Kino Fassung\" written as two words is now recognised as the theatrical cut. The catalogue only knew the compound spelling, so a folder that separated the words got no edition badge at all and instead turned up in the nightly report of edition-looking phrases with no rule for them. The optional space cannot widen the match - \"kino\" on its own still fires no rule.\n\nDocumented: the repair path never downloads from an image provider that is switched off for the library the item belongs to, and the code now says why that is not automatic. Passing the item does not restrict the providers by itself; \"disabled\" is defined relative to a library, so the item supplies the frame of reference and the query flag applies it. No behaviour change - the guard was already there, but it read like tidiness somebody could remove.",
+        "timestamp": "2026-09-01T16:45:05Z"
       },
       {
         "version": "11.13.0.0",
