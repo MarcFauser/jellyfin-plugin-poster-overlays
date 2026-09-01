@@ -422,6 +422,17 @@ internal sealed class OverlayApplier
             return false;
         }
 
+        // IncludeDisabledProviders = false is the load-bearing line here, not tidiness, and it
+        // is worth saying so because the obvious assumption is wrong: passing the item does NOT
+        // restrict the providers by itself. "Disabled" is defined relative to a library, so the
+        // item only supplies the frame of reference - the switch is what applies it. Measured on
+        // 10.11.11 by a neighbouring session: with the item present but the switch on, providers
+        // that are not ticked for that library come back regardless.
+        //
+        // Jellyfin's own route does exactly that. RemoteImageController.GetRemoteImages builds
+        // its query with IncludeDisabledProviders = true on purpose, because the image picker in
+        // the web client is meant to offer everything. This plugin is not a picker: it downloads
+        // without asking, so it must honour what the user configured for that library.
         var query = new RemoteImageQuery(string.Empty)
         {
             ImageType = ImageType.Primary,

@@ -9,6 +9,17 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Documented
+
+- **The repair path never downloads from an image provider that is switched off for that
+  library**, and the code now says why that is not automatic. Passing the item does not restrict
+  the providers by itself — "disabled" is defined relative to a library, so the item only
+  supplies the frame of reference and `IncludeDisabledProviders = false` is what applies it.
+  Jellyfin's own `/Items/{id}/RemoteImages` route sets that flag to `true` on purpose, because
+  the picker in the web client should offer everything. This plugin downloads without asking, so
+  it has to honour what was configured. No behaviour change; the guard was already there, but it
+  read like tidiness somebody could drop.
+
 ### Changed
 
 - **A folder that says two independent things now gets two edition badges.**
