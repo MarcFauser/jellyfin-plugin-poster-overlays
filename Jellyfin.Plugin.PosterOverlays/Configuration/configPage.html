@@ -300,7 +300,15 @@
                                 <option value="TopRight">Top right</option>
                                 <option value="BottomLeft">Bottom left</option>
                                 <option value="BottomRight">Bottom right</option>
+                                <option value="TopCentre">Top, centred</option>
+                                <option value="BottomCentre">Bottom, centred</option>
                             </select>
+                            <div class="fieldDescription">
+                                Centred is for images a client crops on the sides - the episode
+                                list does that with stills, cutting a badge that sits near either
+                                edge however large the margin is. Centred, only the vertical
+                                distance still matters; the horizontal margin is ignored.
+                            </div>
                         </div>
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="p_Direction">Direction</label>
@@ -1065,7 +1073,8 @@
                 var corner = ppick('Corner', 'TopRight');
                 var horizontal = ppick('Direction', 'Vertical') === 'Horizontal';
                 var right = corner === 'TopRight' || corner === 'BottomRight';
-                var bottom = corner === 'BottomRight' || corner === 'BottomLeft';
+                var centred = corner === 'TopCentre' || corner === 'BottomCentre';
+                var bottom = corner === 'BottomRight' || corner === 'BottomLeft' || corner === 'BottomCentre';
 
                 var signalling = pflag('CompletenessColours');
                 var signal = partial ? ppick('PartialColour', '#FFAA28') : ppick('UniformColour', '#3ED682');
@@ -1091,7 +1100,7 @@
                 var stackH = horizontal ? pillH : (pills.length * pillH) + ((pills.length - 1) * gap);
 
                 var y = bottom ? h - marginY - stackH : marginY;
-                var x = right ? w - marginX - rowWidth : marginX;
+                var x = centred ? (w - rowWidth) / 2 : (right ? w - marginX - rowWidth : marginX);
 
                 var uid = 'g' + Math.random().toString(36).slice(2, 8);
                 var parts = ['<defs><filter id="' + uid + '" x="-60%" y="-60%" width="220%" height="220%">'
@@ -1106,7 +1115,7 @@
 
                 pills.forEach(function (p) {
                     var colours = palettes[style][p.key];
-                    var px = horizontal ? x : (right ? w - marginX - p.width : marginX);
+                    var px = horizontal ? x : (centred ? (w - p.width) / 2 : (right ? w - marginX - p.width : marginX));
                     var py = y;
 
                     if (signalling && glow) {

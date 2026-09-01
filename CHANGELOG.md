@@ -11,6 +11,24 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ### Added
 
+- **Two centred positions, "Top, centred" and "Bottom, centred", for images a client crops on the
+  sides.** Jellyfin's episode list shows a still in a container of its own proportions and takes
+  the difference off the left and right, so a badge near either edge is cut in half — measured on
+  a real episode: 2 % margin was cut, and raising it to 5 % changed nothing, because the crop is
+  proportional and not a fixed number of pixels. No margin can win that argument.
+
+  Centred sidesteps it instead of fighting it: the crop may take as much as it likes off both
+  sides and a badge in the middle stays whole, so only the vertical distance still has to fit.
+  The horizontal margin is deliberately ignored in these two positions — a margin is a distance
+  from an edge, and there is none here; honouring it would only shift the row off centre. With a
+  vertical badge direction each pill is centred on its own rather than the column as a block,
+  otherwise a narrow pill under a wide one sits visibly off to one side.
+
+  The new values are appended to the enum, so `TopRight` … `BottomLeft` keep the numbers they had
+  and no existing preset changes meaning. Tests assert the drawn pixels rather than the computed
+  rectangle, including a control that the ordinary corners are *not* centred and one that a 20 %
+  crop per side removes a corner badge but not a centred one.
+
 - **`Kino Fassung` written as two words is recognised as the theatrical cut.** The catalogue only
   knew the compound `kinofassung`, so a folder spelling it apart got no edition badge at all — it
   turned up in the nightly "edition-looking phrase with no rule for it" report. The pattern now

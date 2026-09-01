@@ -84,7 +84,8 @@ internal static class BadgeRenderer
         float marginY = (float)(height * preset.VerticalMarginPercent / 100.0);
 
         bool right = preset.Corner is BadgeCorner.TopRight or BadgeCorner.BottomRight;
-        bool bottom = preset.Corner is BadgeCorner.BottomLeft or BadgeCorner.BottomRight;
+        bool centred = preset.Corner is BadgeCorner.TopCentre or BadgeCorner.BottomCentre;
+        bool bottom = preset.Corner is BadgeCorner.BottomLeft or BadgeCorner.BottomRight or BadgeCorner.BottomCentre;
         bool horizontal = preset.Direction == BadgeDirection.Horizontal;
 
         using var font = new SKFont(Typeface(), fontSize) { Edging = SKFontEdging.SubpixelAntialias };
@@ -110,7 +111,13 @@ internal static class BadgeRenderer
             : (badges.Count * pillHeight) + ((badges.Count - 1) * gap);
 
         float y = bottom ? height - marginY - stackHeight : marginY;
-        float x = right ? width - marginX - rowWidth : marginX;
+
+        // Centred ignores the horizontal margin on purpose: a margin is a distance from an edge,
+        // and there is no edge here. Honouring it would just shift the row off centre, which is
+        // the one property this corner exists to guarantee.
+        float x = centred
+            ? (width - rowWidth) / 2f
+            : (right ? width - marginX - rowWidth : marginX);
 
         for (int i = 0; i < badges.Count; i++)
         {
@@ -126,9 +133,14 @@ internal static class BadgeRenderer
             }
             else
             {
-                rect = right
-                    ? new SKRect(width - marginX - pillWidth, y, width - marginX, y + pillHeight)
-                    : new SKRect(marginX, y, marginX + pillWidth, y + pillHeight);
+                // Stacked pills differ in width, so each one is centred on its own rather than the
+                // column being centred as a block - otherwise a narrow pill under a wide one would
+                // sit visibly off to one side.
+                float left = centred
+                    ? (width - pillWidth) / 2f
+                    : (right ? width - marginX - pillWidth : marginX);
+
+                rect = new SKRect(left, y, left + pillWidth, y + pillHeight);
                 y += pillHeight + gap;
             }
 
