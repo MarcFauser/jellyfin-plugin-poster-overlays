@@ -9,6 +9,25 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Fixed
+
+- **The preview opened at the poster's stored size and covered the screen.** A `max-width: 100%`
+  on the image was not a limit at all here: a percentage resolves against the container, and the
+  floating panel is `position: fixed` with no width of its own, so the container grew with the
+  picture and the ceiling was never reached. The panel now has a width, and the image is capped in
+  both directions — a poster arrives at 1000x1500 and upwards, so one bound is not enough.
+
+- **Eight style rules applied to the whole of Jellyfin, not just this page.** The page states the
+  rule in its own first comment — every selector carries the page id, because a plugin settings
+  page is injected into the running client — and the rules added for the preview did not. Nothing
+  collided, which is precisely why it would have gone unnoticed; a rule about `.po-hit:hover` was
+  a rule about every element in the client carrying that class. Two are genuinely exempt and now
+  say so: the floating panel is appended to `document.body` rather than to the page, and the
+  preview image appears inside it as well as on the page.
+
+  Both are now tested, the scoping check against a planted unscoped rule so it is known to be able
+  to fail.
+
 ### Changed
 
 - **The preview shows the real thing instead of an imitation of it.** The settings page used to

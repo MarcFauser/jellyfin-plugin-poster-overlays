@@ -116,6 +116,115 @@ public class ConfigPageTests
     }
 
     /// <summary>
+    /// Every style rule is scoped to the page, so it cannot reach the rest of Jellyfin.
+    /// </summary>
+    /// <remarks>
+    /// The page states this rule in its own first comment and then had eight rules that broke it -
+    /// mine. A plugin settings page is injected into the running client, so an unscoped
+    /// <c>.po-hit:hover</c> is a rule about every element in Jellyfin that happens to carry that
+    /// class. Nothing collides today, which is exactly why nobody would notice.
+    /// <para>
+    /// The two exceptions are real and named: the floating panel is appended to
+    /// <c>document.body</c> rather than to the page, and the preview image appears inside it as
+    /// well as on the page. A rule that must apply outside the page cannot be scoped to it.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void EveryStyleRuleIsScopedToThePage()
+    {
+        var offenders = UnscopedSelectors(Page());
+
+        Assert.True(
+            offenders.Count == 0,
+            "These rules would apply to the whole client: " + string.Join(" | ", offenders));
+    }
+
+    /// <summary>
+    /// The scoping check can fail - proven on a planted rule rather than assumed.
+    /// </summary>
+    [Fact]
+    public void TheScopingCheckCanFail()
+    {
+        string html = Page();
+
+        // Grafted into the style block, exactly as a careless edit would leave it.
+        string planted = html.Replace(
+            "    </style>",
+            "        .po-planted-global { color: red; }\n    </style>",
+            StringComparison.Ordinal);
+
+        Assert.NotEqual(html, planted);
+
+        // By predicate, not by equality: what comes back is the whole selector line,
+        // ".po-planted-global { color: red; }", and asking for equality with the class name alone
+        // looks right and never matches.
+        Assert.Contains(UnscopedSelectors(planted), o => o.Contains(".po-planted-global", StringComparison.Ordinal));
+        Assert.Empty(UnscopedSelectors(html));
+    }
+
+    /// <summary>
+    /// The preview image is capped in both directions.
+    /// </summary>
+    /// <remarks>
+    /// It arrives at the stored size of a poster, 1000x1500 and upwards. <c>max-width</c> on its
+    /// own was not a limit: it resolves against the container, and the floating panel is
+    /// <c>position:fixed</c> with no width of its own, so the container grew with the picture and
+    /// the preview covered the screen. Both ceilings have to be there.
+    /// </remarks>
+    [Fact]
+    public void ThePreviewImageCannotGrowWithoutBound()
+    {
+        string style = StyleBlock(Page());
+        int start = style.IndexOf(".po-shot {", StringComparison.Ordinal);
+        Assert.True(start >= 0, "the .po-shot rule is gone");
+
+        string rule = style[start..style.IndexOf('}', start)];
+        Assert.Contains("max-width", rule, StringComparison.Ordinal);
+        Assert.Contains("max-height", rule, StringComparison.Ordinal);
+
+        int panel = style.IndexOf(".po-floating {", StringComparison.Ordinal);
+        Assert.True(panel >= 0, "the .po-floating rule is gone");
+        Assert.Contains("max-width", style[panel..style.IndexOf('}', panel)], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Finds style rules that are not scoped to the page id.
+    /// </summary>
+    /// <remarks>
+    /// Line based rather than a real CSS parse: the selectors in this file are written one per
+    /// line, and a parser would be a second thing to get wrong for no gain here.
+    /// </remarks>
+    /// <param name="html">The page.</param>
+    /// <returns>The offending selector lines.</returns>
+    private static List<string> UnscopedSelectors(string html)
+    {
+        // Appended to document.body by script, so they are outside the page by construction.
+        string[] allowed = [".po-floating", ".po-shot {"];
+
+        return StyleBlock(html)
+            .Split('\n')
+            .Select(l => l.Trim())
+            .Where(l => l.StartsWith('.') && (l.Contains('{', StringComparison.Ordinal) || l.EndsWith(',')))
+            .Where(l => !l.Contains("#posterOverlaysConfigPage", StringComparison.Ordinal))
+            .Where(l => !allowed.Any(a => l.StartsWith(a, StringComparison.Ordinal)))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Pulls out the style block, with comments removed so a selector inside one is not counted.
+    /// </summary>
+    /// <param name="html">The page.</param>
+    /// <returns>The stylesheet text.</returns>
+    private static string StyleBlock(string html)
+    {
+        int from = html.IndexOf("<style>", StringComparison.Ordinal);
+        int to = html.IndexOf("</style>", StringComparison.Ordinal);
+        Assert.True(from >= 0 && to > from, "the page has no style block");
+
+        return Regex.Replace(html[(from + 7)..to], @"/\*.*?\*/", string.Empty, RegexOptions.Singleline);
+    }
+
+    /// <summary>
     /// Reads the page from the source tree.
     /// </summary>
     /// <remarks>

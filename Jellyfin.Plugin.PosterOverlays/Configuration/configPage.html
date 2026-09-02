@@ -162,6 +162,11 @@
             border-radius: 0.4em;
             padding: 0.7em;
             box-shadow: 0 0.4em 1.4em rgba(0, 0, 0, 0.55);
+            /* Both ceilings are load-bearing. A position:fixed box takes its width from its
+               content, so without max-width it grew to the stored size of the poster and covered
+               the page - and a percentage limit on the image could not help, because the thing it
+               was a percentage OF was the box that was growing. */
+            max-width: 17em;
             max-height: 88vh;
             overflow: auto;
         }
@@ -188,7 +193,7 @@
 
         /* Collapsible sections. The heading is the control, so it has to look like one - a
            heading that silently does something on click is worse than no heading. */
-        .po-fold {
+        #posterOverlaysConfigPage .po-fold {
             cursor: pointer;
             user-select: none;
             display: flex;
@@ -196,7 +201,7 @@
             gap: 0.45em;
         }
 
-        .po-fold::before {
+        #posterOverlaysConfigPage .po-fold::before {
             content: '';
             width: 0;
             height: 0;
@@ -207,23 +212,37 @@
             flex: none;
         }
 
-        .po-fold.po-open::before { transform: rotate(90deg); }
+        #posterOverlaysConfigPage .po-fold.po-open::before { transform: rotate(90deg); }
 
-        /* The subject of the preview: the real picture, at the shape a poster actually has. */
+        /* The one rule here that cannot carry the page id: the picture appears both on the page
+           and inside the floating panel, and that panel is appended to document.body rather than
+           to the page.
+
+           A poster arrives at its stored size - 1000 x 1500 and upwards - so it needs a ceiling in
+           both directions. max-width alone was not one: it resolves against the container, and the
+           floating panel is position:fixed with no width of its own, so the container grew with the
+           picture and the limit was never reached. It filled the screen. */
         .po-shot {
+            display: block;
+            width: auto;
+            height: auto;
             max-width: 100%;
+            max-height: 55vh;
             border-radius: 0.3em;
             background: rgba(255, 255, 255, 0.06);
-            display: block;
         }
 
-        .po-shot-wrap { position: relative; min-height: 4em; }
+        /* On the page: about the width of a library tile, so it sits beside the fields it belongs
+           to rather than pushing them off the screen. */
+        #posterOverlaysConfigPage .po-shot-wrap .po-shot { max-width: 20em; }
 
-        .po-shot-wrap.po-busy .po-shot { opacity: 0.45; transition: opacity 0.15s ease; }
+        #posterOverlaysConfigPage .po-shot-wrap { position: relative; min-height: 4em; }
 
-        .po-pick { position: relative; margin-bottom: 0.6em; }
+        #posterOverlaysConfigPage .po-shot-wrap.po-busy .po-shot { opacity: 0.45; transition: opacity 0.15s ease; }
 
-        .po-hits {
+        #posterOverlaysConfigPage .po-pick { position: relative; margin-bottom: 0.6em; }
+
+        #posterOverlaysConfigPage .po-hits {
             position: absolute;
             top: 100%;
             left: 0;
@@ -237,12 +256,12 @@
             display: none;
         }
 
-        .po-hit { padding: 0.45em 0.7em; cursor: pointer; font-size: 0.9em; }
-        .po-hit:hover { background: rgba(0, 164, 220, 0.3); }
+        #posterOverlaysConfigPage .po-hit { padding: 0.45em 0.7em; cursor: pointer; font-size: 0.9em; }
+        #posterOverlaysConfigPage .po-hit:hover { background: rgba(0, 164, 220, 0.3); }
 
-        .po-styles { display: flex; flex-wrap: wrap; gap: 0.4em; margin-bottom: 0.6em; }
+        #posterOverlaysConfigPage .po-styles { display: flex; flex-wrap: wrap; gap: 0.4em; margin-bottom: 0.6em; }
 
-        .po-style {
+        #posterOverlaysConfigPage .po-style {
             border: 1px solid rgba(255, 255, 255, 0.25);
             background: transparent;
             color: inherit;
@@ -252,7 +271,7 @@
             font-size: 0.85em;
         }
 
-        .po-style.po-on { background: rgba(0, 164, 220, 0.35); border-color: rgba(0, 164, 220, 0.8); }
+        #posterOverlaysConfigPage .po-style.po-on { background: rgba(0, 164, 220, 0.35); border-color: rgba(0, 164, 220, 0.8); }
 
         /* Below this the page is one column and a floating panel would sit on top of the fields. */
         @media (max-width: 1100px) {
