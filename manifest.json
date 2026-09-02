@@ -8,6 +8,14 @@
     "category": "MoviesAndShows",
     "versions": [
       {
+        "version": "12.18.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.18.0.0/jellyfin-plugin-poster-overlays_12.18.0.0.zip",
+        "checksum": "1ee9f923088cf0ebf4d8cc0db1f8350c",
+        "changelog": "Fixes the preview opening at the poster's stored size and covering the settings page. Only the previous version is affected - the preview arrived there.\n\nA percentage limit on the image was no limit at all in that spot: it resolves against its container, and the floating panel is fixed-position with no width of its own, so the container simply grew with the picture. The panel now has a width, and the image is bounded in both directions, since a poster arrives at 1000x1500 and upwards.\n\nAlso corrects eight style rules that were applying to the whole Jellyfin interface rather than to the plugin's own settings page. Nothing collided in practice, which is why it would otherwise have gone unnoticed. Two rules genuinely have to reach outside the page and now say so; the rest are scoped, and both facts are held in place by tests.",
+        "timestamp": "2026-09-02T23:37:49Z"
+      },
+      {
         "version": "12.17.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.17.0.0/jellyfin-plugin-poster-overlays_12.17.0.0.zip",
@@ -142,6 +150,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.18.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.18.0.0/jellyfin-plugin-poster-overlays_11.18.0.0.zip",
+        "checksum": "c7c6938b2ecbb17bba764b7204782911",
+        "changelog": "Fixes the preview opening at the poster's stored size and covering the settings page. Only the previous version is affected - the preview arrived there.\n\nA percentage limit on the image was no limit at all in that spot: it resolves against its container, and the floating panel is fixed-position with no width of its own, so the container simply grew with the picture. The panel now has a width, and the image is bounded in both directions, since a poster arrives at 1000x1500 and upwards.\n\nAlso corrects eight style rules that were applying to the whole Jellyfin interface rather than to the plugin's own settings page. Nothing collided in practice, which is why it would otherwise have gone unnoticed. Two rules genuinely have to reach outside the page and now say so; the rest are scoped, and both facts are held in place by tests.",
+        "timestamp": "2026-09-02T23:37:49Z"
       },
       {
         "version": "11.17.0.0",
