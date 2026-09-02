@@ -8,6 +8,14 @@
     "category": "MoviesAndShows",
     "versions": [
       {
+        "version": "12.16.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.16.0.0/jellyfin-plugin-poster-overlays_12.16.0.0.zip",
+        "checksum": "3e1b35df77ea1849e161c23ef3b576a4",
+        "changelog": "Housekeeping, with no change to how badges are drawn: the plugin now appears under \"Movies & Shows\" in the catalogue instead of \"General\", which is where something that draws on the posters of films, series, seasons and episodes belongs.\n\nThe category is not free text. The official catalogue uses exactly eight values, and one outside that set parses cleanly and then belongs to no filter at all - the plugin would quietly drop out of every category view with no error anywhere. The build now refuses a value outside those eight before it starts, rather than shipping one and finding out later.\n\nOnly the repository manifest is actually read for this, so it could have been changed without a release. It goes out as a version so the copy inside the package says the same thing: that copy is never displayed, but it does sit in the ZIP, so leaving the two apart would mean the package permanently disagrees with the catalogue it is listed in.",
+        "timestamp": "2026-09-02T12:10:58Z"
+      },
+      {
         "version": "12.15.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.15.0.0/jellyfin-plugin-poster-overlays_12.15.0.0.zip",
@@ -126,6 +134,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.16.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.16.0.0/jellyfin-plugin-poster-overlays_11.16.0.0.zip",
+        "checksum": "ab311c27b06683e29ba6bcbbab814d43",
+        "changelog": "Housekeeping, with no change to how badges are drawn: the plugin now appears under \"Movies & Shows\" in the catalogue instead of \"General\", which is where something that draws on the posters of films, series, seasons and episodes belongs.\n\nThe category is not free text. The official catalogue uses exactly eight values, and one outside that set parses cleanly and then belongs to no filter at all - the plugin would quietly drop out of every category view with no error anywhere. The build now refuses a value outside those eight before it starts, rather than shipping one and finding out later.\n\nOnly the repository manifest is actually read for this, so it could have been changed without a release. It goes out as a version so the copy inside the package says the same thing: that copy is never displayed, but it does sit in the ZIP, so leaving the two apart would mean the package permanently disagrees with the catalogue it is listed in.",
+        "timestamp": "2026-09-02T12:10:58Z"
       },
       {
         "version": "11.15.0.0",
