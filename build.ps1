@@ -53,6 +53,16 @@ param(
     # owner='jellyfin' - and URLs are the only thing $RepoOwner should build.
     [string]$Developer = 'Marc Fauser',
 
+    # The catalogue's grouping. Not free text, which is why the set is spelled out: these are
+    # the eight values the official catalogue actually uses, measured against
+    # repo.jellyfin.org/files/plugin/manifest.json across its 34 packages. Anything else
+    # parses cleanly and then belongs to no filter, so the plugin silently drops out of every
+    # category view - a failure with no error message, which is the kind worth making
+    # impossible rather than documenting.
+    [ValidateSet('Administration', 'General', 'MoviesAndShows', 'Music', 'Anime', 'Books',
+                 'LiveTV', 'Subtitles')]
+    [string]$Category = 'MoviesAndShows',
+
     # Create the GitHub releases and push manifest.json. Without this the build stays
     # entirely local and nothing becomes visible to anyone.
     [switch]$Publish
@@ -242,7 +252,12 @@ foreach ($t in $targets)
                       'and the video range - so two entries of the same film can be told apart on ' +
                       'the tile. The badge is re-applied whenever a provider replaces the cover.'
         owner       = $Developer
-        category    = 'General'
+        # Inert, and written anyway. GET /Plugins reports an installed plugin as Name,
+        # Version, ConfigurationFileName, Description, Id, CanUninstall, HasImage, Status -
+        # there is no category field on it at all, and the dashboard groups by the repository
+        # manifest instead. Two spellings of one field is the sort of detail somebody trips
+        # over later, so both come from $Category.
+        category    = $Category
         version     = $t.Version
         targetAbi   = $t.TargetAbi
         # 0 = PluginStatus.Active
@@ -312,6 +327,12 @@ if (Test-Path -LiteralPath $manifestPath)
     # display name is governed by the parameter, so it is written on every run rather than
     # inherited. Found the hard way: fixing $Developer alone changed nothing at all.
     $package.owner = $Developer
+
+    # Same reasoning, and the same trap: the value below the else is only ever read when
+    # there is no manifest yet, so changing it there alone would look right and do nothing.
+    # Add-Member covers a manifest written before the field existed.
+    if ($package.PSObject.Properties['category']) { $package.category = $Category }
+    else { $package | Add-Member -NotePropertyName 'category' -NotePropertyValue $Category }
 }
 else
 {
@@ -323,7 +344,7 @@ else
                       'the tile. The badge is re-applied whenever a provider replaces the cover.'
         overview    = 'Edition, resolution and HDR badges drawn onto the poster.'
         owner       = $Developer
-        category    = 'General'
+        category    = $Category
         versions    = @()
     }
 }

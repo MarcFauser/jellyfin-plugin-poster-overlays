@@ -5,7 +5,7 @@
     "description": "Draws a small badge onto the primary image - the edition, the resolution and the video range - so two entries of the same film can be told apart on the tile. The badge is re-applied whenever a provider replaces the cover.",
     "overview": "Edition, resolution and HDR badges drawn onto the poster.",
     "owner": "Marc Fauser",
-    "category": "General",
+    "category": "MoviesAndShows",
     "versions": [
       {
         "version": "12.15.0.0",

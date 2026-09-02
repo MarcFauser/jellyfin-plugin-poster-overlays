@@ -9,6 +9,30 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Changed
+
+- **The catalogue category is `MoviesAndShows` instead of `General`.** The plugin draws on the
+  posters of films, series, seasons and episodes, so that is where somebody browsing the catalogue
+  would look for it. `category` is not free text: the official catalogue uses exactly eight values —
+  measured against `repo.jellyfin.org/files/plugin/manifest.json`, 34 packages — and a value outside
+  that set parses cleanly and then belongs to no filter at all, which drops the plugin out of every
+  category view.
+
+  The value is written in two places and only one of them is ever read. `GET /Plugins` reports an
+  installed plugin as `Name, Version, ConfigurationFileName, Description, Id, CanUninstall,
+  HasImage, Status` — there is no category on it at all, and the dashboard groups by the repository
+  manifest, visible through `GET /Packages`. So changing the manifest takes effect immediately and
+  no version has to be raised for it.
+
+  The inert copy in the shipped `meta.json` is a different matter, and a control build is what
+  established it: unread or not, that copy is inside the ZIP, so changing it alters the artifact.
+  The build refused itself — 11.15.0.0 is published with checksum `3d622718…` and the run produced
+  `bec3a64c…`, with an identical timestamp, the category being the only difference. It is therefore
+  left as it is and picks up the new value with the next release that happens anyway. Both places
+  now read one `-Category` parameter, so they cannot be changed apart, and the parameter is a
+  `ValidateSet` of the eight permitted values: a wrong one is refused before the build starts rather
+  than shipping and quietly belonging to no filter.
+
 ### Added
 
 - **Two centred positions, "Top, centred" and "Bottom, centred", for images a client crops on the
