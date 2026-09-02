@@ -8,6 +8,14 @@
     "category": "MoviesAndShows",
     "versions": [
       {
+        "version": "12.17.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.17.0.0/jellyfin-plugin-poster-overlays_12.17.0.0.zip",
+        "checksum": "c862be159685903e1159b9f7c8e06f30",
+        "changelog": "The settings page now previews on a real item, drawn by the server through exactly the code a run uses. It used to imitate the badges in SVG on a mock poster - a second implementation of the drawing rules, which had already drifted from the real one: the centred positions had to be taught to both, and the imitation estimated text width where the renderer measures it, so no pill was ever quite the right width.\n\nThe page sends the settings as they stand, saved or not, so a change can be looked at before it is kept. Nothing is written while previewing - not the item, not the cached original, not the stored configuration.\n\nTwo things come with using a real item. There is a search box to choose which one, and on opening the page offers one that already carries badges, because picking at random would usually show an untouched poster and look like a fault. And when no badge is drawn the page now says why - the category is off, the item is on the exception list, or the episode has no second copy and the category only badges where that tells two apart. An unbadged preview and a broken one used to look identical.\n\nThe settings sections fold away and remember how they were left.\n\nFor anyone driving the plugin from a script: POST PosterOverlays/Preview/{itemId} takes a configuration and returns the image it would produce, changing nothing, with the badge count and any explanation in the X-PosterOverlays-Badges and X-PosterOverlays-Note headers.",
+        "timestamp": "2026-09-02T23:21:52Z"
+      },
+      {
         "version": "12.16.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.16.0.0/jellyfin-plugin-poster-overlays_12.16.0.0.zip",
@@ -134,6 +142,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.17.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.17.0.0/jellyfin-plugin-poster-overlays_11.17.0.0.zip",
+        "checksum": "9cde18747aae961f2dc612c7cd17fdef",
+        "changelog": "The settings page now previews on a real item, drawn by the server through exactly the code a run uses. It used to imitate the badges in SVG on a mock poster - a second implementation of the drawing rules, which had already drifted from the real one: the centred positions had to be taught to both, and the imitation estimated text width where the renderer measures it, so no pill was ever quite the right width.\n\nThe page sends the settings as they stand, saved or not, so a change can be looked at before it is kept. Nothing is written while previewing - not the item, not the cached original, not the stored configuration.\n\nTwo things come with using a real item. There is a search box to choose which one, and on opening the page offers one that already carries badges, because picking at random would usually show an untouched poster and look like a fault. And when no badge is drawn the page now says why - the category is off, the item is on the exception list, or the episode has no second copy and the category only badges where that tells two apart. An unbadged preview and a broken one used to look identical.\n\nThe settings sections fold away and remember how they were left.\n\nFor anyone driving the plugin from a script: POST PosterOverlays/Preview/{itemId} takes a configuration and returns the image it would produce, changing nothing, with the badge count and any explanation in the X-PosterOverlays-Badges and X-PosterOverlays-Note headers.",
+        "timestamp": "2026-09-02T23:21:52Z"
       },
       {
         "version": "11.16.0.0",
