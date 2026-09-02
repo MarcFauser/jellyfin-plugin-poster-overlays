@@ -27,11 +27,19 @@ for Jellyfin 12), so both lines carry the same feature set under different major
   The inert copy in the shipped `meta.json` is a different matter, and a control build is what
   established it: unread or not, that copy is inside the ZIP, so changing it alters the artifact.
   The build refused itself — 11.15.0.0 is published with checksum `3d622718…` and the run produced
-  `bec3a64c…`, with an identical timestamp, the category being the only difference. It is therefore
-  left as it is and picks up the new value with the next release that happens anyway. Both places
-  now read one `-Category` parameter, so they cannot be changed apart, and the parameter is a
-  `ValidateSet` of the eight permitted values: a wrong one is refused before the build starts rather
-  than shipping and quietly belonging to no filter.
+  `bec3a64c…`, with an identical timestamp, the category being the only difference. That refusal is
+  the reason this goes out as its own version rather than as a manifest edit alone: the two copies
+  are kept in step, and keeping them in step costs a release.
+
+  Both places now read one `-Category` parameter, so they cannot be changed apart, and the parameter
+  is a `ValidateSet` of the eight permitted values: a wrong one is refused before the build starts
+  rather than shipping and quietly belonging to no filter. The header carried over from an existing
+  manifest also has its category rewritten on every run, the way `owner` already is — without that,
+  correcting the literal in the branch below would look right and do nothing, which is the trap
+  `$Developer` fell into once already. Measured both ways: building with `-Category General` turned
+  a manifest reading `MoviesAndShows` back into `General`, and the same run reproduced the published
+  `3d622718…` byte for byte, which is what makes "the category was the only difference" a
+  measurement rather than a guess.
 
 ### Added
 
