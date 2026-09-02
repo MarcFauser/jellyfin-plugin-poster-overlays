@@ -124,9 +124,11 @@ public class ConfigPageTests
     /// <c>.po-hit:hover</c> is a rule about every element in Jellyfin that happens to carry that
     /// class. Nothing collides today, which is exactly why nobody would notice.
     /// <para>
-    /// The two exceptions are real and named: the floating panel is appended to
-    /// <c>document.body</c> rather than to the page, and the preview image appears inside it as
-    /// well as on the page. A rule that must apply outside the page cannot be scoped to it.
+    /// There are no exceptions. An earlier version of this test allowed two, on the grounds that
+    /// the floating panel hangs off <c>document.body</c> - which was invented and wrong:
+    /// <c>buildFloating</c> ends in <c>page().appendChild(box)</c>, and <c>document.body</c> does
+    /// not appear in the file at all. <c>position: fixed</c> places an element against the
+    /// viewport; it does not move it out of the page.
     /// </para>
     /// </remarks>
     [Fact]
@@ -198,15 +200,11 @@ public class ConfigPageTests
     /// <returns>The offending selector lines.</returns>
     private static List<string> UnscopedSelectors(string html)
     {
-        // Appended to document.body by script, so they are outside the page by construction.
-        string[] allowed = [".po-floating", ".po-shot {"];
-
         return StyleBlock(html)
             .Split('\n')
             .Select(l => l.Trim())
             .Where(l => l.StartsWith('.') && (l.Contains('{', StringComparison.Ordinal) || l.EndsWith(',')))
             .Where(l => !l.Contains("#posterOverlaysConfigPage", StringComparison.Ordinal))
-            .Where(l => !allowed.Any(a => l.StartsWith(a, StringComparison.Ordinal)))
             .ToList();
     }
 

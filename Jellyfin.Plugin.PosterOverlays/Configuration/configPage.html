@@ -150,8 +150,14 @@
         #posterOverlaysConfigPage fieldset[disabled] { opacity: 0.55; }
 
         /* The selected style, always in view. Every field on this page changes a picture, and a
-           picture you have to scroll back to is a picture you stop looking at. */
-        .po-floating {
+           picture you have to scroll back to is a picture you stop looking at.
+
+           Scoped like everything else: the panel is position:fixed, which places it against the
+           viewport, but it is still a child of the page - buildFloating ends in
+           page().appendChild(box). An earlier comment here claimed it hung off document.body and
+           therefore could not be scoped. That was invented rather than read; document.body appears
+           nowhere in this file. */
+        #posterOverlaysConfigPage .po-floating {
             position: fixed;
             right: 1.2em;
             top: 50%;
@@ -171,7 +177,7 @@
             overflow: auto;
         }
 
-        .po-floating-head {
+        #posterOverlaysConfigPage .po-floating-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -181,7 +187,7 @@
             margin-bottom: 0.4em;
         }
 
-        .po-floating-close {
+        #posterOverlaysConfigPage .po-floating-close {
             border: 0;
             background: transparent;
             color: inherit;
@@ -214,15 +220,11 @@
 
         #posterOverlaysConfigPage .po-fold.po-open::before { transform: rotate(90deg); }
 
-        /* The one rule here that cannot carry the page id: the picture appears both on the page
-           and inside the floating panel, and that panel is appended to document.body rather than
-           to the page.
-
-           A poster arrives at its stored size - 1000 x 1500 and upwards - so it needs a ceiling in
+        /* A poster arrives at its stored size - 1000 x 1500 and upwards - so it needs a ceiling in
            both directions. max-width alone was not one: it resolves against the container, and the
            floating panel is position:fixed with no width of its own, so the container grew with the
            picture and the limit was never reached. It filled the screen. */
-        .po-shot {
+        #posterOverlaysConfigPage .po-shot {
             display: block;
             width: auto;
             height: auto;
@@ -273,9 +275,13 @@
 
         #posterOverlaysConfigPage .po-style.po-on { background: rgba(0, 164, 220, 0.35); border-color: rgba(0, 164, 220, 0.8); }
 
+        /* Set apart from the style buttons: it answers a different question - not how the badge
+           looks, but whether the second copy of the picture is on screen. */
+        #posterOverlaysConfigPage .po-pin { margin-left: auto; opacity: 0.85; }
+
         /* Below this the page is one column and a floating panel would sit on top of the fields. */
         @media (max-width: 1100px) {
-            .po-floating { display: none; }
+            #posterOverlaysConfigPage .po-floating { display: none; }
         }
     </style>
     <div data-role="content">
@@ -1130,6 +1136,17 @@
                     });
                     host.appendChild(b);
                 });
+
+                // The way back for the pinned panel. It sits here rather than anywhere tidier
+                // because this is where the preview is already being operated, and a control that
+                // restores something has to be findable from where that something disappeared.
+                var pin = document.createElement('button');
+                pin.type = 'button';
+                pin.className = 'po-style po-pin' + (floatingWanted() ? ' po-on' : '');
+                pin.textContent = floatingWanted() ? 'Pinned preview on' : 'Pinned preview off';
+                pin.title = 'The copy of this picture pinned to the right edge of the window';
+                pin.addEventListener('click', function () { setFloatingWanted(!floatingWanted()); });
+                host.appendChild(pin);
             }
 
             /// Asks the server to draw the current settings onto a real item and shows the answer.
@@ -1387,6 +1404,26 @@
                 });
             }
 
+            /// Whether the pinned panel is wanted, remembered across visits.
+            ///
+            /// It used to be a one-way door: the close button set display:none and nothing could
+            /// undo it short of reloading the page - and even that only worked by accident, because
+            /// buildFloating bails out when the element already exists. A control that hides
+            /// something permanently and offers no way back is a trap, however small.
+            function floatingWanted() {
+                try { return window.localStorage.getItem('poster-overlays-floating') !== 'off'; }
+                catch (e) { return true; }
+            }
+
+            function setFloatingWanted(on) {
+                try { window.localStorage.setItem('poster-overlays-floating', on ? 'on' : 'off'); }
+                catch (e) { /* private mode; the choice holds for this visit */ }
+
+                var box = document.querySelector('#PosterOverlaysFloating');
+                if (box) { box.style.display = on ? '' : 'none'; }
+                renderStylePicker();
+            }
+
             function buildFloating() {
                 if (document.querySelector('#PosterOverlaysFloating')) { return; }
 
@@ -1395,11 +1432,12 @@
                 box.className = 'po-floating';
                 box.innerHTML =
                     '<div class="po-floating-head"><span data-name></span>'
-                    + '<button type="button" class="po-floating-close" title="Hide">&times;</button></div>'
+                    + '<button type="button" class="po-floating-close" title="Hide - bring it back with the button beside the style buttons">&times;</button></div>'
                     + '<div data-body></div>';
                 box.querySelector('.po-floating-close').addEventListener('click', function () {
-                    box.style.display = 'none';
+                    setFloatingWanted(false);
                 });
+                box.style.display = floatingWanted() ? '' : 'none';
                 page().appendChild(box);
             }
 

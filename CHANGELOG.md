@@ -20,16 +20,26 @@ for Jellyfin 12), so both lines carry the same feature set under different major
   Only 11.17.0.0 / 12.17.0.0 are affected: the preview arrived there, and in that one version it
   opened over the whole page. Anyone on an earlier version can skip straight past it.
 
-- **Eight style rules applied to the whole of Jellyfin, not just this page.** The page states the
-  rule in its own first comment — every selector carries the page id, because a plugin settings
-  page is injected into the running client — and the rules added for the preview did not. Nothing
-  collided, which is precisely why it would have gone unnoticed; a rule about `.po-hit:hover` was
-  a rule about every element in the client carrying that class. Two are genuinely exempt and now
-  say so: the floating panel is appended to `document.body` rather than to the page, and the
-  preview image appears inside it as well as on the page.
+- **Style rules applied to the whole of Jellyfin, not just this page.** The page states the rule in
+  its own first comment — every selector carries the page id, because a plugin settings page is
+  injected into the running client — and the rules added for the preview did not. Nothing collided,
+  which is precisely why it would have gone unnoticed; a rule about `.po-hit:hover` was a rule
+  about every element in the client carrying that class.
 
-  Both are now tested, the scoping check against a planted unscoped rule so it is known to be able
-  to fail.
+  Twelve rules in all, including four that predate the preview. There are no exceptions, though a
+  first attempt at this claimed two: that the pinned panel hangs off `document.body` and so cannot
+  be scoped to the page. That was reasoned rather than read. `buildFloating` ends in
+  `page().appendChild(box)`, and `document.body` does not occur in the file at all — `position:
+  fixed` places an element against the viewport, it does not move it out of the page.
+
+  Both facts are now tested, the scoping check against a planted unscoped rule so it is known to
+  be able to fail.
+
+- **The pinned preview could be closed but not reopened.** The close button set `display: none`
+  and nothing undid it; even reloading only worked by accident, because the panel is rebuilt only
+  when it does not already exist. There is a button beside the style buttons now, it says which
+  state it is in, and the choice is remembered. A control that hides something permanently and
+  offers no way back is a trap, however small it looks.
 
 ### Changed
 
