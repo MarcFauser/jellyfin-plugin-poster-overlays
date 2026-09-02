@@ -8,6 +8,14 @@
     "category": "MoviesAndShows",
     "versions": [
       {
+        "version": "12.19.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.19.0.0/jellyfin-plugin-poster-overlays_12.19.0.0.zip",
+        "checksum": "dc831a1f189e6e1a17547b8b58f0d918",
+        "changelog": "The pinned preview - the copy of the picture at the right edge of the window - could be closed and then not reopened. There is a labelled button beside the style buttons now, and whether you want the panel is remembered between visits.\n\nAlso finishes a correction from the previous version. Twelve style rules were applying to the whole Jellyfin interface rather than to the plugin's own settings page, four of them since long before the preview existed. Nothing collided in practice, which is why it would have gone on unnoticed. There are no exceptions: an earlier attempt claimed the pinned panel sits outside the page and could not be scoped, which was reasoned rather than checked - it is a child of the page, and being fixed-position does not change that.",
+        "timestamp": "2026-09-02T23:47:56Z"
+      },
+      {
         "version": "12.18.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.18.0.0/jellyfin-plugin-poster-overlays_12.18.0.0.zip",
@@ -150,6 +158,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.19.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.19.0.0/jellyfin-plugin-poster-overlays_11.19.0.0.zip",
+        "checksum": "cbad0b2489867f0808d2fed3eb94d0c1",
+        "changelog": "The pinned preview - the copy of the picture at the right edge of the window - could be closed and then not reopened. There is a labelled button beside the style buttons now, and whether you want the panel is remembered between visits.\n\nAlso finishes a correction from the previous version. Twelve style rules were applying to the whole Jellyfin interface rather than to the plugin's own settings page, four of them since long before the preview existed. Nothing collided in practice, which is why it would have gone on unnoticed. There are no exceptions: an earlier attempt claimed the pinned panel sits outside the page and could not be scoped, which was reasoned rather than checked - it is a child of the page, and being fixed-position does not change that.",
+        "timestamp": "2026-09-02T23:47:56Z"
       },
       {
         "version": "11.18.0.0",
