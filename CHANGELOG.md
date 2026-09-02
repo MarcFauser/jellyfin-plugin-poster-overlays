@@ -17,6 +17,9 @@ for Jellyfin 12), so both lines carry the same feature set under different major
   picture and the ceiling was never reached. The panel now has a width, and the image is capped in
   both directions — a poster arrives at 1000x1500 and upwards, so one bound is not enough.
 
+  Only 11.17.0.0 / 12.17.0.0 are affected: the preview arrived there, and in that one version it
+  opened over the whole page. Anyone on an earlier version can skip straight past it.
+
 - **Eight style rules applied to the whole of Jellyfin, not just this page.** The page states the
   rule in its own first comment — every selector carries the page id, because a plugin settings
   page is injected into the running client — and the rules added for the preview did not. Nothing
