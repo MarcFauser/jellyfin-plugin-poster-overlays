@@ -491,6 +491,29 @@ foreach ($t in $targets)
         {
             throw "$($t.ZipName) contains files that are not ours:`n  $(($strays.FullName) -join "`n  ")"
         }
+
+        # And the other direction, which the check above cannot see: everything meta.json
+        # promises has to be in there. A typo in the assemblies list produces a plugin that
+        # installs, reports Active and then does nothing at all - Jellyfin loads what the
+        # manifest names, and a name that matches no file is not an error it complains about.
+        # Found in the sister project that copied this script; the check above had been
+        # guarding only against too much.
+        $metaEntry = $archive.Entries | Where-Object { $_.FullName -eq 'meta.json' }
+        if (-not $metaEntry)
+        {
+            throw "$($t.ZipName) has no meta.json."
+        }
+
+        $reader = New-Object System.IO.StreamReader($metaEntry.Open())
+        try { $declared = @((ConvertFrom-Json $reader.ReadToEnd()).assemblies) } finally { $reader.Dispose() }
+
+        $packed = @($archive.Entries.FullName)
+        $missing = @($declared | Where-Object { $_ -and $packed -notcontains $_ })
+        if ($missing.Count -gt 0)
+        {
+            throw ("$($t.ZipName): meta.json lists assemblies that are not in the package:`n  " +
+                   ($missing -join "`n  ") + "`nThe plugin would install and then load nothing.")
+        }
     }
     finally
     {
@@ -498,6 +521,7 @@ foreach ($t in $targets)
     }
 }
 Write-Host "  ok  the packages contain nothing but the plugin and its meta.json"
+Write-Host "  ok  every assembly meta.json names is really in the package"
 
 Write-Host ""
 Write-Host "Artifacts in $distDir" -ForegroundColor Cyan
