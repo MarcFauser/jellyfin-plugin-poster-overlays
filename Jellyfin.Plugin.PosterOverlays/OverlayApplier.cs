@@ -459,6 +459,112 @@ internal sealed class OverlayApplier
     }
 
     /// <summary>
+    /// Draws what this item would look like, without changing anything.
+    /// </summary>
+    /// <remarks>
+    /// <b>Why this exists at all:</b> the settings page used to imitate the badges in SVG, which
+    /// meant the drawing rules were written twice - once here in Skia and once in JavaScript - and
+    /// two implementations of one thing drift apart. They already had: the centred corners had to
+    /// be added in both, and the imitation measured its text as <c>length * fontSize * 0.62</c>
+    /// where Skia measures it properly, so pill widths were never quite right. This renders through
+    /// the real path instead, so the preview cannot be wrong about the plugin.
+    /// <para>
+    /// Nothing is written: no upload, no state record, no cached original. The applier is
+    /// constructed with the unsaved configuration from the settings page, which is what makes a
+    /// preview of an unsaved change possible in the first place.
+    /// </para>
+    /// <para>
+    /// The refusals are deliberately the same ones the real run makes, and they are reported rather
+    /// than worked around. An episode without a twin gets no badge under
+    /// <see cref="CategorySettings.OnlyWhereItDisambiguates"/>, and a preview that quietly drew one
+    /// anyway would be showing a picture the library will never contain.
+    /// </para>
+    /// </remarks>
+    /// <param name="item">The item to draw.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The rendered image and why it looks the way it does, or null when there is no image.</returns>
+    internal async Task<PreviewResult?> RenderPreviewAsync(BaseItem item, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        string id = Key(item);
+        string? currentPath = item.GetImagePath(ImageType.Primary, 0);
+        if (string.IsNullOrEmpty(currentPath) || !File.Exists(currentPath))
+        {
+            return null;
+        }
+
+        byte[] current = await File.ReadAllBytesAsync(currentPath, cancellationToken).ConfigureAwait(false);
+        string extension = Path.GetExtension(currentPath);
+        if (string.IsNullOrEmpty(extension))
+        {
+            extension = ".jpg";
+        }
+
+        var record = _store.Get(id);
+
+        // The image on the item is ours, so the unbadged picture is the cached one. Drawing onto
+        // the badged copy would stack a badge on a badge - in a preview that is not destructive,
+        // but it would be a lie about what the run produces.
+        byte[] original = current;
+        if (record is not null && string.Equals(OverlayStateStore.Hash(current), record.BadgedHash, StringComparison.Ordinal))
+        {
+            byte[]? cached = _store.LoadOriginal(id, record.OriginalExtension);
+            if (cached is null)
+            {
+                return new PreviewResult(current, MimeType(extension), 0, "The cached original is gone, so this shows the image as it is now.");
+            }
+
+            original = cached;
+            extension = record.OriginalExtension;
+        }
+
+        var target = TargetOf(item);
+        var category = _config.CategoryFor(target);
+
+        if (_excluded.Contains(id))
+        {
+            return new PreviewResult(original, MimeType(extension), 0, "This item is on the exception list, so it is left alone.");
+        }
+
+        if (!category.Enabled)
+        {
+            return new PreviewResult(original, MimeType(extension), 0, "The " + target + " category is switched off.");
+        }
+
+        var preset = _config.PresetFor(target);
+        IReadOnlyList<BadgeSpec> badges;
+
+        if (target is BadgeTarget.Series or BadgeTarget.Season)
+        {
+            badges = ChildAggregator.Aggregate(EpisodesUnder(item), _config, category, preset);
+        }
+        else
+        {
+            if (target == BadgeTarget.Episode && category.OnlyWhereItDisambiguates && !HasTwin(item))
+            {
+                return new PreviewResult(original, MimeType(extension), 0, "No second copy of this episode exists, and the category only badges where that tells two apart.");
+            }
+
+            _editionOverrides.TryGetValue(id, out string? editionOverride);
+            badges = BadgeBuilder.Build(item, _config, category, preset, editionOverride).Badges;
+        }
+
+        if (badges.Count == 0)
+        {
+            return new PreviewResult(original, MimeType(extension), 0, "Nothing to say about this item that a badge could carry.");
+        }
+
+        byte[]? drawn = BadgeRenderer.Draw(original, badges, preset, _config.JpegQuality);
+        if (drawn is null)
+        {
+            return new PreviewResult(original, MimeType(extension), 0, "The image could not be decoded.");
+        }
+
+        return new PreviewResult(drawn, "image/jpeg", badges.Count, string.Empty);
+    }
+
+    /// <summary>
     /// Says whether an item is one the repair has to touch.
     /// </summary>
     /// <remarks>

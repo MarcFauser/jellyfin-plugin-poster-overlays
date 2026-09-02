@@ -1,0 +1,148 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using Xunit;
+
+namespace Jellyfin.Plugin.PosterOverlays.Tests;
+
+/// <summary>
+/// Checks the settings page against itself: every element the script reaches for has to exist.
+/// </summary>
+/// <remarks>
+/// There was no test here at all, which is how the page could refer to a module that does not
+/// exist and silently never fill in a single field. A settings page fails quietly - nothing
+/// throws, the browser simply returns null and the code moves on - so the failure looks like a
+/// page that was never opened rather than one that is broken.
+/// <para>
+/// This does not execute the script; there is no JavaScript engine in this test project and
+/// adding one to check for typos would be a poor trade. It checks the one thing that is checkable
+/// from the text and that actually broke: that ids match between the markup and the code.
+/// </para>
+/// </remarks>
+public class ConfigPageTests
+{
+    /// <summary>
+    /// Only selectors that are complete literals. The closing bracket is the point: the page also
+    /// builds selectors, as in <c>querySelector('#p_' + key)</c>, and without the bracket this
+    /// pattern reads the literal half of those as an id and reports "p_" as missing. A selector
+    /// assembled at run time cannot be checked against the markup, so it is not the subject here.
+    /// </summary>
+    private static readonly Regex SelectorPattern =
+        new(@"querySelector\(\s*'#([A-Za-z][\w-]*)'\s*\)", RegexOptions.Compiled);
+
+    private static readonly Regex IdPattern =
+        new(@"\bid=""([A-Za-z][\w-]*)""", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Every <c>querySelector('#x')</c> in the page refers to an element the page declares.
+    /// </summary>
+    [Fact]
+    public void EverySelectorHasAnElement()
+    {
+        string html = Page();
+        var declared = IdPattern.Matches(html).Select(m => m.Groups[1].Value).ToHashSet(StringComparer.Ordinal);
+
+        // Created by script rather than declared in markup, so the id is never in the html.
+        declared.Add("PosterOverlaysFloating");
+
+        var missing = SelectorPattern.Matches(html)
+            .Select(m => m.Groups[1].Value)
+            .Distinct(StringComparer.Ordinal)
+            .Where(id => !declared.Contains(id))
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(
+            missing.Count == 0,
+            "The script reaches for elements that do not exist: " + string.Join(", ", missing));
+    }
+
+    /// <summary>
+    /// The measurement can fail. Without this, an empty selector list would pass just as happily.
+    /// </summary>
+    [Fact]
+    public void TheCheckCanFail()
+    {
+        string html = Page();
+        var declared = IdPattern.Matches(html).Select(m => m.Groups[1].Value).ToHashSet(StringComparer.Ordinal);
+
+        Assert.NotEmpty(declared);
+        Assert.DoesNotContain("NoSuchElementAnywhere", declared, StringComparer.Ordinal);
+
+        // And the selector side finds things at all - a pattern that matched nothing would make
+        // the test above vacuous, which is the shape a green check most often takes when wrong.
+        var used = SelectorPattern.Matches(html).Select(m => m.Groups[1].Value).ToList();
+        Assert.NotEmpty(used);
+        Assert.Contains("BadgePreview", used, StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// The SVG imitation of the badges is gone and stays gone.
+    /// </summary>
+    /// <remarks>
+    /// It was a second implementation of the drawing rules - it had to learn the centred corners
+    /// separately, and it estimated text width as <c>length * fontSize * 0.62</c> where Skia
+    /// measures it. The preview now renders through the server. If any of these names come back,
+    /// so has the second implementation.
+    /// </remarks>
+    [Theory]
+    [InlineData("previewSvg")]
+    [InlineData("previewRows")]
+    [InlineData("markerShape")]
+    [InlineData("allowedKindsForPreview")]
+    public void TheImitationIsGone(string name)
+    {
+        Assert.DoesNotContain(name, Page(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The preview asks the server, and sends the unsaved settings when it does.
+    /// </summary>
+    /// <remarks>
+    /// Posting the saved configuration instead would look almost right and be useless: the whole
+    /// purpose is seeing a change before saving it. <c>collectGlobals</c> and
+    /// <c>collectPresetFields</c> are what move the form into the object that gets posted.
+    /// </remarks>
+    [Fact]
+    public void ThePreviewRendersOnTheServer()
+    {
+        string html = Page();
+
+        Assert.Contains("PosterOverlays/Preview/", html, StringComparison.Ordinal);
+        Assert.Contains("collectGlobals();", html, StringComparison.Ordinal);
+        Assert.Contains("collectPresetFields();", html, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Reads the page from the source tree.
+    /// </summary>
+    /// <remarks>
+    /// From disk rather than from the built assembly's resources, so a failure points at the file
+    /// somebody edits. Walking up to the repository root keeps it working from whatever directory
+    /// the test host chooses.
+    /// </remarks>
+    /// <returns>The page.</returns>
+    private static string Page()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            string candidate = Path.Combine(
+                dir.FullName,
+                "Jellyfin.Plugin.PosterOverlays",
+                "Configuration",
+                "configPage.html");
+
+            if (File.Exists(candidate))
+            {
+                return File.ReadAllText(candidate);
+            }
+
+            dir = dir.Parent;
+        }
+
+        throw new FileNotFoundException("configPage.html was not found above " + AppContext.BaseDirectory);
+    }
+}

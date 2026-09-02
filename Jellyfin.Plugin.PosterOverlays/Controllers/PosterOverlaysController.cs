@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -211,6 +212,122 @@ public class PosterOverlaysController : ControllerBase
     [HttpGet("BuiltInPresets")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public ActionResult<Collection<BadgePreset>> BuiltInPresetList() => BuiltInPresets.All();
+
+    /// <summary>
+    /// Draws one item with settings that have not been saved, and returns the picture.
+    /// </summary>
+    /// <remarks>
+    /// The settings page used to imitate the badges in SVG. That is a second implementation of the
+    /// drawing rules, and it was measurably wrong - it estimated text width as
+    /// <c>length * fontSize * 0.62</c> where Skia measures it. This renders through the real path
+    /// with the configuration posted from the page, so what is shown is what a run would produce.
+    /// <para>
+    /// Nothing is written. The configuration in the body is used for this one render and thrown
+    /// away; the saved configuration is untouched, which is the whole point of previewing a change
+    /// before saving it. The item is likewise not modified - no upload, no state record.
+    /// </para>
+    /// </remarks>
+    /// <param name="itemId">The item to draw.</param>
+    /// <param name="config">The settings to draw with, as edited on the page.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <response code="200">The rendered image.</response>
+    /// <response code="404">No such item, or it has no primary image.</response>
+    /// <returns>The image.</returns>
+    [HttpPost("Preview/{itemId}")]
+    [Produces("image/jpeg", "image/png", "image/webp")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> Preview(
+        [FromRoute, Required] Guid itemId,
+        [FromBody, Required] PluginConfiguration config,
+        CancellationToken cancellationToken)
+    {
+        var plugin = Plugin.Instance;
+        if (plugin is null)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
+        var item = _libraryManager.GetItemById(itemId);
+        if (item is null)
+        {
+            return NotFound();
+        }
+
+        var store = OverlayStateStore.Shared(plugin.DataFolderPath);
+        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, config, store);
+        var result = await applier.RenderPreviewAsync(item, cancellationToken).ConfigureAwait(false);
+
+        if (result is null)
+        {
+            return NotFound();
+        }
+
+        // Carried in headers rather than in the body, because the body has to be the image itself
+        // for an <img> to show it. Without the note a preview with no badges looks like a failure.
+        Response.Headers["X-PosterOverlays-Badges"] = result.BadgeCount.ToString(CultureInfo.InvariantCulture);
+        if (!string.IsNullOrEmpty(result.Note))
+        {
+            Response.Headers["X-PosterOverlays-Note"] = result.Note;
+        }
+
+        return File(result.Bytes, result.MimeType);
+    }
+
+    /// <summary>
+    /// Suggests items worth previewing, newest first.
+    /// </summary>
+    /// <remarks>
+    /// Opening the page on an empty preview is a poor first impression, and picking any item at
+    /// random is nearly as bad: most of the library carries no badge at all, so the preview would
+    /// usually show an untouched poster. These are items the plugin already badges, so the picture
+    /// shows something.
+    /// </remarks>
+    /// <param name="limit">How many to return.</param>
+    /// <response code="200">Items that currently carry badges.</response>
+    /// <returns>Id and name of each.</returns>
+    [HttpGet("PreviewCandidates")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<Collection<PreviewCandidateDto>> PreviewCandidates([FromQuery] int limit = 12)
+    {
+        var plugin = Plugin.Instance;
+        if (plugin is null)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
+        var store = OverlayStateStore.Shared(plugin.DataFolderPath);
+        var found = new Collection<PreviewCandidateDto>();
+
+        foreach (string key in store.KnownItemIds())
+        {
+            if (found.Count >= Math.Clamp(limit, 1, 100))
+            {
+                break;
+            }
+
+            if (!Guid.TryParse(key, out var id))
+            {
+                continue;
+            }
+
+            var item = _libraryManager.GetItemById(id);
+            if (item is null || string.IsNullOrEmpty(item.Name))
+            {
+                continue;
+            }
+
+            found.Add(new PreviewCandidateDto
+            {
+                ItemId = id,
+                Name = item.Name,
+                ProductionYear = item.ProductionYear,
+                Kind = OverlayApplier.TargetOf(item).ToString(),
+            });
+        }
+
+        return found;
+    }
 
     /// <summary>
     /// Reports how many items the plugin currently looks after.

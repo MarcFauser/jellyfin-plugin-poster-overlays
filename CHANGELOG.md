@@ -11,6 +11,50 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ### Changed
 
+- **The preview shows the real thing instead of an imitation of it.** The settings page used to
+  draw the badges itself, in SVG, onto a mock poster it also drew. That is a second implementation
+  of the drawing rules, and two implementations of one thing drift apart — this pair already had.
+  The centred corners had to be taught to both when they were added, and the imitation sized its
+  pills from `text.length * fontSize * 0.62` where Skia measures the string properly, so no pill
+  was ever quite the right width. The comment in the old code said as much: *"rough text metrics
+  are enough here"*.
+
+  Now the page posts the settings as they stand — saved or not — to a new route, the server draws
+  the item through exactly the code a run uses, and the page shows what came back. A preview can no
+  longer be wrong about the plugin, because it is no longer a separate opinion about it. Nothing is
+  written while previewing: no upload, no state record, no cached original, and the saved
+  configuration is untouched.
+
+  Two things follow from using a real item. There is a **search box** to choose which one, and on
+  opening, the page offers one the plugin already badges — picking at random would usually land on
+  an untouched poster and read as a fault. And when nothing is drawn, the page now **says why**:
+  the category is off, the item is on the exception list, or the episode has no second copy and
+  the category only badges where that tells two apart. An unbadged preview and a broken one used
+  to look identical.
+
+  The style is picked by name now rather than by clicking one of three miniatures. Three previews
+  would mean three renders per keystroke; one correct picture answers the same question. Idea
+  taken from JellyTag, which previews on a real item because its middleware architecture gets it
+  for free — this reaches the same place from a plugin that draws into the stored image.
+
+- **The settings sections fold away**, and stay how they were left. The page had grown to eight
+  sections of which most are set once; "Backup and sharing" and "Run it for one item" start shut.
+  Done in script rather than by rewriting the markup into `<details>` elements: seven sections
+  means seven pairs of tags to re-nest by hand, and a misplaced closing tag in a page this size is
+  not something the build would catch.
+
+### Added
+
+- **A first test for the settings page.** There was none, which is how an earlier version could
+  name a module that does not exist and then silently never fill in a single field — a settings
+  page fails quietly, since a missing element is `null` rather than an error. The check reads every
+  complete `querySelector('#x')` out of the page and insists the element is declared, and it was
+  made to fail on purpose with a planted typo before being believed. It also holds the imitation
+  down: if `previewSvg`, `previewRows`, `markerShape` or `allowedKindsForPreview` ever come back,
+  so has the second implementation.
+
+### Changed
+
 - **The catalogue category is `MoviesAndShows` instead of `General`.** The plugin draws on the
   posters of films, series, seasons and episodes, so that is where somebody browsing the catalogue
   would look for it. `category` is not free text: the official catalogue uses exactly eight values —

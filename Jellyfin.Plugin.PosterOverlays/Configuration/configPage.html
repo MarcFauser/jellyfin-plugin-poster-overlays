@@ -136,14 +136,6 @@
         #posterOverlaysConfigPage .po-banner-locked { background: rgba(245, 165, 36, 0.16); }
         #posterOverlaysConfigPage .po-banner-mine   { background: rgba(62, 214, 130, 0.14); }
 
-        #posterOverlaysConfigPage .po-previews {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.4em;
-            align-items: flex-start;
-            margin: 0.8em 0;
-        }
-
         #posterOverlaysConfigPage .po-area {
             display: block;
             width: 100%;
@@ -193,6 +185,74 @@
             line-height: 1;
             padding: 0 0.2em;
         }
+
+        /* Collapsible sections. The heading is the control, so it has to look like one - a
+           heading that silently does something on click is worse than no heading. */
+        .po-fold {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 0.45em;
+        }
+
+        .po-fold::before {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 0.42em solid currentColor;
+            border-top: 0.28em solid transparent;
+            border-bottom: 0.28em solid transparent;
+            transition: transform 0.12s ease;
+            flex: none;
+        }
+
+        .po-fold.po-open::before { transform: rotate(90deg); }
+
+        /* The subject of the preview: the real picture, at the shape a poster actually has. */
+        .po-shot {
+            max-width: 100%;
+            border-radius: 0.3em;
+            background: rgba(255, 255, 255, 0.06);
+            display: block;
+        }
+
+        .po-shot-wrap { position: relative; min-height: 4em; }
+
+        .po-shot-wrap.po-busy .po-shot { opacity: 0.45; transition: opacity 0.15s ease; }
+
+        .po-pick { position: relative; margin-bottom: 0.6em; }
+
+        .po-hits {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: #1c1c1e;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.3em;
+            max-height: 16em;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .po-hit { padding: 0.45em 0.7em; cursor: pointer; font-size: 0.9em; }
+        .po-hit:hover { background: rgba(0, 164, 220, 0.3); }
+
+        .po-styles { display: flex; flex-wrap: wrap; gap: 0.4em; margin-bottom: 0.6em; }
+
+        .po-style {
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: transparent;
+            color: inherit;
+            border-radius: 0.3em;
+            padding: 0.3em 0.7em;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+
+        .po-style.po-on { background: rgba(0, 164, 220, 0.35); border-color: rgba(0, 164, 220, 0.8); }
 
         /* Below this the page is one column and a floating panel would sit on top of the fields. */
         @media (max-width: 1100px) {
@@ -286,11 +346,20 @@
                             <input id="p_Name" type="text" is="emby-input" class="emby-input" />
                         </div>
 
-                        <div class="po-previews" id="BadgePreview"></div>
+                        <div class="po-styles" id="StylePicker"></div>
+
+                        <div class="po-pick">
+                            <input id="PreviewSearch" type="text" is="emby-input" class="emby-input"
+                                   placeholder="Preview on another item - type a title" autocomplete="off" />
+                            <div id="PreviewHits" class="po-hits"></div>
+                        </div>
+
+                        <div class="po-shot-wrap" id="BadgePreview"></div>
+                        <div id="PreviewNote" class="fieldDescription" style="margin-bottom:1em;"></div>
                         <div class="fieldDescription" style="margin-bottom:1em;">
-                            Portrait and landscape, because one preset can serve both. Click a style to
-                            choose it. Where a category aggregates - series and seasons - the second row
-                            shows what a partly available badge looks like.
+                            This is the real thing: the server draws it through the same code a run uses,
+                            with the settings as they stand here - saved or not. Nothing is written, so
+                            previewing costs the item nothing.
                         </div>
 
                         <div class="inputContainer">
@@ -517,7 +586,10 @@
             // preset. While the page is still being populated those fields are empty, so the
             // handler would overwrite a perfectly good preset with blanks - which is exactly how
             // a preset ended up called "Unnamed" with settings nobody chose.
-            var state = { config: null, builtIns: [], selected: null, loading: false };
+            var state = {
+                config: null, builtIns: [], selected: null, loading: false,
+                previewItemId: null, previewItemName: ''
+            };
 
             // Global settings, by kind. The enums are listed apart because the server sends and
             // expects their NAMES - "DarkPill", not 0. Numeric option values silently matched
@@ -562,35 +634,6 @@
                 VideoRange: 'Video range (DV, HDR, ...)',
                 Format: 'Presentation format (3D)',
                 Source: 'Source quality (CAM, TS, ...)'
-            };
-
-            var samples = {
-                Edition: 'EXT', Resolution: '4K', VideoRange: 'DV HDR', Format: '3D', Source: 'TS'
-            };
-
-            // The same colours BadgePalette.cs uses, per style.
-            var palettes = {
-                DarkPill: {
-                    Edition: ['#111418E0', '#FFFFFF', '#D4D4D890'],
-                    Resolution: ['#111418E0', '#FFFFFF', '#D4D4D890'],
-                    VideoRange: ['#111418E0', '#F5A524', '#F5A524B0'],
-                    Format: ['#111418E0', '#2DD4BF', '#2DD4BFC0'],
-                    Source: ['#111418E0', '#DC2626', '#DC2626C0']
-                },
-                FilledAccent: {
-                    Edition: ['#111418E0', '#FFFFFF', '#D4D4D890'],
-                    Resolution: ['#111418E0', '#FFFFFF', '#D4D4D890'],
-                    VideoRange: ['#6D28D9', '#FFFFFF', '#6D28D9'],
-                    Format: ['#111418E0', '#2DD4BF', '#2DD4BFC0'],
-                    Source: ['#111418E0', '#DC2626', '#DC2626C0']
-                },
-                FilledAll: {
-                    Edition: ['#3F3F46F0', '#FFFFFF', null],
-                    Resolution: ['#1D4ED8F0', '#FFFFFF', null],
-                    VideoRange: ['#6D28D9', '#FFFFFF', null],
-                    Format: ['#2DD4BF', '#0B1B18', null],
-                    Source: ['#DC2626', '#FFFFFF', null]
-                }
             };
 
             function page() { return document.querySelector('#posterOverlaysConfigPage'); }
@@ -1041,200 +1084,119 @@
                 return el ? el.checked : false;
             }
 
-            function svgEscape(s) {
-                return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            }
-
-            function lighten(hex) {
-                var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(hex || '');
-                if (!m) { return '#4A4C56'; }
-                var mix = function (v) {
-                    var n = parseInt(v, 16);
-                    return ('0' + Math.round(n + ((255 - n) * 0.30)).toString(16)).slice(-2);
-                };
-                return '#' + mix(m[1]) + mix(m[2]) + mix(m[3]);
-            }
-
-            /// One mock image with the current geometry, in the given style.
-            /// landscape swaps the shape; partial shows what a half-available badge looks like.
-            function previewSvg(style, landscape, partial) {
-                var w = landscape ? 190 : 130;
-                var h = landscape ? 107 : 195;
-
-                var pillH = h * (pnum('PillHeightPercent', 5.5) / 100);
-                var fontSize = pillH * (pnum('FontSizePercentOfPill', 60) / 100);
-                var padX = pillH * (pnum('PaddingPercentOfPill', 42) / 100);
-                var gap = pillH * (pnum('GapPercentOfPill', 33) / 100);
-                var radius = pillH * (pnum('CornerRadiusPercentOfPill', 20) / 100);
-                var stroke = Math.max(0.4, pillH * (pnum('BorderWidthPercentOfPill', 3.5) / 100));
-                var marginX = w * (pnum('HorizontalMarginPercent', 3) / 100);
-                var marginY = h * (pnum('VerticalMarginPercent', 2) / 100);
-
-                var corner = ppick('Corner', 'TopRight');
-                var horizontal = ppick('Direction', 'Vertical') === 'Horizontal';
-                var right = corner === 'TopRight' || corner === 'BottomRight';
-                var centred = corner === 'TopCentre' || corner === 'BottomCentre';
-                var bottom = corner === 'BottomRight' || corner === 'BottomLeft' || corner === 'BottomCentre';
-
-                var signalling = pflag('CompletenessColours');
-                var signal = partial ? ppick('PartialColour', '#FFAA28') : ppick('UniformColour', '#3ED682');
-                var marker = ppick('PartialMarker', 'Diagonal');
-                var glow = pflag('Glow');
-
-                var allowed = allowedKindsForPreview();
-                var chosen = currentOrder().filter(function (key) {
-                    return allowed.indexOf(key) >= 0;
-                }).slice(0, Math.max(1, pnum('MaxBadges', 3)));
-
-                if (!chosen.length) { chosen = ['Resolution']; }
-
-                // Rough text metrics are enough here: the pill only has to look right.
-                var pills = chosen.map(function (key) {
-                    var text = samples[key];
-                    var textW = text.length * fontSize * 0.62;
-                    return { key: key, text: text, width: textW + (2 * padX) };
-                });
-
-                var rowWidth = pills.reduce(function (sum, p) { return sum + p.width; }, 0)
-                    + (Math.max(0, pills.length - 1) * gap);
-                var stackH = horizontal ? pillH : (pills.length * pillH) + ((pills.length - 1) * gap);
-
-                var y = bottom ? h - marginY - stackH : marginY;
-                var x = centred ? (w - rowWidth) / 2 : (right ? w - marginX - rowWidth : marginX);
-
-                var uid = 'g' + Math.random().toString(36).slice(2, 8);
-                var parts = ['<defs><filter id="' + uid + '" x="-60%" y="-60%" width="220%" height="220%">'
-                    + '<feGaussianBlur stdDeviation="' + (pillH * (pnum('GlowRadiusPercentOfPill', 25) / 100) / 3)
-                    + '"/></filter></defs>'];
-
-                parts.push('<rect width="' + w + '" height="' + h + '" rx="4" fill="#1E293B"/>');
-                parts.push('<circle cx="' + (w * 0.32) + '" cy="' + (h * 0.34) + '" r="' + (Math.min(w, h) * 0.19) + '" fill="#334155"/>');
-                parts.push('<path d="M0 ' + (h * 0.72) + ' L' + (w * 0.34) + ' ' + (h * 0.52)
-                    + ' L' + (w * 0.62) + ' ' + (h * 0.74) + ' L' + w + ' ' + (h * 0.58)
-                    + ' V' + h + ' H0 Z" fill="#0F172A"/>');
-
-                pills.forEach(function (p) {
-                    var colours = palettes[style][p.key];
-                    var px = horizontal ? x : (centred ? (w - p.width) / 2 : (right ? w - marginX - p.width : marginX));
-                    var py = y;
-
-                    if (signalling && glow) {
-                        parts.push('<rect x="' + px + '" y="' + py + '" width="' + p.width + '" height="' + pillH
-                            + '" rx="' + radius + '" fill="' + signal + '" opacity="0.45" filter="url(#' + uid + ')"/>');
-                    }
-
-                    parts.push('<rect x="' + px + '" y="' + py + '" width="' + p.width + '" height="' + pillH
-                        + '" rx="' + radius + '" fill="' + colours[0] + '"/>');
-
-                    if (signalling && partial && marker !== 'None') {
-                        parts.push(markerShape(marker, px, py, p.width, pillH, lighten(colours[0]), radius));
-                    }
-
-                    var border = signalling ? signal : colours[2];
-                    if (border) {
-                        parts.push('<rect x="' + px + '" y="' + py + '" width="' + p.width + '" height="' + pillH
-                            + '" rx="' + radius + '" fill="none" stroke="' + border + '" stroke-width="' + stroke + '"/>');
-                    }
-
-                    parts.push('<text x="' + (px + (p.width / 2)) + '" y="' + (py + (pillH / 2))
-                        + '" font-family="Inter, Segoe UI, sans-serif" font-size="' + fontSize
-                        + '" font-weight="600" fill="' + colours[1]
-                        + '" text-anchor="middle" dominant-baseline="central">' + svgEscape(p.text) + '</text>');
-
-                    if (horizontal) { x += p.width + gap; } else { y += pillH + gap; }
-                });
-
-                return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h
-                    + '" xmlns="http://www.w3.org/2000/svg">' + parts.join('') + '</svg>';
-            }
-
-            function markerShape(marker, px, py, pw, ph, colour, radius) {
-                var clip = 'cl' + Math.random().toString(36).slice(2, 8);
-                var shape;
-
-                if (marker === 'Vertical') {
-                    shape = '<rect x="' + (px + (pw / 2)) + '" y="' + py + '" width="' + (pw / 2) + '" height="' + ph + '"/>';
-                } else if (marker === 'Wave') {
-                    var d = 'M' + (px + pw) + ' ' + py;
-                    for (var i = 0; i <= 16; i++) {
-                        var t = i / 16;
-                        d += ' L' + (px + (pw * 0.5) + (Math.sin(t * Math.PI * 2) * pw * 0.07)) + ' ' + (py + (ph * t));
-                    }
-                    d += ' L' + (px + pw) + ' ' + (py + ph) + ' Z';
-                    shape = '<path d="' + d + '"/>';
-                } else if (marker === 'Hatch') {
-                    shape = '';
-                    for (var sx = px - ph; sx < px + pw + ph; sx += ph * 0.34) {
-                        shape += '<line x1="' + sx + '" y1="' + (py + ph) + '" x2="' + (sx + ph) + '" y2="' + py
-                            + '" stroke="' + colour + '" stroke-width="' + (ph * 0.13) + '"/>';
-                    }
-                } else {
-                    shape = '<path d="M' + (px + (pw * 0.62)) + ' ' + py + ' L' + (px + pw) + ' ' + py
-                        + ' L' + (px + pw) + ' ' + (py + ph) + ' L' + (px + (pw * 0.38)) + ' ' + (py + ph) + ' Z"/>';
-                }
-
-                var body = marker === 'Hatch'
-                    ? shape
-                    : shape.replace('/>', ' fill="' + colour + '"/>');
-
-                return '<clipPath id="' + clip + '"><rect x="' + px + '" y="' + py + '" width="' + pw
-                    + '" height="' + ph + '" rx="' + radius + '"/></clipPath>'
-                    + '<g clip-path="url(#' + clip + ')">' + body + '</g>';
-            }
-
-            /// Which badge kinds to show in the preview: the union over every category that uses
-            /// this preset, so the picture matches what the preset is actually for.
-            function allowedKindsForPreview() {
-                var map = { AllowEdition: 'Edition', AllowResolution: 'Resolution', AllowVideoRange: 'VideoRange', AllowFormat: 'Format', AllowSource: 'Source' };
-                var users = categoryOrder.filter(function (cat) {
-                    return sameId(state.config[cat.key].PresetId, state.selected);
-                });
-
-                if (!users.length) { return Object.keys(categories); }
-
-                var allowed = [];
-                users.forEach(function (cat) {
-                    Object.keys(map).forEach(function (flag) {
-                        if (state.config[cat.key][flag] === true && allowed.indexOf(map[flag]) < 0) {
-                            allowed.push(map[flag]);
-                        }
-                    });
-                });
-
-                return allowed;
-            }
-
-            function renderPreview() {
-                var host = page().querySelector('#BadgePreview');
+            /// The style is chosen by name now rather than by clicking one of three imitations.
+            /// Three previews would mean three renders per keystroke; one real picture that changes
+            /// when the style does answers the same question, and answers it correctly.
+            function renderStylePicker() {
+                var host = page().querySelector('#StylePicker');
                 if (!host || !state.config) { return; }
 
-                var selectedStyle = presetStyle();
                 var labels = { DarkPill: 'Dark pill', FilledAccent: 'DV filled', FilledAll: 'All filled' };
-                var signalling = pflag('CompletenessColours');
+                var selectedStyle = presetStyle();
+                var locked = !selectedPreset() || isBuiltIn(selectedPreset().Id);
 
                 host.innerHTML = '';
                 Object.keys(labels).forEach(function (style) {
-                    var box = document.createElement('div');
-                    box.style.textAlign = 'center';
-                    box.style.opacity = style === selectedStyle ? '1' : '0.45';
-                    box.style.cursor = 'pointer';
-
-                    var html = previewRows(style, signalling);
-
-                    html += '<div class="fieldDescription" style="margin-top:0.3em;">'
-                        + labels[style] + (style === selectedStyle ? ' (selected)' : '') + '</div>';
-
-                    box.innerHTML = html;
-                    box.addEventListener('click', function () {
+                    var b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'po-style' + (style === selectedStyle ? ' po-on' : '');
+                    b.textContent = labels[style];
+                    b.disabled = locked;
+                    b.addEventListener('click', function () {
                         var preset = selectedPreset();
                         if (!preset || isBuiltIn(preset.Id)) { return; }
                         preset.Style = style;
+                        renderStylePicker();
                         renderPreview();
                     });
-                    host.appendChild(box);
+                    host.appendChild(b);
                 });
+            }
 
-                renderFloating();
+            /// Asks the server to draw the current settings onto a real item and shows the answer.
+            ///
+            /// This replaces an SVG imitation of the badges. An imitation is a second implementation
+            /// of the drawing rules, and two implementations of one thing drift: the centred corners
+            /// had to be added to both, and the imitation measured text as `length * fontSize * 0.62`
+            /// where Skia measures it properly, so no pill was ever quite the right width.
+            ///
+            /// Coalesced rather than debounced on the input alone: a render takes a moment, and
+            /// typing in a number field would otherwise queue a request per keystroke that arrives
+            /// out of order. Only the newest answer is allowed to win - `stamp` decides that.
+            var previewTimer = null;
+            var previewStamp = 0;
+
+            function renderPreview() {
+                renderStylePicker();
+
+                var host = page().querySelector('#BadgePreview');
+                if (!host || !state.config) { return; }
+
+                if (!state.previewItemId) {
+                    host.innerHTML = '';
+                    say('PreviewNote', 'Pick an item above to see the badges on a real cover.');
+                    return;
+                }
+
+                if (previewTimer) { clearTimeout(previewTimer); }
+                previewTimer = setTimeout(requestPreview, 350);
+            }
+
+            function requestPreview() {
+                var host = page().querySelector('#BadgePreview');
+                if (!host || !state.config || !state.previewItemId) { return; }
+
+                // The unsaved state of the form, not what is on disk - previewing a change one has
+                // not saved yet is the entire purpose.
+                collectGlobals();
+                collectPresetFields();
+
+                var stamp = ++previewStamp;
+                host.classList.add('po-busy');
+
+                ApiClient.ajax({
+                    type: 'POST',
+                    url: ApiClient.getUrl('PosterOverlays/Preview/' + state.previewItemId),
+                    data: JSON.stringify(state.config),
+                    contentType: 'application/json',
+                    dataType: 'response'
+                }).then(function (response) {
+                    if (stamp !== previewStamp) { return; }
+                    var note = response.headers.get('X-PosterOverlays-Note') || '';
+                    var count = response.headers.get('X-PosterOverlays-Badges') || '0';
+                    return response.blob().then(function (blob) {
+                        if (stamp !== previewStamp) { return; }
+                        showShot(URL.createObjectURL(blob), note, count);
+                    });
+                }).catch(function (error) {
+                    if (stamp !== previewStamp) { return; }
+                    host.classList.remove('po-busy');
+                    say('PreviewNote', 'The preview could not be drawn'
+                        + (error && error.status ? ' (HTTP ' + error.status + ')' : '') + '.');
+                });
+            }
+
+            function showShot(url, note, count) {
+                var host = page().querySelector('#BadgePreview');
+                host.classList.remove('po-busy');
+
+                // Revoked on replacement: every preview creates a blob, and a page left open while
+                // sliders are dragged would otherwise hold every one of them.
+                var old = host.querySelector('img');
+                if (old && old.src.indexOf('blob:') === 0) { URL.revokeObjectURL(old.src); }
+
+                host.innerHTML = '';
+                var img = document.createElement('img');
+                img.className = 'po-shot';
+                img.src = url;
+                img.alt = 'Preview';
+                host.appendChild(img);
+
+                say('PreviewNote', note || (count === '0'
+                    ? 'No badge on this one.'
+                    : count + (count === '1' ? ' badge' : ' badges') + ' drawn - ' + state.previewItemName + '.'));
+
+                renderFloating(url);
             }
 
             function presetStyle() {
@@ -1242,42 +1204,168 @@
                 return preset ? preset.Style : 'DarkPill';
             }
 
-            /// One row without the completeness colours, and - when they are on - a second row
-            /// showing the other half of that setting.
-            ///
-            /// The second row is captioned rather than left to speak for itself: without a caption
-            /// it reads as the same picture drawn twice, which is what it was reported as. The
-            /// difference between the two is the whole point of the setting, so it is spelled out.
-            function previewRows(style, signalling) {
-                var row = function (partial) {
-                    return '<div style="display:flex; gap:0.5em; align-items:flex-start;">'
-                        + previewSvg(style, false, partial) + previewSvg(style, true, partial) + '</div>';
-                };
-
-                if (!signalling) { return row(false); }
-
-                var caption = function (text) {
-                    return '<div class="fieldDescription" style="margin:0.15em 0 0.1em;">' + text + '</div>';
-                };
-
-                return caption('every copy agrees') + row(false)
-                    + '<div style="margin-top:0.5em;"></div>'
-                    + caption('only some do') + row(true);
-            }
-
-            /// The selected style again, pinned to the right edge so it stays in view while the
-            /// fields that change it are being edited. Deliberately only the selected one: the
-            /// row above is for choosing, this is for watching.
-            function renderFloating() {
+            /// The same picture, pinned to the right edge so it stays in view while the fields that
+            /// change it are being edited.
+            function renderFloating(url) {
                 var host = document.querySelector('#PosterOverlaysFloating');
                 if (!host || !state.config) { return; }
 
                 var body = host.querySelector('[data-body]');
-                var style = presetStyle();
+                if (url) {
+                    body.innerHTML = '';
+                    var img = document.createElement('img');
+                    img.className = 'po-shot';
+                    img.src = url;
+                    img.alt = 'Preview';
+                    body.appendChild(img);
+                }
 
-                body.innerHTML = previewRows(style, pflag('CompletenessColours'));
                 host.querySelector('[data-name]').textContent =
-                    (selectedPreset() ? selectedPreset().Name : '') + '  -  ' + style;
+                    (selectedPreset() ? selectedPreset().Name : '') + '  -  ' + presetStyle();
+            }
+
+            /// Offers something to look at without being asked. An empty preview on load is a poor
+            /// first impression, and picking at random is nearly as bad - most of the library
+            /// carries no badge, so a random item would usually show an untouched poster and read
+            /// as a fault. These come from the plugin's own records, so the picture shows something.
+            function pickInitialPreviewItem() {
+                if (state.previewItemId) { return Promise.resolve(); }
+
+                return ApiClient.ajax({
+                    type: 'GET',
+                    url: ApiClient.getUrl('PosterOverlays/PreviewCandidates', { limit: 1 }),
+                    dataType: 'json'
+                }).then(function (items) {
+                    if (!items || !items.length) {
+                        say('PreviewNote', 'Nothing is badged yet - run the task once, or search for an item above.');
+                        return;
+                    }
+
+                    usePreviewItem(items[0].ItemId, items[0].Name
+                        + (items[0].ProductionYear ? ' (' + items[0].ProductionYear + ')' : ''));
+                }).catch(function () {
+                    say('PreviewNote', 'Search for an item above to preview it.');
+                });
+            }
+
+            function usePreviewItem(id, name) {
+                state.previewItemId = id;
+                state.previewItemName = name;
+                var box = page().querySelector('#PreviewSearch');
+                if (box) { box.value = ''; box.placeholder = 'Previewing ' + name + ' - type to change'; }
+                page().querySelector('#PreviewHits').style.display = 'none';
+                renderPreview();
+            }
+
+            /// Searching the library rather than listing it: a list would be tens of thousands of
+            /// rows, and the one item somebody wants to look at is one they can name.
+            function installPreviewSearch() {
+                var box = page().querySelector('#PreviewSearch');
+                var hits = page().querySelector('#PreviewHits');
+                if (!box || !hits || box.dataset.poWired) { return; }
+                box.dataset.poWired = '1';
+
+                var timer = null;
+
+                box.addEventListener('input', function () {
+                    var term = box.value.trim();
+                    if (timer) { clearTimeout(timer); }
+
+                    if (term.length < 2) { hits.style.display = 'none'; return; }
+
+                    timer = setTimeout(function () {
+                        ApiClient.ajax({
+                            type: 'GET',
+                            url: ApiClient.getUrl('Items', {
+                                SearchTerm: term,
+                                IncludeItemTypes: 'Movie,Series,Season,Episode',
+                                Recursive: true,
+                                Limit: 15,
+                                Fields: 'ProductionYear',
+                                EnableImages: false
+                            }),
+                            dataType: 'json'
+                        }).then(function (result) {
+                            hits.innerHTML = '';
+                            var items = (result && result.Items) || [];
+
+                            if (!items.length) {
+                                hits.innerHTML = '<div class="po-hit" style="opacity:0.6;">No results</div>';
+                                hits.style.display = 'block';
+                                return;
+                            }
+
+                            items.forEach(function (item) {
+                                var name = item.Name + (item.ProductionYear ? ' (' + item.ProductionYear + ')' : '');
+                                var row = document.createElement('div');
+                                row.className = 'po-hit';
+                                row.textContent = name + '  -  ' + item.Type;
+                                row.addEventListener('click', function () { usePreviewItem(item.Id, name); });
+                                hits.appendChild(row);
+                            });
+
+                            hits.style.display = 'block';
+                        }).catch(function () { hits.style.display = 'none'; });
+                    }, 300);
+                });
+
+                box.addEventListener('blur', function () {
+                    // Delayed, or the click that chose a row never lands.
+                    setTimeout(function () { hits.style.display = 'none'; }, 200);
+                });
+            }
+
+            /// Folds the sections away. Done in script rather than by rewriting the markup into
+            /// <details> elements: seven sections means seven pairs of tags to re-nest by hand, and
+            /// a misplaced closing tag in a page this size is not something a build would catch.
+            ///
+            /// What is open is remembered, because a settings page one has to re-open every visit
+            /// teaches people to leave everything open, which defeats the folding.
+            function makeSectionsFoldable() {
+                var open = {};
+                try { open = JSON.parse(window.localStorage.getItem('poster-overlays-sections') || '{}'); }
+                catch (e) { open = {}; }
+
+                // Shut by default: tools rather than settings, looked at rarely.
+                var shutByDefault = ['Backup and sharing', 'Run it for one item'];
+
+                Array.prototype.forEach.call(page().querySelectorAll('.verticalSection > h3.sectionTitle'), function (title) {
+                    var section = title.parentNode;
+                    if (section.dataset.poFoldable) { return; }
+                    section.dataset.poFoldable = '1';
+
+                    var key = title.textContent.trim();
+                    var body = document.createElement('div');
+                    while (title.nextSibling) { body.appendChild(title.nextSibling); }
+                    section.appendChild(body);
+
+                    var show = Object.prototype.hasOwnProperty.call(open, key)
+                        ? open[key] === true
+                        : shutByDefault.indexOf(key) < 0;
+
+                    var apply = function () {
+                        body.style.display = show ? '' : 'none';
+                        title.classList.toggle('po-open', show);
+                    };
+
+                    title.classList.add('po-fold');
+                    title.setAttribute('role', 'button');
+                    title.setAttribute('tabindex', '0');
+                    apply();
+
+                    var toggle = function () {
+                        show = !show;
+                        apply();
+                        open[key] = show;
+                        try { window.localStorage.setItem('poster-overlays-sections', JSON.stringify(open)); }
+                        catch (e) { /* private mode; folding still works for this visit */ }
+                    };
+
+                    title.addEventListener('click', toggle);
+                    title.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+                    });
+                });
             }
 
             function buildFloating() {
@@ -1573,13 +1661,19 @@
                         renderPresetPicker();
                         loadPresetFields();
                         installSteppers();
+                        installPreviewSearch();
+                        makeSectionsFoldable();
                     } finally {
                         state.loading = false;
                     }
 
-                    renderPreview();
                     showStatus();
                     Dashboard.hideLoadingMsg();
+
+                    // After the spinner is gone: the first render is a round trip to the server,
+                    // and holding the page hostage for it would make an otherwise loaded page feel
+                    // slow. The preview fills itself in a moment later.
+                    pickInitialPreviewItem().then(renderPreview);
                 }).catch(function (error) {
                     // Never leave the spinner running. A page that spins forever tells the user
                     // nothing, and it is what hid the first version of this bug.
