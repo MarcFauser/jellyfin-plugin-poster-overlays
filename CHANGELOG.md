@@ -53,6 +53,14 @@ for Jellyfin 12), so both lines carry the same feature set under different major
   down: if `previewSvg`, `previewRows`, `markerShape` or `allowedKindsForPreview` ever come back,
   so has the second implementation.
 
+- **Two routes**, worth naming because they are usable from anything, not only from the settings
+  page. `POST /PosterOverlays/Preview/{itemId}` takes a configuration in the body and answers with
+  the image that configuration would produce — it changes nothing, neither the item nor the saved
+  settings, so it is safe to call at any rate. How the picture came out is carried in headers
+  rather than the body, since the body has to be the image for an `<img>` to show it:
+  `X-PosterOverlays-Badges` counts them and `X-PosterOverlays-Note` says why there are none.
+  `GET /PosterOverlays/PreviewCandidates` lists items the plugin already badges.
+
 ### Changed
 
 - **The catalogue category is `MoviesAndShows` instead of `General`.** The plugin draws on the
