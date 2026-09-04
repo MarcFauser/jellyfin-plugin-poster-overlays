@@ -8,6 +8,14 @@
     "category": "MoviesAndShows",
     "versions": [
       {
+        "version": "12.22.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.22.0.0/jellyfin-plugin-poster-overlays_12.22.0.0.zip",
+        "checksum": "52ea3690720cef8051fdbd409268d064",
+        "changelog": "Adds an audio-format badge - ATMOS, DTS-X, TRUEHD, DTS-HD and so on - drawn only where two copies of the same title actually differ in it. Off by default.\n\nThe restriction is the point. Measured on a library of 2,346 films: of 105 groups holding more than one copy of a film, 7 differ in nothing the existing badges could show except the audio format. Every other film has no second copy at all, so a format badge there describes a file nobody is comparing to anything.\n\nWhich track it describes is configurable, as a list of languages, best first - the first one any track carries wins. This matters more than it sounds: 437 films carry several languages in different formats, typically a German AC3 beside an English DTS, and taking the best track badges such a film \"DTS\", which is true about the file and about a track its owner never selects. Setting a language therefore draws fewer badges rather than more, which is the intent.\n\nSpelling is forgiving because the server is asked rather than a table in the plugin: \"de\", \"ger\", \"deu\" and \"German\" all name one language, for every language Jellyfin knows. A file with a single track always reports that one, whatever the preference says.\n\nWithin the chosen language only the best track counts - a film with Atmos, a DTS-HD track and a stereo commentary is an Atmos film. The label carries as much as the job needs: where two copies are both plain DTS and differ only in the channel layout, the layout is added.\n\nThe setting for merging Dolby Vision and HDR is now spelled MergeDolbyVisionAndHDR in code. Stored configurations are unaffected - the file keeps the old spelling on purpose, so a value anybody switched off stays switched off.",
+        "timestamp": "2026-09-04T00:35:22Z"
+      },
+      {
         "version": "12.21.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.21.0.0/jellyfin-plugin-poster-overlays_12.21.0.0.zip",
@@ -174,6 +182,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.22.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.22.0.0/jellyfin-plugin-poster-overlays_11.22.0.0.zip",
+        "checksum": "c3bc6ac8ed97606186bc96dd1fbb47ff",
+        "changelog": "Adds an audio-format badge - ATMOS, DTS-X, TRUEHD, DTS-HD and so on - drawn only where two copies of the same title actually differ in it. Off by default.\n\nThe restriction is the point. Measured on a library of 2,346 films: of 105 groups holding more than one copy of a film, 7 differ in nothing the existing badges could show except the audio format. Every other film has no second copy at all, so a format badge there describes a file nobody is comparing to anything.\n\nWhich track it describes is configurable, as a list of languages, best first - the first one any track carries wins. This matters more than it sounds: 437 films carry several languages in different formats, typically a German AC3 beside an English DTS, and taking the best track badges such a film \"DTS\", which is true about the file and about a track its owner never selects. Setting a language therefore draws fewer badges rather than more, which is the intent.\n\nSpelling is forgiving because the server is asked rather than a table in the plugin: \"de\", \"ger\", \"deu\" and \"German\" all name one language, for every language Jellyfin knows. A file with a single track always reports that one, whatever the preference says.\n\nWithin the chosen language only the best track counts - a film with Atmos, a DTS-HD track and a stereo commentary is an Atmos film. The label carries as much as the job needs: where two copies are both plain DTS and differ only in the channel layout, the layout is added.\n\nThe setting for merging Dolby Vision and HDR is now spelled MergeDolbyVisionAndHDR in code. Stored configurations are unaffected - the file keeps the old spelling on purpose, so a value anybody switched off stays switched off.",
+        "timestamp": "2026-09-04T00:35:22Z"
       },
       {
         "version": "11.21.0.0",
