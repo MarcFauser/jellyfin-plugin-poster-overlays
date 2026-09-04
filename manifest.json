@@ -8,6 +8,14 @@
     "category": "MoviesAndShows",
     "versions": [
       {
+        "version": "12.23.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.23.0.0/jellyfin-plugin-poster-overlays_12.23.0.0.zip",
+        "checksum": "4b79d4261eab795ec789769672f3865a",
+        "changelog": "Fixes the audio badge never appearing. It was grouping copies of a film by Jellyfin's presentation key, which groups the rows of a series but not of a film: for a film that key falls back to the item's own id unless the files were merged as alternate versions by hand, so two ordinary copies never shared it and the badge was skipped every time. Copies are now matched by provider id.\n\nThe badge itself is unchanged: ATMOS, DTS-X, TRUEHD, DTS-HD and so on, drawn only where two copies of the same title actually differ in it, and describing the track in the language you set rather than the technically best one.",
+        "timestamp": "2026-09-04T00:51:42Z"
+      },
+      {
         "version": "12.22.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.22.0.0/jellyfin-plugin-poster-overlays_12.22.0.0.zip",
@@ -182,6 +190,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.23.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.23.0.0/jellyfin-plugin-poster-overlays_11.23.0.0.zip",
+        "checksum": "4521743c944ed4d0a6a3be3a7bc664a5",
+        "changelog": "Fixes the audio badge never appearing. It was grouping copies of a film by Jellyfin's presentation key, which groups the rows of a series but not of a film: for a film that key falls back to the item's own id unless the files were merged as alternate versions by hand, so two ordinary copies never shared it and the badge was skipped every time. Copies are now matched by provider id.\n\nThe badge itself is unchanged: ATMOS, DTS-X, TRUEHD, DTS-HD and so on, drawn only where two copies of the same title actually differ in it, and describing the track in the language you set rather than the technically best one.",
+        "timestamp": "2026-09-04T00:51:42Z"
       },
       {
         "version": "11.22.0.0",
