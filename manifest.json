@@ -8,6 +8,14 @@
     "category": "MoviesAndShows",
     "versions": [
       {
+        "version": "12.20.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.20.0.0/jellyfin-plugin-poster-overlays_12.20.0.0.zip",
+        "checksum": "1f727bd2faf9b553a600e59e681491b8",
+        "changelog": "Adds an audio-format badge - ATMOS, DTS-X, TRUEHD, DTS-HD and so on - and draws it only where two copies of the same title actually differ in it. Off by default.\n\nThe restriction is the point. Measured on a library of 2,346 films: of 105 groups that hold more than one copy of a film, 7 differ in nothing the existing badges could show except the audio format. Every other film has no second copy at all, so a format badge there says something true about a file nobody is comparing to anything.\n\nThe label carries as much as the job needs. The format alone settles most cases; where two copies are both plain DTS and differ only in the channel layout, the layout is added. Where even that is equal nothing is drawn, because \"two audio tracks\" is not something a badge can usefully say. Only the best track counts - a film with Atmos, a DTS-HD track and a stereo commentary is an Atmos film.\n\nGrouping follows Jellyfin's own presentation key, the one it uses to decide which rows are shown as a single tile, rather than an id read out of the provider list.\n\nThe setting for merging Dolby Vision and HDR into one pill is now spelled MergeDolbyVisionAndHDR in code. Stored configurations are unaffected: the file keeps the old spelling on purpose, so a value anybody had switched off stays switched off.",
+        "timestamp": "2026-09-04T00:03:14Z"
+      },
+      {
         "version": "12.19.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.19.0.0/jellyfin-plugin-poster-overlays_12.19.0.0.zip",
@@ -158,6 +166,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.20.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.20.0.0/jellyfin-plugin-poster-overlays_11.20.0.0.zip",
+        "checksum": "e9303c60e180b70cebd98792e4f4a3bd",
+        "changelog": "Adds an audio-format badge - ATMOS, DTS-X, TRUEHD, DTS-HD and so on - and draws it only where two copies of the same title actually differ in it. Off by default.\n\nThe restriction is the point. Measured on a library of 2,346 films: of 105 groups that hold more than one copy of a film, 7 differ in nothing the existing badges could show except the audio format. Every other film has no second copy at all, so a format badge there says something true about a file nobody is comparing to anything.\n\nThe label carries as much as the job needs. The format alone settles most cases; where two copies are both plain DTS and differ only in the channel layout, the layout is added. Where even that is equal nothing is drawn, because \"two audio tracks\" is not something a badge can usefully say. Only the best track counts - a film with Atmos, a DTS-HD track and a stereo commentary is an Atmos film.\n\nGrouping follows Jellyfin's own presentation key, the one it uses to decide which rows are shown as a single tile, rather than an id read out of the provider list.\n\nThe setting for merging Dolby Vision and HDR into one pill is now spelled MergeDolbyVisionAndHDR in code. Stored configurations are unaffected: the file keeps the old spelling on purpose, so a value anybody had switched off stays switched off.",
+        "timestamp": "2026-09-04T00:03:14Z"
       },
       {
         "version": "11.19.0.0",
