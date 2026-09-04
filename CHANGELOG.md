@@ -9,6 +9,31 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Fixed
+
+- **Taking a badge back off an item has never worked.** When an item's badge set becomes empty —
+  its twin was deleted, or it never really had one — the cached original is supposed to go back on
+  the item. Instead the run reported `OriginalMissing` and left the badge where it was, blaming a
+  cached original that was sitting right there.
+
+  `ApplyAsync` takes a lock on the item id before it does anything, and the restore branch inside
+  it called the *public* `RestoreAsync`, which tries to take that same lock again. It never got it,
+  returned false, and said nothing — the two paths in the restore that do log sit behind the lock,
+  so the failure was silent by construction. One call now goes to `RestoreCoreAsync` instead.
+
+  Measured on the reference library on 2026-09-04: a run with 222 items to restore restored none
+  of them and logged not one warning. The trigger was rare enough to hide for a long time, because
+  losing *every* badge barely happened before the audio badges arrived; the run that exposed it had
+  been started thirteen minutes before the release that made those badges correct, so 222 films
+  were carrying a label that no longer applied and could not be taken off.
+
+  Three tests cover it, and they are the first in this project to drive a real `BaseItem` through
+  `ApplyAsync` at all — which is why the bug survived: the item layer had no coverage whatsoever.
+  The first was confirmed to fail with the fix reverted. The second holds the other half down: the
+  public wrapper must still refuse while another worker holds the item, so that deleting the lock
+  is not mistaken for a fix. The third checks the lock is released afterwards, because a leaked one
+  looks exactly like "nothing to do".
+
 ### Added
 
 - **An audio-format badge — ATMOS, DTS-X, TRUEHD, DTS-HD and so on — drawn only where two copies

@@ -264,7 +264,14 @@ internal sealed class OverlayApplier
                 return OverlayOutcome.Unchanged;
             }
 
-            return await RestoreAsync(item, cancellationToken).ConfigureAwait(false)
+            // RestoreCoreAsync, not RestoreAsync, and this is load-bearing rather than tidiness:
+            // the public wrapper takes the Busy lock, and the caller of this method - ApplyAsync -
+            // is already holding it for this very id. Calling the wrapper here therefore always
+            // failed to acquire, returned false without logging a thing, and the outcome was
+            // reported as OriginalMissing. Measured on the reference library on 2026-09-04: a run
+            // that had 222 items to restore restored none of them and blamed a missing cache, with
+            // no warning in the log, because the only two paths that do log sit behind that lock.
+            return await RestoreCoreAsync(item, cancellationToken).ConfigureAwait(false)
                 ? OverlayOutcome.Restored
                 : OverlayOutcome.OriginalMissing;
         }
