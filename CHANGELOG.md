@@ -63,6 +63,13 @@ for Jellyfin 12), so both lines carry the same feature set under different major
   and otherwise falls back to the item's own id. Two ordinary copies of a film therefore never
   share it: the query returned exactly one row every time, and not one audio badge was ever drawn.
 
+  A second fault came out of the same check, one step further on. Matching by "any shared provider
+  id" swept in `TmdbCollection`, which is not an identity but a membership: all fifteen Star Wars
+  films carry `TmdbCollection=10`, so the whole series counted as copies of one film and 2 of 25
+  single-copy films drew a badge they had not earned. Only ids that name a title are used now —
+  `Imdb`, `Tmdb`, `Tvdb` and `Custom` — as a positive list, because an unknown key might identify
+  or might group, and the two mistakes do not cost the same: a missed peer loses one useful badge,
+  a wrong peer puts a badge on a film with no twin and contradicts what the badge is for.
   Nothing in the code looked wrong, and no test caught it — the tests cover the label, and the
   fault was in the query underneath. It surfaced by checking the finished feature against the real
   library through the plugin's own preview route: seven films where a badge was expected, seven

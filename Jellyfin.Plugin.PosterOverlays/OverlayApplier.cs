@@ -854,8 +854,11 @@ internal sealed class OverlayApplier
         // and otherwise falls back to the item's own id. Two ordinary copies of a film therefore
         // never share it, the query returned one row every time, and not a single audio badge was
         // drawn. Found by checking the finished feature against the library rather than by reading.
-        var providerIds = item.ProviderIds;
-        if (providerIds is null || providerIds.Count == 0)
+        // Only the ids that name the title - see IdentifyingIds. Passing everything the item
+        // carries looked harmless and was not: TmdbCollection is shared by every film in a series,
+        // so "any shared provider id" made all fifteen Star Wars films peers of each other.
+        var providerIds = IdentifyingIds.From(item.ProviderIds);
+        if (providerIds.Count == 0)
         {
             return null;
         }
@@ -868,7 +871,7 @@ internal sealed class OverlayApplier
             {
                 // Any shared id counts: two copies usually agree on all of them, and a pair that
                 // agrees on IMDB while disagreeing on TMDB is still the same film.
-                HasAnyProviderId = new Dictionary<string, string>(providerIds, StringComparer.OrdinalIgnoreCase),
+                HasAnyProviderId = providerIds,
                 IncludeItemTypes = new[] { OverlayApplier.KindOf(item) },
                 Recursive = true,
                 IsVirtualItem = false,
