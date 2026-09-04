@@ -70,6 +70,7 @@ for Jellyfin 12), so both lines carry the same feature set under different major
   `Imdb`, `Tmdb`, `Tvdb` and `Custom` — as a positive list, because an unknown key might identify
   or might group, and the two mistakes do not cost the same: a missed peer loses one useful badge,
   a wrong peer puts a badge on a film with no twin and contradicts what the badge is for.
+
   Nothing in the code looked wrong, and no test caught it — the tests cover the label, and the
   fault was in the query underneath. It surfaced by checking the finished feature against the real
   library through the plugin's own preview route: seven films where a badge was expected, seven
