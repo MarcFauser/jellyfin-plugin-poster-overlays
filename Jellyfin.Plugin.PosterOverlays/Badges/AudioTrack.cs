@@ -17,4 +17,10 @@ namespace Jellyfin.Plugin.PosterOverlays.Badges;
 /// <param name="Profile">The profile, for example <c>DTS-HD MA</c>.</param>
 /// <param name="Title">The track title, which is where "Atmos" often hides.</param>
 /// <param name="Channels">The channel count, or null when the stream does not say.</param>
-internal readonly record struct AudioTrack(string? Codec, string? Profile, string? Title, int? Channels);
+/// <param name="Language">
+/// The ISO code the stream carries, for example <c>deu</c>. Needed because the best track and the
+/// interesting one are frequently not the same: measured on the reference library, 437 films carry
+/// several languages in different formats, typically a German AC3 beside an English DTS. Reporting
+/// the DTS there describes a track the owner of the library does not listen to.
+/// </param>
+internal readonly record struct AudioTrack(string? Codec, string? Profile, string? Title, int? Channels, string? Language = null);

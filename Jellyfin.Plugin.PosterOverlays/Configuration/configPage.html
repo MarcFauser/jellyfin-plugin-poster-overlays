@@ -525,6 +525,17 @@
                         <input id="MinimumResolutionK" type="number" is="emby-input" class="emby-input po-num" min="1" max="32" step="1" />
                         <div class="fieldDescription">With 4, 1080p material gets none.</div>
                     </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="AudioLanguages">Audio language, best first</label>
+                        <input id="AudioLanguages" type="text" is="emby-input" class="emby-input" placeholder="deu, eng" />
+                        <div class="fieldDescription">
+                            Which track the audio badge describes. Comma separated ISO codes - "de", "ger",
+                            "deu" and "german" all mean the same thing. Leave it empty and the best track
+                            wins, which is often the wrong one: a release with a German AC3 beside an
+                            English DTS would be badged DTS, describing a track you never select. A file
+                            with only one track always reports that one, whatever is set here.
+                        </div>
+                    </div>
                 </div>
 
                 <div class="verticalSection">
@@ -622,7 +633,7 @@
             var globalFlags = ['Enabled', 'DryRun', 'WatchForImageChanges', 'WriteToMediaFolder',
                 'MergeDolbyVisionAndHDR'];
             var globalNumbers = ['JpegQuality', 'MinimumResolutionK'];
-            var globalTexts = ['ResolutionLadder', 'ExcludedItemIds', 'EditionOverrides'];
+            var globalTexts = ['ResolutionLadder', 'ExcludedItemIds', 'EditionOverrides', 'AudioLanguages'];
 
             // Preset fields, by kind. The p_ prefix keeps them from colliding with the global ids.
             var presetNumbers = ['MaxBadges', 'PillHeightPercent', 'FontSizePercentOfPill',

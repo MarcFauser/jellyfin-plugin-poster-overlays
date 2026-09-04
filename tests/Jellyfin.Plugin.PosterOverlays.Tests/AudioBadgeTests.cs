@@ -126,6 +126,106 @@ public class AudioBadgeTests
     }
 
     /// <summary>
+    /// The case the language preference exists for: German AC3 beside English DTS.
+    /// </summary>
+    /// <remarks>
+    /// Measured on the reference library, 437 films are shaped like this. Without a preference the
+    /// badge says DTS, which is true about the file and about a track the viewer never selects.
+    /// </remarks>
+    [Fact]
+    public void ThePreferredLanguageDecidesRatherThanTheBestTrack()
+    {
+        var tracks = new List<AudioTrack>
+        {
+            new("ac3", "", null, 6, "deu"),
+            new("dts", "DTS-HD MA", null, 8, "eng"),
+        };
+
+        Assert.Equal("DTS-HD", TechnicalBadges.Audio(tracks, false));
+        Assert.Equal("AC3", TechnicalBadges.Audio(tracks, false, ["deu"]));
+        Assert.Equal("DTS-HD", TechnicalBadges.Audio(tracks, false, ["eng"]));
+    }
+
+    /// <summary>
+    /// One track is never filtered away, whatever it is tagged with.
+    /// </summary>
+    /// <remarks>
+    /// A file with a single English track still says what it has. Filtering it out because the
+    /// preference says German would turn a working badge into silence and gain nothing - there is
+    /// no other track it could have picked instead.
+    /// </remarks>
+    [Fact]
+    public void ASingleTrackAlwaysCounts()
+    {
+        Assert.Equal("DTS", TechnicalBadges.Audio([new("dts", "DTS", null, 6, "eng")], false, ["deu"]));
+        Assert.Equal("DTS", TechnicalBadges.Audio([new("dts", "DTS", null, 6, null)], false, ["deu"]));
+    }
+
+    /// <summary>
+    /// When no track is in a preferred language, all of them are considered again.
+    /// </summary>
+    /// <remarks>
+    /// The alternative - no badge at all on a film with no German track - would hide the very case
+    /// where two copies differ in whether they are dubbed.
+    /// </remarks>
+    [Fact]
+    public void NoMatchFallsBackToEverything()
+    {
+        var tracks = new List<AudioTrack>
+        {
+            new("ac3", "", null, 6, "jpn"),
+            new("dts", "DTS-HD MA", null, 8, "eng"),
+        };
+
+        Assert.Equal("DTS-HD", TechnicalBadges.Audio(tracks, false, ["deu"]));
+    }
+
+    /// <summary>
+    /// The preference is a list, and earlier entries win.
+    /// </summary>
+    [Fact]
+    public void TheFirstListedLanguageThatExistsWins()
+    {
+        var tracks = new List<AudioTrack>
+        {
+            new("ac3", "", null, 6, "deu"),
+            new("truehd", "", null, 8, "eng"),
+        };
+
+        Assert.Equal("AC3", TechnicalBadges.Audio(tracks, false, ["deu", "eng"]));
+        Assert.Equal("TRUEHD", TechnicalBadges.Audio(tracks, false, ["fra", "eng", "deu"]));
+    }
+
+    /// <summary>
+    /// Both ISO 639-2 codes for a language mean the same language, and so do the short forms.
+    /// </summary>
+    /// <remarks>
+    /// German really does have two codes - <c>ger</c> and <c>deu</c> - and files in the wild use
+    /// both. Measured on the reference library the streams say <c>deu</c>, but somebody typing the
+    /// setting is at least as likely to write <c>de</c> or <c>german</c>. If those did not all
+    /// arrive at one key, the setting would work or not depending on a spelling nobody chose.
+    /// </remarks>
+    /// <param name="streamCode">What the stream says.</param>
+    /// <param name="typed">What somebody typed into the setting.</param>
+    [Theory]
+    [InlineData("deu", "de")]
+    [InlineData("deu", "ger")]
+    [InlineData("deu", "German")]
+    [InlineData("ger", "deu")]
+    [InlineData("fra", "fre")]
+    [InlineData("nld", "dut")]
+    public void LanguageSpellingsAreTreatedAsOne(string streamCode, string typed)
+    {
+        var tracks = new List<AudioTrack>
+        {
+            new("ac3", "", null, 6, streamCode),
+            new("dts", "DTS-HD MA", null, 8, "eng"),
+        };
+
+        Assert.Equal("AC3", TechnicalBadges.Audio(tracks, false, [typed]));
+    }
+
+    /// <summary>
     /// Nothing to say produces nothing, rather than an empty pill.
     /// </summary>
     [Fact]

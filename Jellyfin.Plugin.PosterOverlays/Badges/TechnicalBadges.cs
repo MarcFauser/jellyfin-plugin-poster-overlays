@@ -172,19 +172,25 @@ internal static class TechnicalBadges
     /// </remarks>
     /// <param name="tracks">The audio tracks of the item.</param>
     /// <param name="withChannels">Append the channel layout, as in "DTS 7.1".</param>
+    /// <param name="languages">
+    /// Preferred languages, best first, as ISO codes. When any track matches, only those tracks
+    /// are considered; when none does, all of them are. Empty means no preference.
+    /// </param>
     /// <returns>For example "ATMOS", or null when there is nothing worth saying.</returns>
-    public static string? Audio(IReadOnlyList<AudioTrack> tracks, bool withChannels)
+    public static string? Audio(IReadOnlyList<AudioTrack> tracks, bool withChannels, IReadOnlyList<string>? languages = null)
     {
         if (tracks is null || tracks.Count == 0)
         {
             return null;
         }
 
+        var considered = Preferred(tracks, languages);
+
         string? best = null;
         int bestRank = int.MaxValue;
         int bestChannels = 0;
 
-        foreach (var track in tracks)
+        foreach (var track in considered)
         {
             string haystack = string.Join(
                 ' ',
@@ -217,6 +223,101 @@ internal static class TechnicalBadges
         }
 
         return best + " " + Channels(bestChannels);
+    }
+
+    /// <summary>
+    /// Narrows the tracks to the preferred language, when that leaves anything.
+    /// </summary>
+    /// <remarks>
+    /// <b>A single track is never filtered out.</b> A file with one German AC3 track says "AC3"
+    /// whatever the preference is - dropping it because the language tag is missing or spelled
+    /// unexpectedly would turn a working badge into silence for no gain.
+    /// <para>
+    /// With several tracks the preference decides, and it matters more than it looks: 437 films on
+    /// the reference library carry several languages in different formats. Taking the best of them
+    /// would report the English DTS on a film whose German track is AC3 - true about the file, and
+    /// about a track the viewer never selects.
+    /// </para>
+    /// <para>
+    /// Falling back to everything when no track matches is deliberate. The alternative - no badge
+    /// on a film that has no German track at all - would hide exactly the case where two copies
+    /// differ in whether they are dubbed.
+    /// </para>
+    /// </remarks>
+    /// <param name="tracks">All audio tracks.</param>
+    /// <param name="languages">The preferred codes, or null.</param>
+    /// <returns>The tracks to consider, never empty.</returns>
+    private static IReadOnlyList<AudioTrack> Preferred(IReadOnlyList<AudioTrack> tracks, IReadOnlyList<string>? languages)
+    {
+        if (tracks.Count == 1 || languages is null || languages.Count == 0)
+        {
+            return tracks;
+        }
+
+        foreach (string wanted in languages)
+        {
+            string norm = Normalise(wanted);
+            if (norm.Length == 0)
+            {
+                continue;
+            }
+
+            var matching = new List<AudioTrack>();
+            foreach (var track in tracks)
+            {
+                if (string.Equals(Normalise(track.Language), norm, StringComparison.Ordinal))
+                {
+                    matching.Add(track);
+                }
+            }
+
+            if (matching.Count > 0)
+            {
+                return matching;
+            }
+        }
+
+        return tracks;
+    }
+
+    /// <summary>
+    /// Reduces a language code to one spelling.
+    /// </summary>
+    /// <remarks>
+    /// ISO 639-2 gives several languages two codes - a bibliographic one and a terminological one -
+    /// and files in the wild use both: German is <c>ger</c> or <c>deu</c>, French <c>fre</c> or
+    /// <c>fra</c>. Measured on the reference library, the streams say <c>deu</c>, but a folder
+    /// tagged by different software may well say <c>ger</c>, and somebody typing the setting is
+    /// likely to write <c>de</c> or <c>german</c>. All of them mean one language, so all of them
+    /// have to arrive at one key - otherwise the setting works or not depending on which spelling
+    /// somebody happened to use.
+    /// </remarks>
+    /// <param name="code">Whatever the stream or the setting says.</param>
+    /// <returns>The normalised code, or an empty string.</returns>
+    private static string Normalise(string? code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return string.Empty;
+        }
+
+        string k = code.Trim().ToLowerInvariant();
+
+        return k switch
+        {
+            "de" or "ger" or "german" or "deutsch" => "deu",
+            "en" or "eng" or "english" => "eng",
+            "fr" or "fre" or "french" => "fra",
+            "es" or "spa" or "spanish" => "spa",
+            "it" or "ita" or "italian" => "ita",
+            "ja" or "jpn" or "japanese" => "jpn",
+            "nl" or "dut" or "dutch" => "nld",
+            "zh" or "chi" or "chinese" => "zho",
+            "cs" or "cze" or "czech" => "ces",
+            "el" or "gre" or "greek" => "ell",
+            "is" or "ice" => "isl",
+            _ => k,
+        };
     }
 
     /// <summary>

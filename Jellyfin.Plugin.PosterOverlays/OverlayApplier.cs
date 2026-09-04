@@ -849,9 +849,11 @@ internal sealed class OverlayApplier
             return null;
         }
 
+        var languages = ParseLanguages(_config.AudioLanguages);
+
         foreach (bool withChannels in new[] { false, true })
         {
-            string? mine = TechnicalBadges.Audio(TracksOf(item), withChannels);
+            string? mine = TechnicalBadges.Audio(TracksOf(item), withChannels, languages);
             if (mine is null)
             {
                 return null;
@@ -864,7 +866,7 @@ internal sealed class OverlayApplier
                     continue;
                 }
 
-                if (!string.Equals(mine, TechnicalBadges.Audio(TracksOf(peer), withChannels), StringComparison.Ordinal))
+                if (!string.Equals(mine, TechnicalBadges.Audio(TracksOf(peer), withChannels, languages), StringComparison.Ordinal))
                 {
                     return mine;
                 }
@@ -887,11 +889,21 @@ internal sealed class OverlayApplier
         {
             if (s.Type == MediaStreamType.Audio)
             {
-                tracks.Add(new AudioTrack(s.Codec, s.Profile, s.Title, s.Channels));
+                tracks.Add(new AudioTrack(s.Codec, s.Profile, s.Title, s.Channels, s.Language));
             }
         }
 
         return tracks;
+    }
+
+    private static string[] ParseLanguages(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return Array.Empty<string>();
+        }
+
+        return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private static string MimeType(string extension) => extension.ToLowerInvariant() switch

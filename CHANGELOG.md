@@ -27,10 +27,27 @@ for Jellyfin 12), so both lines carry the same feature set under different major
   drawn: four groups differ only in how many tracks they carry, and "two audio tracks" is not
   something a badge can usefully say.
 
-  Only the best track counts. A film with Atmos, a DTS-HD track and a stereo commentary is an
-  Atmos film. Atmos is read from the profile and the track title as well as the codec, because
-  Jellyfin reports it in the first two and never in the third — a codec-only lookup finds no Atmos
-  at all.
+  **Which track is described is configurable**, as a comma separated list of ISO codes under
+  "Audio language, best first". Without it the best track wins, and that is frequently the wrong
+  one: measured, 437 films carry several languages in different formats, the usual shape being a
+  German AC3 beside an English DTS. Badging that film "DTS" is true about the file and about a
+  track its owner never selects.
+
+  Counter-intuitively this draws *fewer* badges, and that is the point. On the reference library
+  the best-track rule separates 9 groups and the German-track rule 7 — and the two that drop out
+  are *Der wilde Planet* and *A Quiet Place*, where one copy has a DTS or E-AC-3 track in a
+  language nobody here listens to while both German tracks are plain AC3. Those two badges would
+  have claimed a difference that does not exist for the person reading them.
+
+  A file with a single track always reports that one, whatever the preference says: there is no
+  other track it could have chosen instead, and dropping the badge would gain nothing. Spelling is
+  forgiving — "de", "ger", "deu" and "german" all mean one language, because ISO 639-2 really does
+  give German two codes and files in the wild use both.
+
+  Within the chosen language, only the best track counts. A film with Atmos, a DTS-HD track and a
+  stereo commentary is an Atmos film. Atmos is read from the profile and the track title as well as
+  the codec, because Jellyfin reports it in the first two and never in the third — a codec-only
+  lookup finds no Atmos at all.
 
   Grouping uses Jellyfin's own `PresentationUniqueKey` rather than an id read out of `ProviderIds`.
   That key is what decides which rows the client shows as one tile, and it follows an NFO that
