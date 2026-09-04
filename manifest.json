@@ -8,6 +8,14 @@
     "category": "MoviesAndShows",
     "versions": [
       {
+        "version": "12.25.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.25.0.0/jellyfin-plugin-poster-overlays_12.25.0.0.zip",
+        "checksum": "e29c1bd067e25a23b4160850ef554b39",
+        "changelog": "Fixes a badge that could not be taken off again. When an item lost its last badge - a duplicate was deleted, or it never really had a twin - the plugin was supposed to put the untouched cover back, and never did: the restore asked for a lock its own caller was already holding, then failed silently. A run with 222 items to restore restored none of them and reported a missing cache that was present. If your library carries labels that no longer apply, the next nightly run clears them.",
+        "timestamp": "2026-09-04T12:50:25Z"
+      },
+      {
         "version": "12.24.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.24.0.0/jellyfin-plugin-poster-overlays_12.24.0.0.zip",
@@ -198,6 +206,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.25.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.25.0.0/jellyfin-plugin-poster-overlays_11.25.0.0.zip",
+        "checksum": "6918808bba5d56a681c1f2f3c041dbcf",
+        "changelog": "Fixes a badge that could not be taken off again. When an item lost its last badge - a duplicate was deleted, or it never really had a twin - the plugin was supposed to put the untouched cover back, and never did: the restore asked for a lock its own caller was already holding, then failed silently. A run with 222 items to restore restored none of them and reported a missing cache that was present. If your library carries labels that no longer apply, the next nightly run clears them.",
+        "timestamp": "2026-09-04T12:50:25Z"
       },
       {
         "version": "11.24.0.0",
