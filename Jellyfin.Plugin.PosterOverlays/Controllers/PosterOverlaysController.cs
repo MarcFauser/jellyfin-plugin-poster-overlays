@@ -11,6 +11,7 @@ using Jellyfin.Plugin.PosterOverlays.State;
 using MediaBrowser.Common.Api;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -34,6 +35,7 @@ public class PosterOverlaysController : ControllerBase
 {
     private readonly ILibraryManager _libraryManager;
     private readonly IProviderManager _providerManager;
+    private readonly ILocalizationManager _localization;
     private readonly ILogger<PosterOverlaysController> _logger;
 
     /// <summary>
@@ -41,14 +43,17 @@ public class PosterOverlaysController : ControllerBase
     /// </summary>
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
     /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
+    /// <param name="localization">Instance of the <see cref="ILocalizationManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{TCategoryName}"/> interface.</param>
     public PosterOverlaysController(
         ILibraryManager libraryManager,
         IProviderManager providerManager,
+        ILocalizationManager localization,
         ILogger<PosterOverlaysController> logger)
     {
         _libraryManager = libraryManager;
         _providerManager = providerManager;
+        _localization = localization;
         _logger = logger;
     }
 
@@ -80,7 +85,7 @@ public class PosterOverlaysController : ControllerBase
         }
 
         var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store);
+        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store, _localization);
         var outcome = await applier.ApplyAsync(item, cancellationToken).ConfigureAwait(false);
 
         if (!plugin.Configuration.DryRun)
@@ -125,7 +130,7 @@ public class PosterOverlaysController : ControllerBase
         }
 
         var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store);
+        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store, _localization);
         bool restored = await applier.RestoreAsync(item, cancellationToken).ConfigureAwait(false);
 
         if (!plugin.Configuration.DryRun)
@@ -174,7 +179,7 @@ public class PosterOverlaysController : ControllerBase
         }
 
         var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store);
+        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store, _localization);
 
         if (plugin.Configuration.DryRun)
         {
@@ -255,7 +260,7 @@ public class PosterOverlaysController : ControllerBase
         }
 
         var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, config, store);
+        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, config, store, _localization);
         var result = await applier.RenderPreviewAsync(item, cancellationToken).ConfigureAwait(false);
 
         if (result is null)

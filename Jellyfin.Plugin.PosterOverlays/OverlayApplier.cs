@@ -15,6 +15,7 @@ using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
 
@@ -54,6 +55,20 @@ internal sealed class OverlayApplier
 
     private readonly IProviderManager _providerManager;
     private readonly ILibraryManager _libraryManager;
+
+    /// <summary>
+    /// Jellyfin's own language table, used to decide that "de", "ger", "deu" and "German" are one
+    /// language.
+    /// </summary>
+    /// <remarks>
+    /// This started life as a hand-written list of eleven languages here, which was a rebuild of
+    /// something the server already has for all of them - <c>FindLanguageInfo</c> matches the
+    /// display name, both ISO 639-2 codes and the two letter code, case insensitively. Null is
+    /// tolerated so the class can still be constructed where the service is not to hand; the
+    /// preference then falls back to comparing the raw codes.
+    /// </remarks>
+    private readonly ILocalizationManager? _localization;
+
     private readonly ILogger _logger;
     private readonly PluginConfiguration _config;
     private readonly OverlayStateStore _store;
@@ -88,15 +103,22 @@ internal sealed class OverlayApplier
     /// <param name="logger">The logger.</param>
     /// <param name="config">The settings.</param>
     /// <param name="store">The state store.</param>
+    /// <param name="localization">
+    /// Jellyfin's language table, for the audio badge's language preference. Optional: without it
+    /// the preference compares the codes as they are written, which works when the setting happens
+    /// to use the same spelling as the files.
+    /// </param>
     public OverlayApplier(
         IProviderManager providerManager,
         ILibraryManager libraryManager,
         ILogger logger,
         PluginConfiguration config,
-        OverlayStateStore store)
+        OverlayStateStore store,
+        ILocalizationManager? localization = null)
     {
         _providerManager = providerManager;
         _libraryManager = libraryManager;
+        _localization = localization;
         _logger = logger;
         _config = config;
         _store = store;
@@ -853,7 +875,7 @@ internal sealed class OverlayApplier
 
         foreach (bool withChannels in new[] { false, true })
         {
-            string? mine = TechnicalBadges.Audio(TracksOf(item), withChannels, languages);
+            string? mine = TechnicalBadges.Audio(TracksOf(item, _localization), withChannels, languages);
             if (mine is null)
             {
                 return null;
@@ -866,7 +888,7 @@ internal sealed class OverlayApplier
                     continue;
                 }
 
-                if (!string.Equals(mine, TechnicalBadges.Audio(TracksOf(peer), withChannels, languages), StringComparison.Ordinal))
+                if (!string.Equals(mine, TechnicalBadges.Audio(TracksOf(peer, _localization), withChannels, languages), StringComparison.Ordinal))
                 {
                     return mine;
                 }
@@ -876,7 +898,7 @@ internal sealed class OverlayApplier
         return null;
     }
 
-    private static IReadOnlyList<AudioTrack> TracksOf(BaseItem item)
+    private static IReadOnlyList<AudioTrack> TracksOf(BaseItem item, ILocalizationManager? localization)
     {
         var streams = item.GetMediaStreams();
         if (streams is null)
@@ -889,21 +911,66 @@ internal sealed class OverlayApplier
         {
             if (s.Type == MediaStreamType.Audio)
             {
-                tracks.Add(new AudioTrack(s.Codec, s.Profile, s.Title, s.Channels, s.Language));
+                tracks.Add(new AudioTrack(s.Codec, s.Profile, s.Title, s.Channels, Canonical(s.Language, localization)));
             }
         }
 
         return tracks;
     }
 
-    private static string[] ParseLanguages(string? raw)
+    /// <summary>
+    /// Reduces a language code to one spelling, so a setting and a stream can be compared.
+    /// </summary>
+    /// <remarks>
+    /// Asked of Jellyfin rather than answered here. <c>FindLanguageInfo</c> matches the display
+    /// name, the two letter code and <b>both</b> ISO 639-2 codes - German really does have two,
+    /// <c>ger</c> and <c>deu</c>, and files in the wild use each of them. The first entry of
+    /// <c>ThreeLetterISOLanguageNames</c> is then one agreed spelling for the language, whichever
+    /// of its names was handed in.
+    /// <para>
+    /// An unknown code is kept as it is, lower cased. That covers tags no language table has -
+    /// they still compare equal to themselves, which is all the preference needs.
+    /// </para>
+    /// </remarks>
+    /// <param name="code">Whatever the stream or the setting says.</param>
+    /// <param name="localization">Jellyfin's language table, or null.</param>
+    /// <returns>The canonical form, or null when there was nothing.</returns>
+    private static string? Canonical(string? code, ILocalizationManager? localization)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return null;
+        }
+
+        string trimmed = code.Trim();
+        var info = localization?.FindLanguageInfo(trimmed);
+        if (info is not null && info.ThreeLetterISOLanguageNames.Count > 0)
+        {
+            return info.ThreeLetterISOLanguageNames[0];
+        }
+
+        return trimmed.ToLowerInvariant();
+    }
+
+    private string[] ParseLanguages(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
         {
             return Array.Empty<string>();
         }
 
-        return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var parts = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var wanted = new List<string>(parts.Length);
+        foreach (string part in parts)
+        {
+            string? canonical = Canonical(part, _localization);
+            if (canonical is not null)
+            {
+                wanted.Add(canonical);
+            }
+        }
+
+        return wanted.ToArray();
     }
 
     private static string MimeType(string extension) => extension.ToLowerInvariant() switch

@@ -197,24 +197,29 @@ public class AudioBadgeTests
     }
 
     /// <summary>
-    /// Both ISO 639-2 codes for a language mean the same language, and so do the short forms.
+    /// Matching is a plain comparison, case aside - resolving spellings happens before this.
     /// </summary>
     /// <remarks>
-    /// German really does have two codes - <c>ger</c> and <c>deu</c> - and files in the wild use
-    /// both. Measured on the reference library the streams say <c>deu</c>, but somebody typing the
-    /// setting is at least as likely to write <c>de</c> or <c>german</c>. If those did not all
-    /// arrive at one key, the setting would work or not depending on a spelling nobody chose.
+    /// <b>There used to be a language table here</b>, mapping "de", "ger", "deu" and "german" onto
+    /// one key for eleven languages. It was a rebuild of something the server already has for all
+    /// of them: <c>ILocalizationManager.FindLanguageInfo</c> matches the display name, the two
+    /// letter code and both ISO 639-2 codes, case insensitively. The applier now asks Jellyfin and
+    /// hands the resolved codes in, so what is left to test here is that equal codes match and
+    /// different ones do not.
+    /// <para>
+    /// German really does have two ISO 639-2 codes, <c>ger</c> and <c>deu</c>, which is why the
+    /// resolution is needed at all - it is simply not this plugin's table to own.
+    /// </para>
     /// </remarks>
-    /// <param name="streamCode">What the stream says.</param>
-    /// <param name="typed">What somebody typed into the setting.</param>
+    /// <param name="streamCode">The resolved code on the track.</param>
+    /// <param name="wanted">The resolved code from the setting.</param>
+    /// <param name="shouldMatch">Whether the German track is expected to win.</param>
     [Theory]
-    [InlineData("deu", "de")]
-    [InlineData("deu", "ger")]
-    [InlineData("deu", "German")]
-    [InlineData("ger", "deu")]
-    [InlineData("fra", "fre")]
-    [InlineData("nld", "dut")]
-    public void LanguageSpellingsAreTreatedAsOne(string streamCode, string typed)
+    [InlineData("deu", "deu", true)]
+    [InlineData("deu", "DEU", true)]
+    [InlineData("deu", "eng", false)]
+    [InlineData("deu", "fra", false)]
+    public void MatchingIsAPlainComparison(string streamCode, string wanted, bool shouldMatch)
     {
         var tracks = new List<AudioTrack>
         {
@@ -222,7 +227,12 @@ public class AudioBadgeTests
             new("dts", "DTS-HD MA", null, 8, "eng"),
         };
 
-        Assert.Equal("AC3", TechnicalBadges.Audio(tracks, false, [typed]));
+        string? actual = TechnicalBadges.Audio(tracks, false, [wanted]);
+
+        // "eng" picks the English DTS-HD; anything unknown falls back to every track, which also
+        // lands on DTS-HD as the better of the two. Both non-matching cases therefore read the
+        // same, and that is correct - the point is only that the German AC3 does not win.
+        Assert.Equal(shouldMatch ? "AC3" : "DTS-HD", actual);
     }
 
     /// <summary>

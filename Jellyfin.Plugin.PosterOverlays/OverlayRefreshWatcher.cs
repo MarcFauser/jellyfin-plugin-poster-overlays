@@ -7,6 +7,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Globalization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -31,6 +32,7 @@ public sealed class OverlayRefreshWatcher : IHostedService, IDisposable
 {
     private readonly ILibraryManager _libraryManager;
     private readonly IProviderManager _providerManager;
+    private readonly ILocalizationManager _localization;
     private readonly ILogger<OverlayRefreshWatcher> _logger;
     private readonly ConcurrentDictionary<Guid, byte> _inFlight = new();
     private readonly CancellationTokenSource _shutdown = new();
@@ -40,14 +42,17 @@ public sealed class OverlayRefreshWatcher : IHostedService, IDisposable
     /// </summary>
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
     /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
+    /// <param name="localization">Instance of the <see cref="ILocalizationManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{TCategoryName}"/> interface.</param>
     public OverlayRefreshWatcher(
         ILibraryManager libraryManager,
         IProviderManager providerManager,
+        ILocalizationManager localization,
         ILogger<OverlayRefreshWatcher> logger)
     {
         _libraryManager = libraryManager;
         _providerManager = providerManager;
+        _localization = localization;
         _logger = logger;
     }
 
@@ -119,7 +124,7 @@ public sealed class OverlayRefreshWatcher : IHostedService, IDisposable
             }
 
             var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-            var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store);
+            var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store, _localization);
 
             var outcome = await applier.ApplyAsync(item, _shutdown.Token).ConfigureAwait(false);
             if (outcome is OverlayOutcome.Unchanged or OverlayOutcome.Skipped or OverlayOutcome.NoImage)

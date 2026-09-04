@@ -8,6 +8,7 @@ using Jellyfin.Plugin.PosterOverlays.State;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -40,6 +41,7 @@ public sealed class RepairOverlaysTask : IScheduledTask
 {
     private readonly ILibraryManager _libraryManager;
     private readonly IProviderManager _providerManager;
+    private readonly ILocalizationManager _localization;
     private readonly ILogger<RepairOverlaysTask> _logger;
 
     /// <summary>
@@ -47,14 +49,17 @@ public sealed class RepairOverlaysTask : IScheduledTask
     /// </summary>
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
     /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
+    /// <param name="localization">Instance of the <see cref="ILocalizationManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{TCategoryName}"/> interface.</param>
     public RepairOverlaysTask(
         ILibraryManager libraryManager,
         IProviderManager providerManager,
+        ILocalizationManager localization,
         ILogger<RepairOverlaysTask> logger)
     {
         _libraryManager = libraryManager;
         _providerManager = providerManager;
+        _localization = localization;
         _logger = logger;
     }
 
@@ -90,7 +95,7 @@ public sealed class RepairOverlaysTask : IScheduledTask
 
         bool dryRun = plugin.Configuration.DryRun;
         var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store);
+        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, plugin.Configuration, store, _localization);
 
         var items = _libraryManager.GetItemList(new InternalItemsQuery
         {

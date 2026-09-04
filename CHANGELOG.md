@@ -40,9 +40,16 @@ for Jellyfin 12), so both lines carry the same feature set under different major
   have claimed a difference that does not exist for the person reading them.
 
   A file with a single track always reports that one, whatever the preference says: there is no
-  other track it could have chosen instead, and dropping the badge would gain nothing. Spelling is
-  forgiving — "de", "ger", "deu" and "german" all mean one language, because ISO 639-2 really does
-  give German two codes and files in the wild use both.
+  other track it could have chosen instead, and dropping the badge would gain nothing.
+
+  Spelling is forgiving — "de", "ger", "deu" and "German" all mean one language — and that is
+  **Jellyfin's** table rather than one written here. The first attempt did write one, covering
+  eleven languages, which was a rebuild of `ILocalizationManager.FindLanguageInfo`: it matches the
+  display name, the two letter code and both ISO 639-2 codes, case insensitively, for every
+  language there is. German really does have two codes, `ger` and `deu`, and files in the wild use
+  each of them — but resolving that is not this plugin's job. The service is now threaded through
+  the tasks, the watcher and the controller, and an unknown tag is kept as it is so it still
+  compares equal to itself.
 
   Within the chosen language, only the best track counts. A film with Atmos, a DTS-HD track and a
   stereo commentary is an Atmos film. Atmos is read from the profile and the track title as well as

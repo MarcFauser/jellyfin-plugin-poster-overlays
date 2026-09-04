@@ -10,6 +10,7 @@ using Jellyfin.Plugin.PosterOverlays.State;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -22,6 +23,7 @@ public sealed class ApplyOverlaysTask : IScheduledTask
 {
     private readonly ILibraryManager _libraryManager;
     private readonly IProviderManager _providerManager;
+    private readonly ILocalizationManager _localization;
     private readonly ILogger<ApplyOverlaysTask> _logger;
 
     /// <summary>
@@ -29,14 +31,17 @@ public sealed class ApplyOverlaysTask : IScheduledTask
     /// </summary>
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
     /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
+    /// <param name="localization">Instance of the <see cref="ILocalizationManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{TCategoryName}"/> interface.</param>
     public ApplyOverlaysTask(
         ILibraryManager libraryManager,
         IProviderManager providerManager,
+        ILocalizationManager localization,
         ILogger<ApplyOverlaysTask> logger)
     {
         _libraryManager = libraryManager;
         _providerManager = providerManager;
+        _localization = localization;
         _logger = logger;
     }
 
@@ -89,7 +94,7 @@ public sealed class ApplyOverlaysTask : IScheduledTask
         }
 
         var store = OverlayStateStore.Shared(plugin.DataFolderPath);
-        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, config, store);
+        var applier = new OverlayApplier(_providerManager, _libraryManager, _logger, config, store, _localization);
 
         var kinds = EnabledKinds(config);
         if (kinds.Length == 0)
