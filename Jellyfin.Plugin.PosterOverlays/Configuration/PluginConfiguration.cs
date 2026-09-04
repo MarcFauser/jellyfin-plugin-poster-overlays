@@ -159,7 +159,20 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets a value indicating whether Dolby Vision and HDR are merged into one pill
     /// reading "DV HDR" instead of occupying two rows.
     /// </summary>
-    public bool MergeDolbyVisionAndHdr { get; set; } = true;
+    /// <remarks>
+    /// <b>The XML name is deliberately the old spelling.</b> Renaming the property renames the
+    /// element the serialiser looks for, and a configuration written before the rename would then
+    /// silently fall back to the default - which is the opposite of what anybody who turned this
+    /// off had chosen. The attribute keeps the file readable while the code carries the name the
+    /// house style asks for.
+    /// <para>
+    /// Note the house style itself says an abbreviation of three letters or more is written
+    /// <c>Hdr</c>, as in <c>XmlWriter</c> - so <c>HDR</c> here is an exception, made by the owner
+    /// of the project rather than by the rule.
+    /// </para>
+    /// </remarks>
+    [System.Xml.Serialization.XmlElement("MergeDolbyVisionAndHdr")]
+    public bool MergeDolbyVisionAndHDR { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the resolution ladder, as a comma separated list of the "K" numbers that

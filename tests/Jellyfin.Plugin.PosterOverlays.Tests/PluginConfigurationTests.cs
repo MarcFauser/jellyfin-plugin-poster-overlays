@@ -27,7 +27,7 @@ public class PluginConfigurationTests
         Assert.Equal(3, config.MaxBadges);
         Assert.Equal(BadgeStyle.DarkPill, config.Style);
         Assert.Equal(BadgeCorner.TopRight, config.Corner);
-        Assert.True(config.MergeDolbyVisionAndHdr);
+        Assert.True(config.MergeDolbyVisionAndHDR);
         Assert.False(config.WriteToMediaFolder);
     }
 

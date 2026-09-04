@@ -9,6 +9,46 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Added
+
+- **An audio-format badge — ATMOS, DTS-X, TRUEHD, DTS-HD and so on — drawn only where two copies
+  of the same title differ in it.** Off by default.
+
+  The restriction is the feature, and it comes from a measurement rather than from taste. Of 105
+  groups on the reference library that share one film, 7 differ in nothing our badges could show
+  except the audio format. The other 2,300-odd films have no second copy at all, and a format
+  badge on those says something true about a file nobody is comparing to anything. JellyTag, which
+  is where the idea came from, draws its audio badges on every poster; the difference here is the
+  same principle the episode badges already follow.
+
+  The label carries exactly as much as the job needs. The format alone settles most of it; where
+  two copies are both plain DTS and differ only in the channel layout — measured on two entries of
+  *Evangelion 2.0*, 5.1 against 6.1 — the channels are added. Where even that is equal, nothing is
+  drawn: four groups differ only in how many tracks they carry, and "two audio tracks" is not
+  something a badge can usefully say.
+
+  Only the best track counts. A film with Atmos, a DTS-HD track and a stereo commentary is an
+  Atmos film. Atmos is read from the profile and the track title as well as the codec, because
+  Jellyfin reports it in the first two and never in the third — a codec-only lookup finds no Atmos
+  at all.
+
+  Grouping uses Jellyfin's own `PresentationUniqueKey` rather than an id read out of `ProviderIds`.
+  That key is what decides which rows the client shows as one tile, and it follows an NFO that
+  redefines the grouping; a key rebuilt from provider ids would stop agreeing with the client the
+  moment somebody set a `customid`.
+
+### Changed
+
+- **`MergeDolbyVisionAndHdr` is spelled `MergeDolbyVisionAndHDR`.** Requested by the owner of the
+  project; the house style would otherwise write a three-letter abbreviation as `Hdr`, the way
+  `XmlWriter` is written, so this is a deliberate exception rather than an oversight.
+
+  The XML element keeps the old spelling, and that is not cosmetic: renaming a property renames the
+  element the serialiser looks for, so every stored configuration would have fallen back to the
+  default of `true` — the opposite of what anybody who turned it off had chosen, and invisible
+  until they noticed their DV and HDR badges had merged again. Two tests hold it down, and both
+  were made to fail with the attribute removed before being believed.
+
 ### Fixed
 
 - **The preview opened at the poster's stored size and covered the screen.** A `max-width: 100%`

@@ -24,4 +24,15 @@ internal enum BadgeCategory
 
     /// <summary>A placeholder rip: CAM, TS, TC, SCR. Meant to be noticed.</summary>
     Source = 4,
+
+    /// <summary>
+    /// The best audio format the file carries: ATMOS, DTS-X, TRUEHD and so on.
+    /// </summary>
+    /// <remarks>
+    /// Last on purpose, and drawn only where it tells two copies apart. Measured on the reference
+    /// library: of 105 groups that share a film, 7 differ in nothing but the audio format - and
+    /// 2,346 films would otherwise each carry a badge that says something true about a file
+    /// nobody is comparing to anything.
+    /// </remarks>
+    Audio = 5,
 }

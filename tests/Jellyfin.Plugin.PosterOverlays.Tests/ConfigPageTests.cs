@@ -223,6 +223,56 @@ public class ConfigPageTests
     }
 
     /// <summary>
+    /// A configuration written before <c>MergeDolbyVisionAndHdr</c> was renamed still loads.
+    /// </summary>
+    /// <remarks>
+    /// The property is now spelled <c>...HDR</c>, and renaming a property renames the element the
+    /// XML serialiser looks for. Without the <c>[XmlElement]</c> attribute pinning the old name,
+    /// every stored configuration would quietly fall back to the default of <c>true</c> - the
+    /// opposite of what anybody who switched it off had chosen, and invisible until somebody
+    /// noticed their DV and HDR badges had merged again.
+    /// <para>
+    /// The false value is the one that matters here: true is the default, so a test using true
+    /// would pass whether the attribute works or not.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void AConfigurationFromBeforeTheRenameStillLoads()
+    {
+        const string OldXml = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <PluginConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+              <Enabled>true</Enabled>
+              <MergeDolbyVisionAndHdr>false</MergeDolbyVisionAndHdr>
+            </PluginConfiguration>
+            """;
+
+        var serialiser = new System.Xml.Serialization.XmlSerializer(typeof(Configuration.PluginConfiguration));
+        using var reader = new StringReader(OldXml);
+        var loaded = (Configuration.PluginConfiguration)serialiser.Deserialize(reader)!;
+
+        Assert.False(loaded.MergeDolbyVisionAndHDR);
+        Assert.True(loaded.Enabled);
+    }
+
+    /// <summary>
+    /// And it is written back under the old element name, so the file stays readable by both.
+    /// </summary>
+    [Fact]
+    public void ItIsStillWrittenUnderTheOldElementName()
+    {
+        var config = new Configuration.PluginConfiguration { MergeDolbyVisionAndHDR = false };
+        var serialiser = new System.Xml.Serialization.XmlSerializer(typeof(Configuration.PluginConfiguration));
+
+        using var writer = new StringWriter();
+        serialiser.Serialize(writer, config);
+        string xml = writer.ToString();
+
+        Assert.Contains("<MergeDolbyVisionAndHdr>false</MergeDolbyVisionAndHdr>", xml, StringComparison.Ordinal);
+        Assert.DoesNotContain("MergeDolbyVisionAndHDR", xml, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Reads the page from the source tree.
     /// </summary>
     /// <remarks>

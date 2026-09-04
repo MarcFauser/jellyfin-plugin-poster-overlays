@@ -512,7 +512,7 @@
                 <div class="verticalSection">
                     <h3 class="sectionTitle">Rules</h3>
                     <label class="po-check">
-                        <input id="MergeDolbyVisionAndHdr" type="checkbox" is="emby-checkbox" />
+                        <input id="MergeDolbyVisionAndHDR" type="checkbox" is="emby-checkbox" />
                         <span>Merge Dolby Vision and HDR into one pill</span>
                     </label>
                     <div class="inputContainer">
@@ -620,7 +620,7 @@
             // expects their NAMES - "DarkPill", not 0. Numeric option values silently matched
             // nothing on load, so the select fell back to its first entry and the save wrote that.
             var globalFlags = ['Enabled', 'DryRun', 'WatchForImageChanges', 'WriteToMediaFolder',
-                'MergeDolbyVisionAndHdr'];
+                'MergeDolbyVisionAndHDR'];
             var globalNumbers = ['JpegQuality', 'MinimumResolutionK'];
             var globalTexts = ['ResolutionLadder', 'ExcludedItemIds', 'EditionOverrides'];
 
@@ -650,7 +650,8 @@
                 { flag: 'AllowResolution', label: 'Resolution' },
                 { flag: 'AllowVideoRange', label: 'Video range' },
                 { flag: 'AllowFormat', label: '3D' },
-                { flag: 'AllowSource', label: 'Source quality' }
+                { flag: 'AllowSource', label: 'Source quality' },
+                { flag: 'AllowAudio', label: 'Audio format', title: 'ATMOS, DTS-X, TRUEHD and so on - drawn only where two copies of the same title differ in it, never otherwise' }
             ];
 
             var categories = {
@@ -658,7 +659,8 @@
                 Resolution: 'Resolution (4K, 8K, ...)',
                 VideoRange: 'Video range (DV, HDR, ...)',
                 Format: 'Presentation format (3D)',
-                Source: 'Source quality (CAM, TS, ...)'
+                Source: 'Source quality (CAM, TS, ...)',
+                Audio: 'Audio format (ATMOS, DTS-X, ...)'
             };
 
             function page() { return document.querySelector('#posterOverlaysConfigPage'); }
@@ -764,6 +766,10 @@
                         wrap.appendChild(cb);
                         var span = document.createElement('span');
                         span.textContent = kind.label;
+                        // Only some kinds carry one. Audio does, because "drawn only where two
+                        // copies differ in it" is a rule nobody would guess from a checkbox
+                        // labelled "Audio format".
+                        if (kind.title) { wrap.title = kind.title; }
                         wrap.appendChild(span);
                         kinds.appendChild(wrap);
                     });

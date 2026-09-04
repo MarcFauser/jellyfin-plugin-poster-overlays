@@ -35,8 +35,12 @@ internal static class BadgeBuilder
     /// An edition badge forced by configuration, an empty string to suppress the edition badge,
     /// or null when nothing was configured for this item.
     /// </param>
+    /// <param name="audioLabel">
+    /// The audio format to draw, or null. Decided by the caller because it depends on the other
+    /// copies of the same film, which this class has no way to reach.
+    /// </param>
     /// <returns>The result, never null.</returns>
-    public static Built Build(BaseItem item, PluginConfiguration config, CategorySettings category, BadgePreset preset, string? editionOverride)
+    public static Built Build(BaseItem item, PluginConfiguration config, CategorySettings category, BadgePreset preset, string? editionOverride, string? audioLabel = null)
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(config);
@@ -46,11 +50,11 @@ internal static class BadgeBuilder
         var parsed = ParseReleaseName(item);
         var ranges = TechnicalBadges.VideoRange(
             item.GetMediaStreams()?.FirstOrDefault(s => s.Type == MediaStreamType.Video)?.VideoRangeType.ToString(),
-            config.MergeDolbyVisionAndHdr);
+            config.MergeDolbyVisionAndHDR);
 
         // Sort before trimming, because the order is also the priority: what falls off the end
         // is decided by where the user put it.
-        var badges = Order(Raw(item, config, category, editionOverride), preset.BadgeOrder);
+        var badges = Order(Raw(item, config, category, editionOverride, audioLabel), preset.BadgeOrder);
 
         if (badges.Count > preset.MaxBadges)
         {
@@ -77,8 +81,12 @@ internal static class BadgeBuilder
     /// <param name="config">The settings that are the same everywhere.</param>
     /// <param name="category">The policy for this kind of item.</param>
     /// <param name="editionOverride">A forced edition badge, an empty string to suppress, or null.</param>
+    /// <param name="audioLabel">
+    /// The audio format to draw, already decided by the caller, or null to draw none. See the
+    /// remarks at the point of use: the decision needs the other copies of the same film.
+    /// </param>
     /// <returns>The badges, unordered and untrimmed.</returns>
-    public static List<BadgeSpec> Raw(BaseItem item, PluginConfiguration config, CategorySettings category, string? editionOverride)
+    public static List<BadgeSpec> Raw(BaseItem item, PluginConfiguration config, CategorySettings category, string? editionOverride, string? audioLabel = null)
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(config);
@@ -125,7 +133,7 @@ internal static class BadgeBuilder
 
         if (category.AllowVideoRange)
         {
-            foreach (string range in TechnicalBadges.VideoRange(video?.VideoRangeType.ToString(), config.MergeDolbyVisionAndHdr))
+            foreach (string range in TechnicalBadges.VideoRange(video?.VideoRangeType.ToString(), config.MergeDolbyVisionAndHDR))
             {
                 badges.Add(new BadgeSpec(BadgeCategory.VideoRange, range));
             }
@@ -139,6 +147,15 @@ internal static class BadgeBuilder
         if (category.AllowSource && parsed.Source is not null)
         {
             badges.Add(new BadgeSpec(BadgeCategory.Source, parsed.Source));
+        }
+
+        // Handed in rather than worked out here, and that is the whole design of it. Whether the
+        // audio is worth drawing depends on the OTHER copies of this film, so answering it needs
+        // the library - which this class deliberately does not have. The caller decides and passes
+        // the finished label, or null for "says nothing anyone is comparing".
+        if (category.AllowAudio && !string.IsNullOrEmpty(audioLabel))
+        {
+            badges.Add(new BadgeSpec(BadgeCategory.Audio, audioLabel));
         }
 
         return badges;

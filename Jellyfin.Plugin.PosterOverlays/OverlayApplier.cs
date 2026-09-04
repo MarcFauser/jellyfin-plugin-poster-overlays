@@ -71,6 +71,16 @@ internal sealed class OverlayApplier
     private readonly Dictionary<string, HashSet<string>> _twins = new(StringComparer.Ordinal);
 
     /// <summary>
+    /// The other rows that share a presentation key, worked out once per key.
+    /// </summary>
+    /// <remarks>
+    /// Same reasoning as <see cref="_twins"/>: the alternative is one query per item. The cache
+    /// lives as long as the applier - one task run, or one watcher event - so it cannot go stale
+    /// between runs.
+    /// </remarks>
+    private readonly Dictionary<string, IReadOnlyList<BaseItem>> _audioPeers = new(StringComparer.Ordinal);
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="OverlayApplier"/> class.
     /// </summary>
     /// <param name="providerManager">Jellyfin's provider manager, used to write the image back.</param>
@@ -185,7 +195,7 @@ internal sealed class OverlayApplier
             }
 
             _editionOverrides.TryGetValue(id, out string? editionOverride);
-            var built = BadgeBuilder.Build(item, _config, category, preset, editionOverride);
+            var built = BadgeBuilder.Build(item, _config, category, preset, editionOverride, AudioLabelFor(item, category));
             badges = built.Badges;
 
             if (built.FolderClaimsHdr != built.StreamHasHdr && _logger.IsEnabled(LogLevel.Information))
@@ -547,7 +557,7 @@ internal sealed class OverlayApplier
             }
 
             _editionOverrides.TryGetValue(id, out string? editionOverride);
-            badges = BadgeBuilder.Build(item, _config, category, preset, editionOverride).Badges;
+            badges = BadgeBuilder.Build(item, _config, category, preset, editionOverride, AudioLabelFor(item, category)).Badges;
         }
 
         if (badges.Count == 0)
@@ -780,6 +790,108 @@ internal sealed class OverlayApplier
         }
 
         return duplicated.Contains(string.Create(CultureInfo.InvariantCulture, $"{season}:{number}"));
+    }
+
+    /// <summary>
+    /// The audio label for an item, or null when drawing one would say nothing.
+    /// </summary>
+    /// <remarks>
+    /// <b>This badge is only ever drawn where it separates two copies.</b> The reason is measured
+    /// rather than aesthetic: of 105 groups on the reference library that share one film, 7 differ
+    /// in nothing but the audio format. The other 2,300-odd films have no second copy at all, and
+    /// a format badge on those is decoration - one nobody is reading the poster wall to find.
+    /// <para>
+    /// Two levels, in this order, because the label should carry exactly as much as the job needs.
+    /// The format alone settles most of it; where two copies are both plain DTS and differ only in
+    /// the channel layout - measured on two entries of Evangelion 2.0, 5.1 against 6.1 - the
+    /// channels are added. Where even that is equal, nothing is drawn: four groups differ only in
+    /// how many tracks they carry, and "two audio tracks" is not something a badge can usefully
+    /// say.
+    /// </para>
+    /// <para>
+    /// Grouped by Jellyfin's own <c>PresentationUniqueKey</c>, not by an id read out of
+    /// ProviderIds. The presentation key is what decides which rows the client shows as one tile,
+    /// and it follows an NFO that redefines the grouping; a key rebuilt from provider ids would
+    /// stop agreeing with the client the moment somebody set a customid.
+    /// </para>
+    /// </remarks>
+    /// <param name="item">The item.</param>
+    /// <param name="category">Its category settings.</param>
+    /// <returns>The label, or null.</returns>
+    private string? AudioLabelFor(BaseItem item, CategorySettings category)
+    {
+        if (!category.AllowAudio)
+        {
+            return null;
+        }
+
+        string? key = item.PresentationUniqueKey;
+        if (string.IsNullOrEmpty(key))
+        {
+            return null;
+        }
+
+        if (!_audioPeers.TryGetValue(key, out var peers))
+        {
+            peers = _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                PresentationUniqueKey = key,
+                Recursive = true,
+                IsVirtualItem = false,
+            });
+
+            _audioPeers[key] = peers;
+        }
+
+        // One copy has nothing to be told apart from.
+        if (peers.Count < 2)
+        {
+            return null;
+        }
+
+        foreach (bool withChannels in new[] { false, true })
+        {
+            string? mine = TechnicalBadges.Audio(TracksOf(item), withChannels);
+            if (mine is null)
+            {
+                return null;
+            }
+
+            foreach (var peer in peers)
+            {
+                if (peer.Id.Equals(item.Id))
+                {
+                    continue;
+                }
+
+                if (!string.Equals(mine, TechnicalBadges.Audio(TracksOf(peer), withChannels), StringComparison.Ordinal))
+                {
+                    return mine;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static IReadOnlyList<AudioTrack> TracksOf(BaseItem item)
+    {
+        var streams = item.GetMediaStreams();
+        if (streams is null)
+        {
+            return Array.Empty<AudioTrack>();
+        }
+
+        var tracks = new List<AudioTrack>();
+        foreach (var s in streams)
+        {
+            if (s.Type == MediaStreamType.Audio)
+            {
+                tracks.Add(new AudioTrack(s.Codec, s.Profile, s.Title, s.Channels));
+            }
+        }
+
+        return tracks;
     }
 
     private static string MimeType(string extension) => extension.ToLowerInvariant() switch
