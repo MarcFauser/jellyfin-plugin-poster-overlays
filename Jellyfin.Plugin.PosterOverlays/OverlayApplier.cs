@@ -847,17 +847,29 @@ internal sealed class OverlayApplier
             return null;
         }
 
-        string? key = item.PresentationUniqueKey;
-        if (string.IsNullOrEmpty(key))
+        // Grouped by provider id, and this cost a released version to get right. The first attempt
+        // used PresentationUniqueKey, on the assumption that it groups the rows a client shows as
+        // one tile. For a series it does; for a FILM it does not - Video.CreatePresentationUniqueKey
+        // returns PrimaryVersionId only when somebody has merged the files as alternate versions,
+        // and otherwise falls back to the item's own id. Two ordinary copies of a film therefore
+        // never share it, the query returned one row every time, and not a single audio badge was
+        // drawn. Found by checking the finished feature against the library rather than by reading.
+        var providerIds = item.ProviderIds;
+        if (providerIds is null || providerIds.Count == 0)
         {
             return null;
         }
+
+        string key = string.Join('|', providerIds.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => p.Key + ':' + p.Value));
 
         if (!_audioPeers.TryGetValue(key, out var peers))
         {
             peers = _libraryManager.GetItemList(new InternalItemsQuery
             {
-                PresentationUniqueKey = key,
+                // Any shared id counts: two copies usually agree on all of them, and a pair that
+                // agrees on IMDB while disagreeing on TMDB is still the same film.
+                HasAnyProviderId = new Dictionary<string, string>(providerIds, StringComparer.OrdinalIgnoreCase),
+                IncludeItemTypes = new[] { OverlayApplier.KindOf(item) },
                 Recursive = true,
                 IsVirtualItem = false,
             });
@@ -897,6 +909,23 @@ internal sealed class OverlayApplier
 
         return null;
     }
+
+    /// <summary>
+    /// The item kind to search for peers among.
+    /// </summary>
+    /// <remarks>
+    /// Narrowed so a film cannot be paired with an episode that happens to carry the same provider
+    /// id - which does happen, since an episode and its series can share a TVDB id.
+    /// </remarks>
+    /// <param name="item">The item.</param>
+    /// <returns>Its kind.</returns>
+    private static Jellyfin.Data.Enums.BaseItemKind KindOf(BaseItem item) => item switch
+    {
+        Episode => Jellyfin.Data.Enums.BaseItemKind.Episode,
+        Season => Jellyfin.Data.Enums.BaseItemKind.Season,
+        Series => Jellyfin.Data.Enums.BaseItemKind.Series,
+        _ => Jellyfin.Data.Enums.BaseItemKind.Movie,
+    };
 
     private static IReadOnlyList<AudioTrack> TracksOf(BaseItem item, ILocalizationManager? localization)
     {

@@ -56,10 +56,17 @@ for Jellyfin 12), so both lines carry the same feature set under different major
   the codec, because Jellyfin reports it in the first two and never in the third — a codec-only
   lookup finds no Atmos at all.
 
-  Grouping uses Jellyfin's own `PresentationUniqueKey` rather than an id read out of `ProviderIds`.
-  That key is what decides which rows the client shows as one tile, and it follows an NFO that
-  redefines the grouping; a key rebuilt from provider ids would stop agreeing with the client the
-  moment somebody set a `customid`.
+  **Grouping is by provider id**, and the first attempt got this wrong in a way worth writing down.
+  It used `PresentationUniqueKey`, on the reasoning that this is what decides which rows a client
+  shows as one tile — true for a series, false for a film. `Video.CreatePresentationUniqueKey`
+  returns `PrimaryVersionId` only when the files have been merged as alternate versions by hand,
+  and otherwise falls back to the item's own id. Two ordinary copies of a film therefore never
+  share it: the query returned exactly one row every time, and not one audio badge was ever drawn.
+
+  Nothing in the code looked wrong, and no test caught it — the tests cover the label, and the
+  fault was in the query underneath. It surfaced by checking the finished feature against the real
+  library through the plugin's own preview route: seven films where a badge was expected, seven
+  answers of "nothing to say about this item".
 
 ### Changed
 
