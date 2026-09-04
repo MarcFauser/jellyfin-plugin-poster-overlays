@@ -8,6 +8,14 @@
     "category": "MoviesAndShows",
     "versions": [
       {
+        "version": "12.21.0.0",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.21.0.0/jellyfin-plugin-poster-overlays_12.21.0.0.zip",
+        "checksum": "3684bb3d4ab0199532ccad408e27e8b8",
+        "changelog": "Adds an audio-format badge - ATMOS, DTS-X, TRUEHD, DTS-HD and so on - drawn only where two copies of the same title actually differ in it. Off by default.\n\nThe restriction is the point. Measured on a library of 2,346 films: of 105 groups holding more than one copy of a film, 7 differ in nothing the existing badges could show except the audio format. Every other film has no second copy at all, so a format badge there describes a file nobody is comparing to anything.\n\nWhich track it describes is configurable, as a list of ISO language codes. This matters more than it sounds: 437 films carry several languages in different formats, typically a German AC3 beside an English DTS, and taking the best track badges such a film \"DTS\" - true about the file, and about a track its owner never selects. A file with a single track always reports that one, whatever the preference says. Spelling is forgiving, since ISO 639-2 gives several languages two codes and files in the wild use both.\n\nSetting a language draws fewer badges rather than more, which is the intent: two of the groups it stops badging differ only in a track in a language nobody at that library listens to, while both preferred tracks are identical.\n\nWithin the chosen language only the best track counts - a film with Atmos, a DTS-HD track and a stereo commentary is an Atmos film. The label carries as much as the job needs: where two copies are both plain DTS and differ only in the channel layout, the layout is added.\n\nThe setting for merging Dolby Vision and HDR is now spelled MergeDolbyVisionAndHDR in code. Stored configurations are unaffected - the file keeps the old spelling on purpose, so a value anybody switched off stays switched off.",
+        "timestamp": "2026-09-04T00:26:25Z"
+      },
+      {
         "version": "12.20.0.0",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v12.20.0.0/jellyfin-plugin-poster-overlays_12.20.0.0.zip",
@@ -166,6 +174,14 @@
         "checksum": "fb6b3a82fc49b36c765fd444e9a62ba6",
         "changelog": "First release. Draws the edition, the resolution and the video range onto the primary image so two entries of the same film can be told apart on the tile, and re-applies the badge whenever a provider replaces the cover. Leave the dry run switch on for the first pass.",
         "timestamp": "2026-08-22T20:34:27Z"
+      },
+      {
+        "version": "11.21.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/MarcFauser/jellyfin-plugin-poster-overlays/releases/download/v11.21.0.0/jellyfin-plugin-poster-overlays_11.21.0.0.zip",
+        "checksum": "dc8d1f18dc8c31ee3635187e8ffcd717",
+        "changelog": "Adds an audio-format badge - ATMOS, DTS-X, TRUEHD, DTS-HD and so on - drawn only where two copies of the same title actually differ in it. Off by default.\n\nThe restriction is the point. Measured on a library of 2,346 films: of 105 groups holding more than one copy of a film, 7 differ in nothing the existing badges could show except the audio format. Every other film has no second copy at all, so a format badge there describes a file nobody is comparing to anything.\n\nWhich track it describes is configurable, as a list of ISO language codes. This matters more than it sounds: 437 films carry several languages in different formats, typically a German AC3 beside an English DTS, and taking the best track badges such a film \"DTS\" - true about the file, and about a track its owner never selects. A file with a single track always reports that one, whatever the preference says. Spelling is forgiving, since ISO 639-2 gives several languages two codes and files in the wild use both.\n\nSetting a language draws fewer badges rather than more, which is the intent: two of the groups it stops badging differ only in a track in a language nobody at that library listens to, while both preferred tracks are identical.\n\nWithin the chosen language only the best track counts - a film with Atmos, a DTS-HD track and a stereo commentary is an Atmos film. The label carries as much as the job needs: where two copies are both plain DTS and differ only in the channel layout, the layout is added.\n\nThe setting for merging Dolby Vision and HDR is now spelled MergeDolbyVisionAndHDR in code. Stored configurations are unaffected - the file keeps the old spelling on purpose, so a value anybody switched off stays switched off.",
+        "timestamp": "2026-09-04T00:26:25Z"
       },
       {
         "version": "11.20.0.0",
