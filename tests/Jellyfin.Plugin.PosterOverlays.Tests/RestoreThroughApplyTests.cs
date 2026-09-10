@@ -30,6 +30,7 @@ namespace Jellyfin.Plugin.PosterOverlays.Tests;
 /// to produce it in numbers - which is why no earlier run ever exposed it.
 /// </para>
 /// </remarks>
+[Collection(BaseItemStaticsCollection.Name)]
 public class RestoreThroughApplyTests : IDisposable
 {
     private readonly string _folder;

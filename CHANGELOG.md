@@ -9,7 +9,49 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Changed
+
+- **Built against Jellyfin 12.0.0 rather than 12.0.0-rc3.** Four release candidates and the final
+  release sat between the two. None of the interfaces the 12.0 release notes call out — 
+  `ISearchEngine`, `IAuthenticationProvider.HasPassword`, parts of `IItemRepository`,
+  `IUserManager` — occur anywhere in this project, and the build against the final packages is
+  clean with warnings still treated as errors. The 11.x line keeps targeting 10.11.
+
+- **The HDR/DV disagreement is reported once per run instead of once per item.** It said, for every
+  film whose folder name and video stream disagree, that they disagree. That reads like an
+  exception and is the ordinary case: on the reference library 109 of 291 HDR titles carry HDR the
+  folder name never mentions, because UHD Blu-ray rips leave it out as self-evident. The nightly
+  run of 2026-09-10 printed over a hundred of these, and the two warnings about covers that could
+  not be decoded sat in the middle of them.
+
+  The two directions are no longer the same message, because they do not deserve the same weight.
+  A stream carrying HDR the name omits is expected and now gets a single line with a count. A
+  folder name promising HDR the file does not have is a naming error, stays a warning, and is
+  listed by title — that direction is rare enough to read one by one.
+
 ### Fixed
+
+- **A cover that cannot be decoded is now named by file, not just by title.** Two of 2,342 films
+  turned out to carry a primary image that no decoder accepts — measured by a neighbouring session
+  as two JPEGs concatenated into one file, which ffmpeg reads under protest and GDI+ and SkiaSharp
+  refuse outright. The message said which film, so finding the file meant searching by hand.
+
+  The path is chosen rather than assumed: the bytes being decoded come from the cached original in
+  one branch and from the item's own image in the other, and naming the item's file when the cache
+  was at fault would point at an innocent one.
+
+- **And the message could not always be reached at all.** `BadgeRenderer.Draw` promises null for an
+  image it cannot decode, and there was a null check for exactly that — but on SkiaSharp 3 the
+  `SKBitmap.Decode(byte[])` overload passes whatever `SKCodec.Create` returned straight into
+  `Decode(SKCodec)`, which throws `ArgumentNullException` when that was null. So for a file the
+  codec cannot even open, the method threw instead of returning null, the caller's warning was
+  unreachable, and the run reported a bare failure without the file. The codec is now created
+  explicitly and checked.
+
+  This is a second class of broken file, not the one already on the reference library: those two
+  covers do get past `SKCodec.Create` and the existing path handled them. Found by writing the test
+  for the message above, which is the whole argument for testing the message a user reads rather
+  than the branch that produces it.
 
 - **Taking a badge back off an item has never worked.** When an item's badge set becomes empty —
   its twin was deleted, or it never really had one — the cached original is supposed to go back on

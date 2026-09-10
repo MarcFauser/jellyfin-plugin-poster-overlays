@@ -54,7 +54,22 @@ internal static class BadgeRenderer
         }
 
         SKEncodedImageFormat format = DetectFormat(original);
-        using var source = SKBitmap.Decode(original);
+
+        // The codec is created explicitly rather than letting SKBitmap.Decode(byte[]) do it, and
+        // that is the whole point of these three lines. On SkiaSharp 3 the byte[] overload hands
+        // whatever SKCodec.Create returned straight to Decode(SKCodec) - which throws
+        // ArgumentNullException("codec") when that was null. So the "if (source is null)" that
+        // used to stand here could never fire: an undecodable image left this method as an
+        // exception, not as null, and the caller's message about a cover that cannot be decoded
+        // was unreachable. Found by the test that asserts on that very message.
+        using var encoded = SKData.CreateCopy(original);
+        using var codec = SKCodec.Create(encoded);
+        if (codec is null)
+        {
+            return null;
+        }
+
+        using var source = SKBitmap.Decode(codec);
         if (source is null)
         {
             return null;

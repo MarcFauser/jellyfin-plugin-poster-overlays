@@ -96,6 +96,24 @@ internal sealed class OverlayApplier
     private readonly Dictionary<string, IReadOnlyList<BaseItem>> _audioPeers = new(StringComparer.Ordinal);
 
     /// <summary>
+    /// Titles whose folder name advertises HDR or Dolby Vision that the video stream does not have.
+    /// </summary>
+    /// <remarks>
+    /// Collected rather than logged per item, and the two directions are kept apart because they
+    /// are not equally interesting. A stream that carries HDR while the folder name stays silent
+    /// is the normal case - measured on the reference library, 109 of 291 HDR titles, because
+    /// UHD Blu-ray rips leave it out as self-evident - so it is only worth a number. The other
+    /// direction is a name that claims something the file does not have, and that is worth a list.
+    /// <para>
+    /// No locking: the task walks its items one at a time and awaits each, and the watcher builds
+    /// its own applier per event. Should either ever go parallel, this needs revisiting.
+    /// </para>
+    /// </remarks>
+    private readonly List<string> _folderClaimsHdrWithoutStream = new();
+
+    private int _streamHasHdrWithoutFolder;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="OverlayApplier"/> class.
     /// </summary>
     /// <param name="providerManager">Jellyfin's provider manager, used to write the image back.</param>
@@ -125,6 +143,18 @@ internal sealed class OverlayApplier
         _excluded = ParseIdList(config.ExcludedItemIds);
         _editionOverrides = ParseOverrides(config.EditionOverrides);
     }
+
+    /// <summary>
+    /// Gets the titles whose folder name claims HDR or Dolby Vision that the stream does not have.
+    /// </summary>
+    /// <remarks>Filled while items are processed; read once at the end of a run.</remarks>
+    public IReadOnlyList<string> FolderClaimsHdrWithoutStream => _folderClaimsHdrWithoutStream;
+
+    /// <summary>
+    /// Gets the number of titles whose stream carries HDR or Dolby Vision that the folder name
+    /// does not mention. The ordinary case, so a count rather than a list.
+    /// </summary>
+    public int StreamHasHdrWithoutFolder => _streamHasHdrWithoutFolder;
 
     /// <summary>
     /// Brings one item up to date.
@@ -220,16 +250,24 @@ internal sealed class OverlayApplier
             var built = BadgeBuilder.Build(item, _config, category, preset, editionOverride, AudioLabelFor(item, category));
             badges = built.Badges;
 
-            if (built.FolderClaimsHdr != built.StreamHasHdr && _logger.IsEnabled(LogLevel.Information))
+            if (built.FolderClaimsHdr != built.StreamHasHdr)
             {
                 // Reported, not resolved. The folder name and the stream disagree, and which one
-                // is wrong is not this plugin's call - measured on the reference library, the name
-                // misses 60 of 288 HDR titles and claims one that is not.
-                _logger.LogInformation(
-                    "Poster overlays: {Name} - the folder name says HDR/DV {Folder} but the video stream says {Stream}.",
-                    item.Name,
-                    built.FolderClaimsHdr,
-                    built.StreamHasHdr);
+                // is wrong is not this plugin's call.
+                //
+                // Collected instead of logged here, because as one line per item this was noise
+                // that buried the real messages: the disagreement is the NORMAL case, 109 of 291
+                // HDR titles on the reference library, since UHD Blu-ray rips omit HDR from the
+                // name as self-evident. In the nightly run of 2026-09-10 the two warnings about
+                // undecodable covers sat between more than a hundred of these.
+                if (built.FolderClaimsHdr)
+                {
+                    _folderClaimsHdrWithoutStream.Add(item.Name);
+                }
+                else
+                {
+                    _streamHasHdrWithoutFolder++;
+                }
             }
         }
 
@@ -290,6 +328,11 @@ internal sealed class OverlayApplier
         OverlayOutcome outcome;
         bool originalNeedsCaching = false;
 
+        // Which file the bytes in "original" came from. Carried along rather than worked out at
+        // the point of failure, because the two branches below read from different places: naming
+        // the item's own file when the bytes came out of the cache would point at an innocent one.
+        string originLabel;
+
         if (oursOnTheItem)
         {
             extension = record!.OriginalExtension;
@@ -304,11 +347,13 @@ internal sealed class OverlayApplier
             }
 
             original = cached;
+            originLabel = FormattableString.Invariant($"the cached original for {currentPath}");
             outcome = sameBadges ? OverlayOutcome.LookChanged : OverlayOutcome.BadgesChanged;
         }
         else
         {
             original = current;
+            originLabel = currentPath;
             extension = Path.GetExtension(currentPath);
             if (string.IsNullOrEmpty(extension))
             {
@@ -322,7 +367,14 @@ internal sealed class OverlayApplier
         byte[]? badged = BadgeRenderer.Draw(original, badges, preset, _config.JpegQuality);
         if (badged is null)
         {
-            _logger.LogWarning("Poster overlays: {Name} - the image could not be decoded.", item.Name);
+            // The path is the point of this message. The cause is almost always the file itself -
+            // measured on the reference library, two covers turned out to be two JPEGs
+            // concatenated into one, which SkiaSharp and GDI+ both refuse - and without the path
+            // the owner has to find those two among thousands by hand.
+            _logger.LogWarning(
+                "Poster overlays: {Name} - the image could not be decoded: {Source}",
+                item.Name,
+                originLabel);
             return OverlayOutcome.Failed;
         }
 

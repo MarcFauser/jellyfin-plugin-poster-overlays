@@ -162,7 +162,52 @@ public sealed class ApplyOverlaysTask : IScheduledTask
         }
 
         Report(counts, groups, unmapped, items.Count);
+        ReportHdrDisagreements(applier);
         progress.Report(100);
+    }
+
+    /// <summary>
+    /// Says once per run where folder names and video streams disagree about HDR or Dolby Vision.
+    /// </summary>
+    /// <remarks>
+    /// One line per item was the earlier shape and it was the wrong one: the disagreement is the
+    /// ordinary case rather than the exception, so it produced more than a hundred entries a run
+    /// and buried the messages that need reading. The two directions are reported differently on
+    /// purpose - a stream carrying HDR that the name omits is expected and gets a number, while a
+    /// name claiming HDR the file does not have is a naming error and gets named.
+    /// </remarks>
+    /// <param name="applier">The applier that walked this run.</param>
+    private void ReportHdrDisagreements(OverlayApplier applier)
+    {
+        var claimed = applier.FolderClaimsHdrWithoutStream;
+        int silentlyHdr = applier.StreamHasHdrWithoutFolder;
+        if (claimed.Count == 0 && silentlyHdr == 0)
+        {
+            return;
+        }
+
+        // Both calls are guarded, not just the one with the string.Join. CA1873 objects to the
+        // params array a logging call builds for its arguments, which happens whether the message
+        // is written or not - so the cheap-looking single-int call needs the guard just as much.
+        if (silentlyHdr > 0 && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Poster overlays: {Count} title(s) carry HDR or Dolby Vision that the folder name "
+                + "does not mention. That is normal - UHD Blu-ray rips usually leave it out - and "
+                + "the badge follows the stream.",
+                silentlyHdr);
+        }
+
+        if (claimed.Count > 0 && _logger.IsEnabled(LogLevel.Warning))
+        {
+            // Named rather than counted: this direction means the name promises something the file
+            // does not deliver, which is worth looking at one by one.
+            _logger.LogWarning(
+                "Poster overlays: {Count} folder name(s) advertise HDR or Dolby Vision that the "
+                + "video stream does not have, so no HDR badge was drawn: {Titles}",
+                claimed.Count,
+                string.Join(", ", claimed));
+        }
     }
 
     /// <summary>
