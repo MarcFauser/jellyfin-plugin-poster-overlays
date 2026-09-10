@@ -1,7 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- Both lines, and in this order: net10.0 first because Jellyfin 12 is the line that matters
+       now. Testing only one of them would leave the other's assembly built but never executed,
+       and the two are not interchangeable - they compile against different Jellyfin packages, so
+       a behaviour that changed between 10.11 and 12 is exactly what a single-target test suite
+       cannot see. Running both costs a second run of a suite that takes about two seconds. -->
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks>net10.0;net9.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -9,12 +14,24 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.11" />
-    <PackageReference Include="Jellyfin.Model" Version="10.11.11" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="SkiaSharp" Version="3.116.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <!-- The Jellyfin and SkiaSharp versions have to match the ones the plugin itself compiles
+       against per target, or the tests would exercise a different API than the shipped assembly.
+       Kept in step with Jellyfin.Plugin.PosterOverlays.csproj by hand; a test asserts it. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Jellyfin.Controller" Version="10.11.11" />
+    <PackageReference Include="Jellyfin.Model" Version="10.11.11" />
+    <PackageReference Include="SkiaSharp" Version="3.116.1" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Jellyfin.Controller" Version="12.0.0" />
+    <PackageReference Include="Jellyfin.Model" Version="12.0.0" />
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
   </ItemGroup>
 
   <ItemGroup>

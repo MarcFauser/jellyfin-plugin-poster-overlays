@@ -9,6 +9,20 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Documented
+
+- **The tests now run against both Jellyfin lines, net10.0 first.** They used to run only against
+  `net9.0` with the 10.11 packages, so the v12 assembly was built and never executed — and since
+  the two compile against different Jellyfin packages, a behaviour that changed between 10.11 and
+  12 was precisely what the suite could not see. Both targets pass, 265 tests each, which is also
+  the first evidence that nothing this plugin uses behaves differently on 12.
+
+  A second test keeps the two project files in step: the test project has to pin the same Jellyfin
+  and SkiaSharp versions per target as the plugin does. Raise one and forget the other and the
+  suite goes on passing against the previous API while the shipped assembly is built against the
+  new one — green about something that is no longer what users get. Confirmed to fail by pulling
+  the two SkiaSharp versions apart on purpose.
+
 ### Added
 
 - **The HDR/DV naming report is now a setting, and it is off by default.** It compares the folder
