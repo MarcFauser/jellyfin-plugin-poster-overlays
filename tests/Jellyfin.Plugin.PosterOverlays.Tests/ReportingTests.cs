@@ -183,6 +183,15 @@ public class ReportingTests : IDisposable
     /// of 109 HDR titles on the reference library. The assertion below is not decoration: without
     /// it a stream that Jellyfin reads as SDR would make the "folder claims HDR the stream lacks"
     /// test pass for the wrong reason.
+    /// <para>
+    /// <b>Dolby Vision needs a third field on Jellyfin 12.</b> The derivation there downgrades a
+    /// recognised DV profile to <c>DOVIInvalid</c> unless the stream also carries
+    /// <c>ColorSpace == "bt2020nc"</c> alongside <c>ColorPrimaries == "bt2020"</c>; on 10.11 that
+    /// step does not exist. HDR10 as built here is unaffected, but a DV case added later without
+    /// the ColorSpace would be classified as invalid on 12 and fine on 10.11 - which the assertion
+    /// would catch, and this note explains. The plugin itself never populates these fields; it
+    /// reads whatever the server put there, which is why only the tests have to know this.
+    /// </para>
     /// </remarks>
     /// <param name="hdr">True for an HDR10 stream, false for SDR.</param>
     /// <returns>The stream.</returns>
