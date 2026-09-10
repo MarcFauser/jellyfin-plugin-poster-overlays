@@ -281,6 +281,59 @@ public class ConfigPageTests
     /// the test host chooses.
     /// </remarks>
     /// <returns>The page.</returns>
+    /// <summary>
+    /// Every on/off setting the plugin has is both declared in the markup and listed in the
+    /// script's <c>globalFlags</c>, so it can actually be loaded and saved.
+    /// </summary>
+    /// <remarks>
+    /// Two places have to agree for a checkbox to work, and missing either one fails in silence:
+    /// without the element the page finds nothing to fill, without the list entry the value is
+    /// never read back on save. Neither throws. This is the wiring a new setting is most likely to
+    /// half-finish, which is exactly what a test is for.
+    /// </remarks>
+    [Fact]
+    public void EveryOnOffSettingIsWiredToThePage()
+    {
+        string html = Page();
+        var ids = IdPattern.Matches(html).Select(m => m.Groups[1].Value).ToHashSet(StringComparer.Ordinal);
+
+        var listed = Regex.Match(html, @"var globalFlags\s*=\s*\[(?<body>[^\]]*)\]", RegexOptions.Singleline);
+        Assert.True(listed.Success, "the page no longer declares globalFlags");
+        var flags = Regex.Matches(listed.Groups["body"].Value, @"'([A-Za-z]\w*)'")
+            .Select(m => m.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+        // Not settings any more: these five are read once, by the version 1 to 2 migration, to
+        // carry the old global switches into the per-category ones (AllowEdition = ShowEdition-
+        // Badges and so on). They have to stay on the class so an old configuration file still
+        // deserialises, and they must NOT appear on the page - showing them would offer a control
+        // that changes nothing. Verified by reading Migrate() rather than assumed from the names.
+        string[] migrationOnly =
+        [
+            "ShowEditionBadges", "ShowResolutionBadges", "ShowVideoRangeBadges",
+            "ShowFormatBadges", "ShowSourceBadges",
+        ];
+
+        var switches = typeof(Configuration.PluginConfiguration)
+            .GetProperties()
+            .Where(p => p.PropertyType == typeof(bool) && p.CanWrite && p.CanRead)
+            .Select(p => p.Name)
+            .Where(n => !migrationOnly.Contains(n, StringComparer.Ordinal))
+            .ToList();
+
+        Assert.NotEmpty(switches);
+
+        var withoutElement = switches.Where(n => !ids.Contains(n)).ToList();
+        var withoutListEntry = switches.Where(n => !flags.Contains(n)).ToList();
+
+        Assert.True(
+            withoutElement.Count == 0,
+            "no checkbox in the markup for: " + string.Join(", ", withoutElement));
+        Assert.True(
+            withoutListEntry.Count == 0,
+            "not listed in globalFlags, so never saved: " + string.Join(", ", withoutListEntry));
+    }
+
     private static string Page()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

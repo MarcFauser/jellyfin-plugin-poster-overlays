@@ -317,6 +317,15 @@
                         <input id="WriteToMediaFolder" type="checkbox" is="emby-checkbox" />
                         <span>Write the badged image into the media folder instead</span>
                     </label>
+                    <label class="po-check">
+                        <input id="ReportHdrNameMismatches" type="checkbox" is="emby-checkbox" />
+                        <span>Report folder names that disagree with the video stream about HDR</span>
+                    </label>
+                    <div class="fieldDescription">
+                        Only useful if your folder names carry release tags. If you name folders
+                        "Film (Year)", every HDR title counts as a disagreement and the report says
+                        nothing. The badges always follow the stream either way.
+                    </div>
                     <div class="fieldDescription">
                         The last one is off by default and deliberately so: a local file is not replaced
                         when a provider delivers a new cover, which defeats the upkeep loop.
@@ -631,7 +640,7 @@
             // expects their NAMES - "DarkPill", not 0. Numeric option values silently matched
             // nothing on load, so the select fell back to its first entry and the save wrote that.
             var globalFlags = ['Enabled', 'DryRun', 'WatchForImageChanges', 'WriteToMediaFolder',
-                'MergeDolbyVisionAndHDR'];
+                'MergeDolbyVisionAndHDR', 'ReportHdrNameMismatches'];
             var globalNumbers = ['JpegQuality', 'MinimumResolutionK'];
             var globalTexts = ['ResolutionLadder', 'ExcludedItemIds', 'EditionOverrides', 'AudioLanguages'];
 

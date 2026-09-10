@@ -213,6 +213,25 @@ public class PluginConfiguration : BasePluginConfiguration
     public int MinimumResolutionK { get; set; } = 4;
 
     /// <summary>
+    /// Gets or sets a value indicating whether a run reports where folder names and video streams
+    /// disagree about HDR or Dolby Vision. Off by default.
+    /// </summary>
+    /// <remarks>
+    /// The report only means anything if the folder names are expected to carry release tags at
+    /// all. Plenty of libraries name a folder "Film (Year)" and nothing else - there every HDR
+    /// title would be counted as a disagreement, which says something about the naming convention
+    /// and nothing about the library.
+    /// <para>
+    /// Default off for that reason: a plugin should be quiet about an assumption its owner may not
+    /// share. Where the tags are used the report is worth having - on the reference library it
+    /// separates 109 titles whose stream carries HDR the name omits (normal, UHD Blu-ray rips
+    /// leave it out) from names that promise HDR the file does not have (a naming error). Nothing
+    /// about the badges themselves depends on this: they always follow the stream.
+    /// </para>
+    /// </remarks>
+    public bool ReportHdrNameMismatches { get; set; }
+
+    /// <summary>
     /// Gets or sets the JPEG quality used when a badged image is written back. Jellyfin
     /// delivers at 90; going below that would make the badged copy visibly worse than the
     /// original.

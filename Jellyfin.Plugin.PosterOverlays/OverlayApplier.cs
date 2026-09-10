@@ -250,7 +250,10 @@ internal sealed class OverlayApplier
             var built = BadgeBuilder.Build(item, _config, category, preset, editionOverride, AudioLabelFor(item, category));
             badges = built.Badges;
 
-            if (built.FolderClaimsHdr != built.StreamHasHdr)
+            // Gated on the setting rather than collected and thrown away: the comparison only says
+            // something where folder names are expected to carry release tags, and a library that
+            // names its folders "Film (Year)" would have every HDR title counted as a mismatch.
+            if (_config.ReportHdrNameMismatches && built.FolderClaimsHdr != built.StreamHasHdr)
             {
                 // Reported, not resolved. The folder name and the stream disagree, and which one
                 // is wrong is not this plugin's call.

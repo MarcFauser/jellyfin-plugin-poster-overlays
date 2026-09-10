@@ -9,6 +9,25 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Added
+
+- **The HDR/DV naming report is now a setting, and it is off by default.** It compares the folder
+  name against the video stream, which only means something in a library whose folder names carry
+  release tags. Plenty of libraries name a folder "Film (Year)" and nothing else — there every
+  single HDR title would be counted as a disagreement, which describes the naming convention and
+  not the library. A plugin should be quiet about an assumption its owner may not share.
+
+  Nothing about the badges depends on it: they follow the video stream, with the report on or off.
+  Turn it on under Operation if your folders do carry tags — on the reference library it separates
+  109 titles whose stream has HDR the name omits (normal) from names promising HDR the file does
+  not have (a naming error worth fixing).
+
+  A test now checks that every on/off setting is both declared in the markup and listed in the
+  page's `globalFlags`, because missing either one fails in silence — no element means nothing to
+  fill in, no list entry means the value is never saved. It found five properties that are
+  deliberately absent: `ShowEditionBadges` and its four siblings are read only by the version 1 to
+  2 migration and are not settings any more.
+
 ### Changed
 
 - **Built against Jellyfin 12.0.0 rather than 12.0.0-rc3.** Four release candidates and the final

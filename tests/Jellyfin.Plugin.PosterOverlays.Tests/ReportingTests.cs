@@ -107,6 +107,30 @@ public class ReportingTests : IDisposable
     }
 
     /// <summary>
+    /// Switched off - the default - nothing is collected at all, however loudly the folder name
+    /// and the stream disagree. A library that names folders "Film (Year)" would otherwise have
+    /// every HDR title counted as a mismatch.
+    /// </summary>
+    [Fact]
+    public async Task NothingIsCollectedWhenTheReportIsOff()
+    {
+        var applier = NewApplier(new CollectingLogger(), Enabled(allowResolution: true, reportHdr: false));
+
+        await ApplyOne(applier, "A.Film.2020.2160p.BluRay.x265-GRP", streamHasHdr: true);
+        await ApplyOne(applier, "B.Film.2019.2160p.HDR.BluRay.x265-GRP", streamHasHdr: false);
+
+        Assert.Equal(0, applier.StreamHasHdrWithoutFolder);
+        Assert.Empty(applier.FolderClaimsHdrWithoutStream);
+    }
+
+    /// <summary>
+    /// And the default really is off, so the setting cannot be quietly on for everyone.
+    /// </summary>
+    [Fact]
+    public void TheReportIsOffByDefault() =>
+        Assert.False(new PluginConfiguration().ReportHdrNameMismatches);
+
+    /// <summary>
     /// And agreement produces neither, so the tally cannot quietly count everything.
     /// </summary>
     [Fact]
@@ -121,9 +145,16 @@ public class ReportingTests : IDisposable
         Assert.Empty(applier.FolderClaimsHdrWithoutStream);
     }
 
-    private static PluginConfiguration Enabled(bool allowResolution)
+    private static PluginConfiguration Enabled(bool allowResolution, bool reportHdr = true)
     {
-        var config = new PluginConfiguration { DryRun = true };
+        var config = new PluginConfiguration
+        {
+            DryRun = true,
+
+            // Off by default in the product, so the tests that assert on the tally have to ask
+            // for it. That is the right way round: the default is what most libraries want.
+            ReportHdrNameMismatches = reportHdr,
+        };
         config.Movies.Enabled = true;
         config.Movies.AllowAudio = false;
         config.Movies.AllowResolution = allowResolution;
