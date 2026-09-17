@@ -1344,7 +1344,17 @@
                                 Recursive: true,
                                 Limit: 15,
                                 Fields: 'ProductionYear',
-                                EnableImages: false
+                                EnableImages: false,
+                                // Redundant today and written down on purpose. On Jellyfin 12 a
+                                // query without a user gets box sets substituted for their member
+                                // films - measured on the reference library, 203 collection
+                                // folders in place of 676 films. A search is exempt only because
+                                // ItemsController sets this very flag when searchTerm is present,
+                                // so without this line the picker would quietly start returning
+                                // collection folders the moment that behaviour changed, or if the
+                                // two-character threshold above were ever relaxed. Setting it
+                                // ourselves costs nothing and does not depend on either.
+                                CollapseBoxSetItems: false
                             }),
                             dataType: 'json'
                         }).then(function (result) {

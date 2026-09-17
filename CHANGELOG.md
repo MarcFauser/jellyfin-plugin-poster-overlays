@@ -9,6 +9,23 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Changed
+
+- **The preview picker's search now tells the server not to collapse box sets.** It changes
+  nothing today, and that is the point. On Jellyfin 12 an `/Items` query without a user gets
+  collection folders substituted for the films inside them — measured on the reference library,
+  203 folders in place of 676 films. A search escapes that only because `ItemsController` sets
+  this very flag itself when a `searchTerm` is present.
+
+  So the picker was relying on two of the host's decisions at once: that line, and the
+  two-character threshold that stops the box from ever querying without a term. Either could
+  change without anyone here noticing, and the failure would be a picker quietly offering
+  collection folders instead of films. Setting the flag ourselves depends on neither.
+
+  Found by a neighbouring session measuring the collapse, confirmed here on the same server, and
+  the exemption for searches is the half that was added from this end. A test pins the flag,
+  because a value that is redundant today reads like tidiness and gets removed.
+
 ### Documented
 
 - **The tests now run against both Jellyfin lines, net10.0 first.** They used to run only against

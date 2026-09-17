@@ -334,6 +334,38 @@ public class ConfigPageTests
             "not listed in globalFlags, so never saved: " + string.Join(", ", withoutListEntry));
     }
 
+    /// <summary>
+    /// The preview picker's search asks the server not to substitute box sets for their members.
+    /// </summary>
+    /// <remarks>
+    /// On Jellyfin 12 an /Items query without a user gets collection folders in place of the films
+    /// inside them - measured on the reference library, 203 folders instead of 676 films. A search
+    /// escapes that only because ItemsController sets CollapseBoxSetItems itself when searchTerm is
+    /// present. Relying on that means relying on two of the host's decisions at once: that line, and
+    /// the two-character threshold that stops this page from ever querying without a term.
+    /// <para>
+    /// The flag is therefore written out even though it changes nothing today, and this test is why
+    /// it will still be there next year: a value that is redundant right now reads like tidiness and
+    /// gets removed. Both spellings work (measured); the page uses PascalCase like its neighbours.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void ThePreviewSearchDoesNotCollapseBoxSets()
+    {
+        string html = Page();
+
+        var search = Regex.Match(
+            html,
+            @"ApiClient\.getUrl\(\s*'Items'\s*,\s*\{(?<args>[^}]*)\}",
+            RegexOptions.Singleline);
+
+        Assert.True(search.Success, "the preview search no longer builds an /Items url");
+
+        // Positive control: the block really is the one under test, not some other call.
+        Assert.Contains("SearchTerm", search.Groups["args"].Value, StringComparison.Ordinal);
+        Assert.Contains("CollapseBoxSetItems: false", search.Groups["args"].Value, StringComparison.Ordinal);
+    }
+
     private static string Page()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
