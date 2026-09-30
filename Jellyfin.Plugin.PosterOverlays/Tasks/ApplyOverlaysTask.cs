@@ -379,7 +379,8 @@ public sealed class ApplyOverlaysTask : IScheduledTask
             + "provider and were badged again, {Changed} redrawn because the badge set changed, {Look} redrawn "
             + "because the look changed, {Restored} restored, "
             + "{Unchanged} already correct, {NoImage} without an image, {Missing} skipped because the cached original "
-            + "was gone, {Damaged} skipped because the cached original was overwritten, {Failed} failed.",
+            + "was gone, {Damaged} skipped because the cached original was overwritten, {Lost} skipped because their "
+            + "record was lost, {Failed} failed.",
             total,
             counts.GetValueOrDefault(OverlayOutcome.FirstRun),
             counts.GetValueOrDefault(OverlayOutcome.CoverReplaced),
@@ -390,6 +391,7 @@ public sealed class ApplyOverlaysTask : IScheduledTask
             counts.GetValueOrDefault(OverlayOutcome.NoImage),
             counts.GetValueOrDefault(OverlayOutcome.OriginalMissing),
             counts.GetValueOrDefault(OverlayOutcome.CacheInconsistent),
+            counts.GetValueOrDefault(OverlayOutcome.RecordMissing),
             counts.GetValueOrDefault(OverlayOutcome.Failed));
 
         int damaged = counts.GetValueOrDefault(OverlayOutcome.CacheInconsistent);
@@ -400,6 +402,16 @@ public sealed class ApplyOverlaysTask : IScheduledTask
                 + "describes, so nothing was drawn on them - another layer would not come off again. Run "
                 + "\"Repair poster overlays\" to fetch a fresh cover from the provider for those.",
                 damaged);
+        }
+
+        int lost = counts.GetValueOrDefault(OverlayOutcome.RecordMissing);
+        if (lost > 0)
+        {
+            _logger.LogWarning(
+                "Poster overlays: {Lost} items have a cached original but no record, so their records were lost. Nothing "
+                + "was drawn on them - their covers may already carry a badge. Run \"Rebuild poster overlay state\", with "
+                + "the dry run on first, to work the records out again.",
+                lost);
         }
 
         // The finding the badges cannot express, reported rather than hidden: several entries

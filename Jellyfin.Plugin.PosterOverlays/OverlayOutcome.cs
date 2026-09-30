@@ -49,6 +49,14 @@ internal enum OverlayOutcome
     /// </summary>
     CacheInconsistent,
 
+    /// <summary>
+    /// The item has a cached original but no record - the record was lost. Nothing was drawn and
+    /// nothing was cached: the image on the item may well be a badged one, and caching it as the
+    /// original would overwrite the only unbadged copy. The rebuild task works the record out
+    /// again; the repair task starts the item over from a fresh provider cover.
+    /// </summary>
+    RecordMissing,
+
     /// <summary>Something went wrong; the log carries the reason.</summary>
     Failed,
 }

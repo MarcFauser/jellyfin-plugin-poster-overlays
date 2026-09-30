@@ -91,6 +91,29 @@ Run the scheduled task **Remove poster overlays** before uninstalling. It puts e
 original back. Uninstalling the plugin on its own leaves the badged images exactly where they are —
 they were uploaded to Jellyfin, and nothing removes them afterwards.
 
+## If the state file is damaged
+
+The plugin keeps one record per badged item in `state.json` in its data folder, next to the cached
+originals. If that file cannot be read, the plugin refuses to do anything — the nightly task and
+every image change stop with *"The poster overlay state file … could not be read"*. That is on
+purpose: without the records every badged cover looks like an original, and the next run would
+cache it and draw a second badge on top.
+
+**Do not delete the file.** Run the scheduled task **Rebuild poster overlay state** instead, with
+the dry run on first, and read what it would do. For every cached original it draws today's badges
+onto it again and compares the result with the cover on the item:
+
+- the same image — byte for byte, or the same picture within JPEG noise — gets its record back;
+- an item that shows its original anyway loses the redundant cached copy;
+- everything else is named in the log and left exactly as it is. The upkeep loop leaves those
+  items alone as well, and `POST /PosterOverlays/Repair/{itemId}` starts one over from a fresh
+  provider cover.
+
+The damaged file is kept as `state.json.unreadable-<time>`.
+
+Since 11.29 / 12.29 the file is written atomically, so a crash can no longer leave it empty. The
+rebuild is for a file damaged before that, or lost some other way.
+
 ## Where the badges come from
 
 | Badge | Source |

@@ -53,4 +53,39 @@ internal sealed class OverlayRecord
     /// Gets or sets when this record was last written, as an ISO 8601 timestamp in UTC.
     /// </summary>
     public string UpdatedUtc { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the hash of an image the plugin was about to upload, written down before the
+    /// upload started. Null when no upload is in flight.
+    /// </summary>
+    /// <remarks>
+    /// <b>This closes the window between the upload and the record.</b> The record used to be
+    /// written only after the upload had returned, so a crash in between left the item carrying a
+    /// badged image the record knew nothing about - and the next run, seeing an image that matched
+    /// nothing it had uploaded, took it for a new cover from a provider, cached it as the original
+    /// and drew a badge on top of it. With the hash announced beforehand, the next run recognises
+    /// the image as its own and only has to confirm what already happened.
+    /// <para>
+    /// It can be announced because Jellyfin stores an uploaded image byte for byte: read in
+    /// <c>ImageSaver.SaveImage</c> on <c>release-10.11.z</c> and on <c>master</c>, the stream goes
+    /// through <c>CopyToAsync</c> into the target file and nothing re-encodes it.
+    /// </para>
+    /// <para>
+    /// The three <c>Pending</c> fields are kept apart from <see cref="BadgedHash"/>,
+    /// <see cref="BadgeKey"/> and <see cref="LookKey"/> on purpose. Those describe what is known to
+    /// be on the item; these describe an attempt. Mixing them would let a crash before the upload
+    /// claim the new badges for the old image, and the next run would call that image correct.
+    /// </para>
+    /// </remarks>
+    public string? PendingBadgedHash { get; set; }
+
+    /// <summary>
+    /// Gets or sets the badge key of the image announced in <see cref="PendingBadgedHash"/>.
+    /// </summary>
+    public string? PendingBadgeKey { get; set; }
+
+    /// <summary>
+    /// Gets or sets the look key of the image announced in <see cref="PendingBadgedHash"/>.
+    /// </summary>
+    public string? PendingLookKey { get; set; }
 }

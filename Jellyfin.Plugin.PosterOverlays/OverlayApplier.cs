@@ -204,16 +204,95 @@ internal sealed class OverlayApplier
     private async Task<OverlayOutcome> ApplyCoreAsync(BaseItem item, CancellationToken cancellationToken)
     {
         string id = Key(item);
-        if (_excluded.Contains(id))
+        var plan = PlanBadges(item, id, collectReport: true, out _);
+        if (plan is null)
         {
             return OverlayOutcome.Skipped;
+        }
+
+        var badges = plan.Badges;
+        var preset = plan.Preset;
+        string badgeKey = plan.BadgeKey;
+
+        string? currentPath = item.GetImagePath(ImageType.Primary, 0);
+        if (string.IsNullOrEmpty(currentPath) || !File.Exists(currentPath))
+        {
+            return OverlayOutcome.NoImage;
+        }
+
+        byte[] current = await File.ReadAllBytesAsync(currentPath, cancellationToken).ConfigureAwait(false);
+        string currentHash = OverlayStateStore.Hash(current);
+        var record = _store.Get(id);
+
+        if (record is null)
+        {
+            // A cached original without a record means the record was lost - on the reference
+            // server the whole state file was, when the VM died mid-write. Carrying on would be a
+            // "first run": the image on the item cached as the original, overwriting the only clean
+            // copy, and a badge drawn onto what may already carry one. So stop, unless the cached
+            // file is byte for byte the image on the item, in which case caching it again changes
+            // nothing.
+            if (HoldsADifferentOriginal(id, current))
+            {
+                _logger.LogWarning(
+                    "Poster overlays: {Name} has a cached original but no record, so its record was lost. Nothing was "
+                    + "drawn - the cover on it may already carry a badge. Run \"Rebuild poster overlay state\" to work "
+                    + "the record out again, or \"Repair\" the item to start it over from a fresh provider cover.",
+                    item.Name);
+                return OverlayOutcome.RecordMissing;
+            }
+        }
+        else if (record.PendingBadgedHash is not null
+            && string.Equals(currentHash, record.PendingBadgedHash, StringComparison.Ordinal))
+        {
+            // The upload announced in the record landed, and the run that made it did not live to
+            // confirm it. The image is ours: confirm it now instead of taking it for a new cover.
+            record = Confirmed(record);
+            if (!_config.DryRun)
+            {
+                _store.Set(id, record);
+            }
+
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation(
+                    "Poster overlays: {Name} carries the image an earlier run uploaded but never confirmed - the run "
+                    + "was cut short. Recognised as ours and confirmed.",
+                    item.Name);
+            }
+        }
+
+        return await ApplyToImageAsync(item, id, badges, preset, badgeKey, currentPath, current, currentHash, record, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Works out which badges an item gets under today's settings.
+    /// </summary>
+    /// <remarks>
+    /// Split out of the upkeep loop so the rebuild asks exactly the same question - a second copy of
+    /// these rules would be a second place for them to drift apart.
+    /// </remarks>
+    /// <param name="item">The item.</param>
+    /// <param name="id">Its state key.</param>
+    /// <param name="collectReport">Whether to feed the HDR naming report; only the upkeep loop does.</param>
+    /// <param name="skipReason">Why the item gets nothing, when the result is null.</param>
+    /// <returns>The plan, or null when the item is not badged at all under today's settings.</returns>
+    private BadgePlan? PlanBadges(BaseItem item, string id, bool collectReport, out string? skipReason)
+    {
+        skipReason = null;
+        if (_excluded.Contains(id))
+        {
+            skipReason = "it is on the exception list";
+            return null;
         }
 
         var target = TargetOf(item);
         var category = _config.CategoryFor(target);
         if (!category.Enabled)
         {
-            return OverlayOutcome.Skipped;
+            skipReason = "the " + target + " category is switched off";
+            return null;
         }
 
         var preset = _config.PresetFor(target);
@@ -243,7 +322,8 @@ internal sealed class OverlayApplier
                 && category.OnlyWhereItDisambiguates
                 && !HasTwin(item))
             {
-                return OverlayOutcome.Skipped;
+                skipReason = "no second copy of this episode exists, and the category only badges where that tells two apart";
+                return null;
             }
 
             _editionOverrides.TryGetValue(id, out string? editionOverride);
@@ -253,7 +333,7 @@ internal sealed class OverlayApplier
             // Gated on the setting rather than collected and thrown away: the comparison only says
             // something where folder names are expected to carry release tags, and a library that
             // names its folders "Film (Year)" would have every HDR title counted as a mismatch.
-            if (_config.ReportHdrNameMismatches && built.FolderClaimsHdr != built.StreamHasHdr)
+            if (collectReport && _config.ReportHdrNameMismatches && built.FolderClaimsHdr != built.StreamHasHdr)
             {
                 // Reported, not resolved. The folder name and the stream disagree, and which one
                 // is wrong is not this plugin's call.
@@ -274,18 +354,56 @@ internal sealed class OverlayApplier
             }
         }
 
-        string badgeKey = BadgeBuilder.KeyOf(badges);
+        return new BadgePlan(badges, preset, BadgeBuilder.KeyOf(badges), LookKeyOf(preset, _config.JpegQuality));
+    }
 
-        string? currentPath = item.GetImagePath(ImageType.Primary, 0);
-        if (string.IsNullOrEmpty(currentPath) || !File.Exists(currentPath))
+    /// <summary>
+    /// Says whether the cache holds an original for an item that differs from the image on it.
+    /// </summary>
+    /// <param name="id">The state key.</param>
+    /// <param name="current">The image on the item.</param>
+    /// <returns>True when at least one cached file is not byte for byte the current image.</returns>
+    private bool HoldsADifferentOriginal(string id, byte[] current)
+    {
+        foreach (string path in _store.CachedOriginalPaths(id))
         {
-            return OverlayOutcome.NoImage;
+            if (!File.ReadAllBytes(path).AsSpan().SequenceEqual(current))
+            {
+                return true;
+            }
         }
 
-        byte[] current = await File.ReadAllBytesAsync(currentPath, cancellationToken).ConfigureAwait(false);
-        string currentHash = OverlayStateStore.Hash(current);
-        var record = _store.Get(id);
+        return false;
+    }
 
+    /// <summary>
+    /// Turns an announced upload into the confirmed state.
+    /// </summary>
+    /// <remarks>A copy, not an edit: in a dry run nothing may change, not even in memory.</remarks>
+    /// <param name="record">A record whose announced upload is on the item.</param>
+    /// <returns>The confirmed record.</returns>
+    private static OverlayRecord Confirmed(OverlayRecord record) => new()
+    {
+        BadgeKey = record.PendingBadgeKey ?? string.Empty,
+        LookKey = record.PendingLookKey ?? string.Empty,
+        OriginalHash = record.OriginalHash,
+        BadgedHash = record.PendingBadgedHash ?? string.Empty,
+        OriginalExtension = record.OriginalExtension,
+        UpdatedUtc = record.UpdatedUtc,
+    };
+
+    private async Task<OverlayOutcome> ApplyToImageAsync(
+        BaseItem item,
+        string id,
+        IReadOnlyList<BadgeSpec> badges,
+        BadgePreset preset,
+        string badgeKey,
+        string currentPath,
+        byte[] current,
+        string currentHash,
+        OverlayRecord? record,
+        CancellationToken cancellationToken)
+    {
         // Before anything is decided: is the cached original still the image the record claims?
         // If not, something wrote over it, and on this plugin's own first release that something
         // was an already badged copy. Neither branch below is safe then - drawing would add a
@@ -403,9 +521,41 @@ internal sealed class OverlayApplier
             _store.SaveOriginal(id, original, extension);
         }
 
+        // Announce the upload before making it. A run that dies between the upload and the record
+        // below used to leave a badged image nobody knew about, which the next run took for a new
+        // cover - cached as the original, and badged on top. With the hash written down first, the
+        // next run recognises the image as its own; see OverlayRecord.PendingBadgedHash.
+        //
+        // The confirmed fields keep describing what is on the item right now - the old badged
+        // image when it is ours, nothing otherwise - so a death BEFORE the upload is read correctly
+        // too: the old image still matches them and gets redrawn, instead of being taken for the
+        // new one.
+        string announced = OverlayStateStore.Hash(badged);
+        _store.Set(id, new OverlayRecord
+        {
+            BadgeKey = oursOnTheItem ? record!.BadgeKey : string.Empty,
+            LookKey = oursOnTheItem ? record!.LookKey : string.Empty,
+            BadgedHash = oursOnTheItem ? record!.BadgedHash : string.Empty,
+            OriginalHash = OverlayStateStore.Hash(original),
+            OriginalExtension = extension,
+            PendingBadgedHash = announced,
+            PendingBadgeKey = badgeKey,
+            PendingLookKey = lookKey,
+        });
+
         string badgedHash = _config.WriteToMediaFolder
             ? await WriteBesideTheMediaAsync(item, badged, extension, cancellationToken).ConfigureAwait(false)
             : await UploadAsync(item, badged, extension, cancellationToken).ConfigureAwait(false);
+
+        if (!string.Equals(badgedHash, announced, StringComparison.Ordinal))
+        {
+            // Jellyfin stores an upload byte for byte, so this should not happen. If it ever does,
+            // the announcement above protected nothing for this item, and that is worth knowing.
+            _logger.LogWarning(
+                "Poster overlays: {Name} - the image Jellyfin stored is not byte for byte the one that was uploaded. "
+                + "It was recorded as stored, but a crash right after an upload would not have been recognised.",
+                item.Name);
+        }
 
         _store.Set(id, new OverlayRecord
         {
@@ -599,9 +749,13 @@ internal sealed class OverlayApplier
 
         // The image on the item is ours, so the unbadged picture is the cached one. Drawing onto
         // the badged copy would stack a badge on a badge - in a preview that is not destructive,
-        // but it would be a lie about what the run produces.
+        // but it would be a lie about what the run produces. "Ours" includes an upload that was
+        // announced and never confirmed, the same way the upkeep loop reads it.
         byte[] original = current;
-        if (record is not null && string.Equals(OverlayStateStore.Hash(current), record.BadgedHash, StringComparison.Ordinal))
+        string currentHash = OverlayStateStore.Hash(current);
+        if (record is not null
+            && (string.Equals(currentHash, record.BadgedHash, StringComparison.Ordinal)
+                || string.Equals(currentHash, record.PendingBadgedHash, StringComparison.Ordinal)))
         {
             byte[]? cached = _store.LoadOriginal(id, record.OriginalExtension);
             if (cached is null)
@@ -656,6 +810,101 @@ internal sealed class OverlayApplier
         }
 
         return new PreviewResult(drawn, "image/jpeg", badges.Count, string.Empty);
+    }
+
+    /// <summary>
+    /// Works out, for one cached original whose record was lost, what the cover on the item is.
+    /// </summary>
+    /// <remarks>
+    /// <b>Only a proof may become a record.</b> A record says "the image on this item is ours, drawn
+    /// on this original" - and everything the upkeep loop does afterwards trusts that. So the badges
+    /// are drawn onto the cached original again, with the same code and today's settings, and the
+    /// result has to be the cover on the item: byte for byte, or failing that the same picture
+    /// within JPEG noise (<see cref="ImageComparison"/>). Anything else is reported and left alone.
+    /// <para>
+    /// Changes nothing, not even in a real run: the caller decides what happens with the verdict.
+    /// </para>
+    /// </remarks>
+    /// <param name="item">The item the cached original belongs to.</param>
+    /// <param name="cachedPath">The cached original.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The verdict.</returns>
+    internal async Task<RebuildVerdict> ExamineForRebuildAsync(BaseItem item, string cachedPath, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentException.ThrowIfNullOrEmpty(cachedPath);
+
+        string? currentPath = item.GetImagePath(ImageType.Primary, 0);
+        if (string.IsNullOrEmpty(currentPath) || !File.Exists(currentPath))
+        {
+            return new RebuildVerdict(RebuildFinding.NoImage, null, false, "the item has no primary image");
+        }
+
+        byte[] current = await File.ReadAllBytesAsync(currentPath, cancellationToken).ConfigureAwait(false);
+        byte[] original = await File.ReadAllBytesAsync(cachedPath, cancellationToken).ConfigureAwait(false);
+        string currentHash = OverlayStateStore.Hash(current);
+        string originalHash = OverlayStateStore.Hash(original);
+
+        if (string.Equals(currentHash, originalHash, StringComparison.Ordinal))
+        {
+            return new RebuildVerdict(RebuildFinding.ShowsOriginal, null, true, "the item shows the cached original itself");
+        }
+
+        var plan = PlanBadges(item, Key(item), collectReport: false, out string? skipReason);
+        if (plan is null || plan.Badges.Count == 0)
+        {
+            if (ImageComparison.SamePicture(current, original))
+            {
+                return new RebuildVerdict(RebuildFinding.ShowsOriginal, null, false, "the item shows the cached original, encoded differently");
+            }
+
+            return new RebuildVerdict(
+                RebuildFinding.Unmatched,
+                null,
+                false,
+                "today's settings give it no badges - " + (skipReason ?? "there is nothing a badge could describe")
+                + " - so the badges on its cover cannot be drawn again to compare");
+        }
+
+        byte[]? redrawn = BadgeRenderer.Draw(original, plan.Badges, plan.Preset, _config.JpegQuality);
+        if (redrawn is null)
+        {
+            return new RebuildVerdict(RebuildFinding.Unmatched, null, false, "the cached original cannot be decoded: " + cachedPath);
+        }
+
+        var record = new OverlayRecord
+        {
+            BadgeKey = plan.BadgeKey,
+            LookKey = plan.LookKey,
+            OriginalHash = originalHash,
+
+            // The cover as it is on the item, not the redraw: the next run compares against what it
+            // finds there, and when the match was by picture the two differ in their bytes.
+            BadgedHash = currentHash,
+            OriginalExtension = Path.GetExtension(cachedPath),
+        };
+
+        if (string.Equals(OverlayStateStore.Hash(redrawn), currentHash, StringComparison.Ordinal))
+        {
+            return new RebuildVerdict(RebuildFinding.Ours, record, true, "redrawn byte for byte");
+        }
+
+        if (ImageComparison.SamePicture(current, redrawn))
+        {
+            return new RebuildVerdict(RebuildFinding.Ours, record, false, "redrawn to the same picture, encoded differently");
+        }
+
+        if (ImageComparison.SamePicture(current, original))
+        {
+            return new RebuildVerdict(RebuildFinding.ShowsOriginal, null, false, "the item shows the cached original, encoded differently");
+        }
+
+        return new RebuildVerdict(
+            RebuildFinding.Unmatched,
+            null,
+            false,
+            "its cover is neither the cached original nor the original with today's badges ("
+            + plan.BadgeKey + ") - a new cover since the record was lost, or badges drawn with settings that have changed");
     }
 
     /// <summary>
@@ -1145,6 +1394,15 @@ internal sealed class OverlayApplier
 
         return OverlayStateStore.Hash(bytes);
     }
+
+    /// <summary>
+    /// The badges an item gets under today's settings, and the two keys that describe them.
+    /// </summary>
+    /// <param name="Badges">The badges, possibly none.</param>
+    /// <param name="Preset">The look they are drawn with.</param>
+    /// <param name="BadgeKey">Which badges.</param>
+    /// <param name="LookKey">How they look.</param>
+    private sealed record BadgePlan(IReadOnlyList<BadgeSpec> Badges, BadgePreset Preset, string BadgeKey, string LookKey);
 
     /// <summary>
     /// Releases a claim taken with <see cref="TryHold"/>.

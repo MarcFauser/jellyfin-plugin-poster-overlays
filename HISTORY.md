@@ -287,3 +287,53 @@ Jellyfin row and the player were both second-hand. The bytes were one call away 
 And a small piece of luck: renaming the folder gave the film a new item id, which makes it the
 first real customer of last night's orphan sweep — the old record and its cached original now
 point at an id that will never be asked for again.
+
+## 2026-09-30 — an empty state file, and a recovery that could not have worked
+
+A neighbouring session, reading the server log for its own reasons, found the plugin failing on
+every image change: *the poster overlay state file could not be read*, with `JsonException: The
+input does not contain any JSON tokens … LineNumber: 0 | BytePositionInLine: 0`. The server keeps
+four days of logs; the nightly task had failed in 0 seconds on each of them, so the plugin had
+been doing nothing since at least 2026-09-27.
+
+**The file was empty, and that is measured rather than read into the message.** I tried each
+candidate content against System.Text.Json: only an empty input gives "no JSON tokens" at line 0,
+byte 0. Whitespace reports a later position, NUL bytes "'0x00' is an invalid start", cut-off JSON
+"reached end of data". All eighty such lines of that day said 0/0.
+
+The cause was one line: `File.WriteAllText` after every badged item — truncate, then write. The
+VM had been killed hard by the host's out-of-memory killer on five nights running, each a few
+minutes after 03:00, when the nightly task starts. A truncated file whose new content was still in
+the page cache is exactly what a hard kill leaves. Which night it was cannot be known any more.
+
+The refusal itself held up: with no records, every badged cover would have looked like an
+original, and the plugin rightly did nothing. **What did not hold up was its advice.** "Run Remove
+poster overlays, then delete the file" — the removal task reads the same file and fails on the same
+line, and deleting the file would have let the next run cache some six hundred badged covers over
+their clean originals and draw on top. The one step a reader of that message was most likely to try was the
+destructive one.
+
+Three fixes and one tool came out of it. The state file and the originals are written to a
+sibling file, flushed to disk and renamed into place. The record announces an upload before
+making it, because the same crash one step later — after Jellyfin stored the image, before the
+record — would have made the next run take the plugin's own badge for a new cover. A cached
+original without a record now stops the upkeep loop instead of being overwritten. And a task works
+the records out again from the cached originals.
+
+**The rebuild only turns proofs into records.** A record says "this cover is that original with
+these badges", and everything afterwards trusts it — so the badges are drawn again and the result
+has to be the cover on the item. Byte for byte is the strong proof; for the case where the encoder
+differs, the picture is compared block by block, judged on the worst block, because a badge is a
+few hundred pixels and an average hides it. My first threshold, 12, was a guess and failed its own
+test: re-encoding at ten quality steps lower produced up to 10.1, and the test wants a factor of
+two. Measured across 400, 680 and 1000 pixels, realistic noise stays below 7.1 and the smallest
+real difference — one letter of one badge on a 400-pixel poster — is 41.9. 16 sits between them.
+
+The measurement I expected to need the comparison for turned out not to: SkiaSharp 3.116 and
+3.119, the versions of the two Jellyfin lines, rendered the same poster **byte for byte identically**.
+That was on Windows; the server runs the Linux build, so the comparison stays as the fallback.
+
+One consequence worth writing down before the rebuild runs: the thirty-odd items with a poisoned
+cache from 2026-08-22 should come back exactly as they were. Their cached "original" already
+carries a badge and their cover carries two on the same spot; drawing once more onto the cache
+reproduces the cover. Expected from how they were made, not measured.

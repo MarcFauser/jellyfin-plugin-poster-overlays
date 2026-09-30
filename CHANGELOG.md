@@ -9,6 +9,61 @@ for Jellyfin 12), so both lines carry the same feature set under different major
 
 ## [Unreleased]
 
+### Fixed
+
+- **The state file is now written atomically, so a crash can no longer leave it empty.** On the
+  reference server `state.json` was found at exactly 0 bytes on 2026-09-30, with 643 cached
+  originals beside it — and since at least 2026-09-27 the plugin had refused to do anything,
+  nightly and on every image change. The file was written with a truncating `File.WriteAllText`
+  after every badged item, and the VM had been killed hard by the host's out-of-memory killer on
+  five nights in a row, each a few minutes after the nightly run starts. A truncated file whose new
+  content never reached the disk is exactly what that leaves. That the file was empty and not
+  merely damaged is measured: only an empty input makes the JSON reader report "no JSON tokens" at
+  line 0, byte 0 — whitespace, NUL bytes and cut-off JSON each give a different message.
+
+  The state file and the cached originals now go to a sibling file first, are forced to disk and
+  then take the old file's place by a rename, so a reader finds the old content or the new one and
+  never anything between.
+
+- **The record is written before the upload, not only after it.** Between Jellyfin storing the
+  badged image and the plugin writing its record there was a moment in which a crash left a badged
+  cover nobody knew about — and the next run took it for a new cover from a provider, cached it as
+  the original and drew a badge on top of it. The record now announces the image it is about to
+  upload; the next run recognises that image as its own and only confirms it. The announcement is
+  kept apart from what is known to be on the item, so a crash *before* the upload is read correctly
+  as well. This relies on Jellyfin storing an upload byte for byte, which `ImageSaver.SaveImage`
+  does on 10.11 and on `master` (`CopyToAsync`, no re-encoding); should the stored bytes ever
+  differ, the run says so.
+
+- **A cached original without a record is no longer overwritten.** It means the record was lost,
+  and carrying on as a first run would cache the cover on the item — possibly already badged — over
+  the only clean copy. Such an item is now left alone and reported as `RecordMissing`, with the way
+  out named in the log. Saving and forgetting an original now also clear every extension of it, so
+  a cover that came back in another format cannot leave a stale file behind that would trip this.
+
+- **The error message for an unreadable state file gave advice that could not work.** It said to
+  run "Remove poster overlays" and then delete the file. The removal task reads the same file and
+  fails on the same line; deleting the file was the dangerous half — the next run would have cached
+  every badged cover as its original, overwriting the clean copies, and drawn on top. It now says
+  not to delete the file and names the rebuild.
+
+### Added
+
+- **A task that works the records out again from the cached originals: "Rebuild poster overlay
+  state".** For each cached original it draws today's badges onto it and compares the result with
+  the cover on the item. A match — byte for byte, or the same picture within JPEG noise — becomes a
+  record again; an item that shows its original anyway loses its redundant cached copy; everything
+  else is named in the log and left exactly as it is. The unreadable file is kept, renamed to
+  `state.json.unreadable-<time>`. It respects the dry run switch, and should be run with it on first.
+
+  "The same picture" is measured, not guessed. The comparison takes the worst 16×16 block rather
+  than an average, because a badge is a few hundred pixels out of a million and an average drowns
+  it. On textured posters of 400 to 1000 pixels width, re-encoding a badged cover once or twice
+  differed by at most 7.1; one letter of one badge ("4K" against "8K") by at least 41.9. The
+  threshold of 16 keeps a factor of two to both, and a test asserts both sides. SkiaSharp 3.116
+  (Jellyfin 10.11) and 3.119 (Jellyfin 12) turned out to produce byte-identical renders — measured
+  with the Windows builds of the native library, so the picture comparison stays as the fallback.
+
 ### Changed
 
 - **The preview picker's search now tells the server not to collapse box sets.** It changes
